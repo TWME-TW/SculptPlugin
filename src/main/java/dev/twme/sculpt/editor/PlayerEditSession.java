@@ -30,6 +30,7 @@ import dev.twme.sculpt.core.SculptBlock;
 import dev.twme.sculpt.core.VariantResolution;
 import dev.twme.sculpt.plugin.BlockPosKey;
 import dev.twme.sculpt.transport.bukkit.BukkitTransportSession;
+import dev.twme.sculpt.util.BlockEditSounds;
 import dev.twme.sculpt.util.InteractionSpawner;
 import dev.twme.sculpt.util.MessageUtil;
 
@@ -297,7 +298,12 @@ public final class PlayerEditSession {
             if (wholeBlock == null) return;
             final Block target = wholeBlock.pos.getBlock();
             if (!canEdit(target)) return;
+            final BlockData removedMaterial = firstPresentMaterialInRange(
+                wholeBlock, 0, 0, 0, GridCell.OCTREE_GRID_SIZE);
+            if (removedMaterial == null) return;
+            final Location soundLocation = wholeBlock.centerLoc();
             wholeBlock.removeRange(0, 0, 0, 16);
+            BlockEditSounds.playBreak(soundLocation, removedMaterial);
             return;
         }
 
@@ -333,15 +339,24 @@ public final class PlayerEditSession {
         removeAtHit(sb, pg, hoveredHit);
     }
 
-    private void removeAtHit(SculptBlock sb, int pg, VirtualGridHit hit) {
-        int pgDepth = Integer.bitCount(pg - 1); // log2(playerGrid)
-        int side = 16 / pg;
-        int cx = hit.grid16CenterX(pg);
-        int cy = hit.grid16CenterY(pg);
-        int cz = hit.grid16CenterZ(pg);
+    private boolean removeAtHit(SculptBlock sb, int pg, VirtualGridHit hit) {
+        final int pgDepth = Integer.bitCount(pg - 1); // log2(playerGrid)
+        final int side = GridCell.OCTREE_GRID_SIZE / pg;
+        final int minX = hit.grid16MinX(pg);
+        final int minY = hit.grid16MinY(pg);
+        final int minZ = hit.grid16MinZ(pg);
+        final int cx = hit.grid16CenterX(pg);
+        final int cy = hit.grid16CenterY(pg);
+        final int cz = hit.grid16CenterZ(pg);
 
-        OctreeNode leaf = sb.leafAt(cx, cy, cz);
-        if (leaf == null) return;
+        final OctreeNode leaf = sb.leafAt(cx, cy, cz);
+        if (leaf == null) return false;
+        final BlockData removedMaterial = firstPresentMaterialInRange(
+            sb, minX, minY, minZ, side);
+        if (removedMaterial == null) return false;
+        final Location soundLocation = cellSoundLocation(
+            sb, minX, minY, minZ, side);
+        boolean changed = false;
 
         // 中心點 leaf 已移除，但此 player-grid 區域內可能還有其他
         // 更精細的非移除 cell（DDA 已確認有內容才傳回 hit）。
@@ -349,35 +364,31 @@ public final class PlayerEditSession {
         // remove() 會跳過已移除的葉子，僅處理實際需移除的。
         if (leaf.isRemoved()) {
             if (leaf.depth() > pgDepth) {
-                sb.removeRange(
-                    hit.grid16MinX(pg),
-                    hit.grid16MinY(pg),
-                    hit.grid16MinZ(pg),
-                    side);
+                sb.removeRange(minX, minY, minZ, side);
+                changed = true;
             }
-            return;
-        }
-
-        // A texture copied from a held player head is one atomic cell. A
-        // finer player grid removes that entire cell instead of subdividing it.
-        if (leaf.playerHeadTexture() != null && leaf.depth() < pgDepth) {
+        } else if (leaf.playerHeadTexture() != null && leaf.depth() < pgDepth) {
+            // A texture copied from a held player head is one atomic cell. A
+            // finer player grid removes that entire cell instead of subdividing it.
             sb.remove(leaf);
-            return;
-        }
-
-        if (leaf.depth() == pgDepth) {
+            changed = true;
+        } else if (leaf.depth() == pgDepth) {
             sb.remove(leaf);
+            changed = true;
         } else if (leaf.depth() < pgDepth) {
             sb.ensureDepthAt(cx, cy, cz, pgDepth);
-            OctreeNode target = sb.leafAt(cx, cy, cz);
-            if (target != null) sb.remove(target);
+            final OctreeNode target = sb.leafAt(cx, cy, cz);
+            if (target != null && !target.isRemoved()) {
+                sb.remove(target);
+                changed = true;
+            }
         } else {
-            sb.removeRange(
-                hit.grid16MinX(pg),
-                hit.grid16MinY(pg),
-                hit.grid16MinZ(pg),
-                side);
+            sb.removeRange(minX, minY, minZ, side);
+            changed = true;
         }
+
+        if (changed) BlockEditSounds.playBreak(soundLocation, removedMaterial);
+        return changed;
     }
 
     /**
@@ -437,35 +448,41 @@ public final class PlayerEditSession {
         final OctreeNode leaf = block.leafAt(centerX, centerY, centerZ);
         if (leaf == null || !leaf.isRemoved()) return;
         if (!canEdit(block.pos.getBlock())) return;
+        final BlockData placedMaterial = replacement == null
+            ? materialOf(block, leaf) : replacement.blockData();
+        final Location soundLocation = cellSoundLocation(
+            block,
+            centerX / side * side,
+            centerY / side * side,
+            centerZ / side * side,
+            side);
+        final boolean restored;
 
         if (replacement != null && replacement.isTexturedPlayerHead()) {
-            restoreAtomicHeadCell(
+            restored = restoreAtomicHeadCell(
                 block, leaf, centerX, centerY, centerZ, gridDepth, replacement);
-            return;
-        }
-
-        // Restoring an already stored atomic head through Sculpt mode keeps its
-        // original size even when the current player grid is finer.
-        if (replacement == null && leaf.playerHeadTexture() != null
+        } else if (replacement == null && leaf.playerHeadTexture() != null
                 && leaf.depth() <= gridDepth) {
+            // Restoring an already stored atomic head through Sculpt mode keeps its
+            // original size even when the current player grid is finer.
             block.restore(leaf);
-            return;
-        }
-
-        if (leaf.depth() == gridDepth) {
-            restoreLeaf(block, leaf, replacement);
+            restored = true;
+        } else if (leaf.depth() == gridDepth) {
+            restored = restoreLeaf(block, leaf, replacement);
         } else if (leaf.depth() < gridDepth) {
-            restoreSubdividedCell(
+            restored = restoreSubdividedCell(
                 block, leaf, centerX, centerY, centerZ,
                 gridDepth, replacement);
         } else {
-            restoreCellRange(
+            restored = restoreCellRange(
                 block, centerX, centerY, centerZ,
                 side, replacement);
         }
+
+        if (restored) BlockEditSounds.playPlace(soundLocation, placedMaterial);
     }
 
-    private void restoreAtomicHeadCell(
+    private boolean restoreAtomicHeadCell(
             final SculptBlock block,
             final OctreeNode currentLeaf,
             final int centerX,
@@ -481,11 +498,12 @@ public final class PlayerEditSession {
             target = block.collapseRemovedRegionAt(
                 centerX, centerY, centerZ, targetDepth);
         }
-        if (target == null || !target.isLeaf() || !target.isRemoved()) return;
+        if (target == null || !target.isLeaf() || !target.isRemoved()) return false;
         replacement.applyTo(target);
         refreshMixedState(block);
         block.restore(target);
         refreshMixedState(block);
+        return true;
     }
 
     private boolean restoreGapTarget(@Nullable final CellMaterial replacement) {
@@ -504,7 +522,7 @@ public final class PlayerEditSession {
         return true;
     }
 
-    private void restoreSubdividedCell(
+    private boolean restoreSubdividedCell(
             final SculptBlock block,
             final OctreeNode coarseLeaf,
             final int centerX,
@@ -514,16 +532,17 @@ public final class PlayerEditSession {
             @Nullable final CellMaterial replacement) {
         final OctreeNode target = block.refineRemovedLeafAt(
             coarseLeaf, centerX, centerY, centerZ, targetDepth);
-        if (target == null || !target.isRemoved()) return;
+        if (target == null || !target.isRemoved()) return false;
         if (replacement != null) {
             replacement.applyTo(target);
             refreshMixedState(block);
         }
         block.restore(target);
         if (replacement != null) refreshMixedState(block);
+        return true;
     }
 
-    private void restoreCellRange(
+    private boolean restoreCellRange(
             final SculptBlock block,
             final int centerX,
             final int centerY,
@@ -540,6 +559,7 @@ public final class PlayerEditSession {
         }
         block.restoreRange(minX, minY, minZ, side);
         if (replacement != null) refreshMixedState(block);
+        return true;
     }
 
     private void setRemovedLeafMaterialInRange(
@@ -569,7 +589,7 @@ public final class PlayerEditSession {
             && leaf.minZ() < minZ + side && leaf.minZ() + leaf.side() > minZ;
     }
 
-    private static void restoreLeaf(
+    private static boolean restoreLeaf(
             final SculptBlock block,
             final OctreeNode leaf,
             @Nullable final CellMaterial replacement) {
@@ -579,6 +599,7 @@ public final class PlayerEditSession {
         }
         block.restore(leaf);
         if (replacement != null) refreshMixedState(block);
+        return true;
     }
 
     private static void refreshMixedState(final SculptBlock block) {
@@ -593,9 +614,47 @@ public final class PlayerEditSession {
     /** Resolution 1 right-click: restore the whole hovered SculptBlock. */
     public boolean restoreWholeBlock() {
         if (hoveredSculpt == null || !canEdit(hoveredSculpt.pos.getBlock())) return false;
-        hoveredSculpt.revert();
+        final SculptBlock restoredBlock = hoveredSculpt;
+        final Location soundLocation = restoredBlock.centerLoc();
+        final BlockData placedMaterial = restoredBlock.originalBlockData;
+        restoredBlock.revert();
+        BlockEditSounds.playPlace(soundLocation, placedMaterial);
         clearHoverState();
         return true;
+    }
+
+    @Nullable
+    private static BlockData firstPresentMaterialInRange(
+            final SculptBlock block,
+            final int minX,
+            final int minY,
+            final int minZ,
+            final int side) {
+        for (final OctreeNode leaf : block.root.collectLeaves()) {
+            if (!leaf.isRemoved() && overlaps(leaf, minX, minY, minZ, side)) {
+                return materialOf(block, leaf);
+            }
+        }
+        return null;
+    }
+
+    private static BlockData materialOf(
+            final SculptBlock block,
+            final OctreeNode leaf) {
+        return leaf.blockData() == null ? block.originalBlockData : leaf.blockData();
+    }
+
+    private static Location cellSoundLocation(
+            final SculptBlock block,
+            final int minX,
+            final int minY,
+            final int minZ,
+            final int side) {
+        return new Location(
+            block.world,
+            block.pos.getBlockX() + (minX + side / 2.0) / GridCell.OCTREE_GRID_SIZE,
+            block.pos.getBlockY() + (minY + side / 2.0) / GridCell.OCTREE_GRID_SIZE,
+            block.pos.getBlockZ() + (minZ + side / 2.0) / GridCell.OCTREE_GRID_SIZE);
     }
 
     // ===== 生命週期 =====

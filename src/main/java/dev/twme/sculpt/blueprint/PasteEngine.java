@@ -34,6 +34,7 @@ import dev.twme.sculpt.core.SculptBlock;
 import dev.twme.sculpt.core.SculptDisplayMode;
 import dev.twme.sculpt.plugin.BlockPosKey;
 import dev.twme.sculpt.transport.bukkit.BukkitTransportSession;
+import dev.twme.sculpt.util.BlockEditSounds;
 import dev.twme.sculpt.util.FoliaRegionGuard;
 
 /**
@@ -89,10 +90,14 @@ public class PasteEngine {
         String accessError = regionAccessError(
             player, data, targetLoc, settings, clickedFace);
         if (accessError != null) return accessError;
-        if (data.hasBlockCollection()) {
-            return pasteBlockCollection(player, data, targetLoc, settings, clickedFace);
-        }
-        return pasteSingle(player, data, targetLoc, settings, clickedFace, null);
+        final BlockEditSounds.Batch editSounds = BlockEditSounds.batch();
+        final String error = data.hasBlockCollection()
+            ? pasteBlockCollection(
+                player, data, targetLoc, settings, clickedFace, editSounds)
+            : pasteSingle(
+                player, data, targetLoc, settings, clickedFace, null, editSounds);
+        if (error == null) editSounds.play();
+        return error;
     }
 
     /** Reject unsafe synchronous cross-region access before touching world state. */
@@ -123,7 +128,8 @@ public class PasteEngine {
     @Nullable
     private String pasteSingle(Player player, BlueprintData data, Location targetLoc,
                                PasteSettings settings, @Nullable BlockFace clickedFace,
-                               @Nullable Integer fixedRotationDegrees) {
+                               @Nullable Integer fixedRotationDegrees,
+                               BlockEditSounds.Batch editSounds) {
         World world = targetLoc.getWorld();
         if (world == null) return K + "paste.invalid_world";
 
@@ -230,11 +236,21 @@ public class PasteEngine {
 
         // 完全空白的結果代表刪除目標，不建立不可見的 BARRIER SculptBlock。
         if (allLeavesRemoved(resultTree)) {
+            BlockData removedData = existing == null
+                ? blockBeforePaste : firstNonRemovedBlockData(existing.root);
+            if (removedData == null && existing != null) {
+                removedData = existing.originalBlockData;
+            }
+            final boolean removedContent = existing != null
+                || !blockBeforePaste.getMaterial().isAir();
             if (existing != null) {
                 plugin.unregisterSculptBlock(posKey);
                 existing.despawn();
             }
             block.setType(Material.AIR);
+            if (removedContent) {
+                editSounds.recordBreak(blockCenter(block), removedData);
+            }
             return null;
         }
 
@@ -307,6 +323,7 @@ public class PasteEngine {
         if (target.displayMode() == SculptDisplayMode.HEAD) target.reRender();
         target.markPDCDirty();
         plugin.flushDirtyPDC();
+        editSounds.recordPlace(target.centerLoc(), constructorData);
 
         return null; // 成功
     }
@@ -330,7 +347,8 @@ public class PasteEngine {
     @Nullable
     private String pasteBlockCollection(Player player, BlueprintData data, Location targetLoc,
                                         PasteSettings settings,
-                                        @Nullable BlockFace clickedFace) {
+                                        @Nullable BlockFace clickedFace,
+                                        BlockEditSounds.Batch editSounds) {
         World world = targetLoc.getWorld();
         if (world == null) return K + "paste.invalid_world";
 
@@ -423,7 +441,8 @@ public class PasteEngine {
             Location location = new Location(world,
                 baseX + offset.x(), baseY + offset.y(), baseZ + offset.z());
             if (source.isRegularBlock()) {
-                pasteRegularBlock(location.getBlock(), placement.regularBlockData());
+                pasteRegularBlock(
+                    location.getBlock(), placement.regularBlockData(), editSounds);
                 continue;
             }
             BlueprintData single = new BlueprintData(
@@ -433,13 +452,15 @@ public class PasteEngine {
                 source.octreeData(), source.leafCoordinates(), data.referenceFacing(),
                 data.visibility(), data.editToken());
             String error = pasteSingle(
-                player, single, location, settings, clickedFace, rotationDegrees);
+                player, single, location, settings, clickedFace,
+                rotationDegrees, editSounds);
             if (error != null) return error;
         }
 
         if (settings.pasteAir()) {
             clearUnoccupiedBlocks(
-                world, baseX, baseY, baseZ, outputSize, occupied, settings.overwriteBlocks());
+                world, baseX, baseY, baseZ, outputSize, occupied,
+                settings.overwriteBlocks(), editSounds);
             plugin.flushDirtyPDC();
         }
         return null;
@@ -449,19 +470,25 @@ public class PasteEngine {
         return placement.source().isRegularBlock();
     }
 
-    private void pasteRegularBlock(Block block, BlockData data) {
+    private void pasteRegularBlock(
+            Block block,
+            BlockData data,
+            BlockEditSounds.Batch editSounds) {
         BlockPosKey key = BlockPosKey.of(block);
         SculptBlock existing = plugin.getActiveBlock(key);
+        final boolean changed = existing != null || !block.getBlockData().equals(data);
         if (existing != null) {
             plugin.unregisterSculptBlock(key, existing);
             existing.despawn();
         }
         block.setBlockData(data, false);
+        if (changed) editSounds.recordPlace(blockCenter(block), data);
     }
 
     private void clearUnoccupiedBlocks(World world, int baseX, int baseY, int baseZ,
                                        int[] outputSize, Set<BlockOffset> occupied,
-                                       boolean overwriteBlocks) {
+                                       boolean overwriteBlocks,
+                                       BlockEditSounds.Batch editSounds) {
         for (int x = 0; x < outputSize[0]; x++) {
             for (int y = 0; y < outputSize[1]; y++) {
                 for (int z = 0; z < outputSize[2]; z++) {
@@ -471,15 +498,28 @@ public class PasteEngine {
                     BlockPosKey key = BlockPosKey.of(block.getLocation());
                     SculptBlock existing = plugin.getActiveBlock(key);
                     if (existing != null) {
+                        BlockData removedData = firstNonRemovedBlockData(existing.root);
+                        if (removedData == null) removedData = existing.originalBlockData;
                         plugin.unregisterSculptBlock(key);
                         existing.despawn();
                         block.setType(Material.AIR);
+                        editSounds.recordBreak(blockCenter(block), removedData);
                     } else if (overwriteBlocks && !block.getType().isAir()) {
+                        final BlockData removedData = block.getBlockData().clone();
                         block.setType(Material.AIR);
+                        editSounds.recordBreak(blockCenter(block), removedData);
                     }
                 }
             }
         }
+    }
+
+    private static Location blockCenter(final Block block) {
+        return new Location(
+            block.getWorld(),
+            block.getX() + 0.5,
+            block.getY() + 0.5,
+            block.getZ() + 0.5);
     }
 
     // ====================== 輔助方法 ======================
@@ -871,7 +911,7 @@ public class PasteEngine {
     @Nullable
     private static BlockData firstNonRemovedBlockData(OctreeNode root) {
         for (OctreeNode leaf : root.collectLeaves()) {
-            if (leaf.blockData() != null) return leaf.blockData();
+            if (!leaf.isRemoved() && leaf.blockData() != null) return leaf.blockData();
         }
         return null;
     }

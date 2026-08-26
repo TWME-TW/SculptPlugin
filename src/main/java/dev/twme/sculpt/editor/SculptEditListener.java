@@ -49,6 +49,7 @@ import dev.twme.sculpt.core.VariantResolution;
 import dev.twme.sculpt.plugin.BlockPosKey;
 import dev.twme.sculpt.render.TextBlockRenderer;
 import dev.twme.sculpt.transport.bukkit.BukkitTransportSession;
+import dev.twme.sculpt.util.BlockEditSounds;
 import dev.twme.sculpt.util.FoliaScheduler;
 import dev.twme.sculpt.util.MessageUtil;
 
@@ -655,7 +656,13 @@ public final class SculptEditListener implements Listener {
         }
         if (existing != null) existing.despawn();
         replacement.enterSculpted();
-
+        BlockEditSounds.playPlace(
+            new Location(
+                targetBlock.getWorld(),
+                targetBlock.getX() + (targetCell.x() + 0.5) / gridSize,
+                targetBlock.getY() + (targetCell.y() + 0.5) / gridSize,
+                targetBlock.getZ() + (targetCell.z() + 0.5) / gridSize),
+            sourceMaterial.blockData());
     }
 
     private boolean canReplaceEdgeTarget(
