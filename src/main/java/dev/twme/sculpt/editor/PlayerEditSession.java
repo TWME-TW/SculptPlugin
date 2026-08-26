@@ -122,6 +122,13 @@ public final class PlayerEditSession {
         final int pg = livePlayerGrid();
         final HoverEngine.ViewRay ray = HoverEngine.ViewRay.from(player);
 
+        // Paper's entity ray trace can omit an Interaction when the ray starts
+        // inside its hitbox. This happens in particular when a scaled-down
+        // player's eye is inside an AIR-backed SculptBlock. Resolve that one
+        // registry position first so its internal cells cannot be skipped in
+        // favour of a normal block farther along the ray.
+        if (traceContainingSculpt(ray, pg)) return pg;
+
         // Resolve the closest real block or Sculpt Interaction in one world query.
         // Partial adaptive blocks are AIR, so their Interaction wins naturally;
         // a solid block in front of one wins without a second blocker trace.
@@ -176,7 +183,7 @@ public final class PlayerEditSession {
         }
 
         final Block targetBlock = targetResult == null ? null : targetResult.getHitBlock();
-        if (targetBlock == null || targetBlock.getType().isAir()) {
+        if (targetBlock == null || isAir(targetBlock.getType())) {
             this.hoveredHit = null;
             this.hoveredSculpt = null;
             return pg;
@@ -216,6 +223,39 @@ public final class PlayerEditSession {
             this.hoveredSculpt = null;
         }
         return pg;
+    }
+
+    /**
+     * Trace the active SculptBlock containing the ray origin, if any. Returning
+     * {@code true} means the containing position handled the complete ray,
+     * including traversal through an empty path into later world blocks.
+     */
+    private boolean traceContainingSculpt(
+            final HoverEngine.ViewRay ray,
+            final int pg) {
+        if (blockLookup == null) return false;
+
+        final SculptBlock containing = blockLookup.apply(BlockPosKey.of(ray.eye()));
+        if (containing == null || containing.state != SculptBlock.State.SCULPTED) {
+            return false;
+        }
+
+        final Block containingBlock = containing.pos.getBlock();
+        final FaceDir entryFace = HoverEngine.computeHitFaceSlab(
+            ray, containingBlock);
+        final VirtualGridHit hit = HoverEngine.traceSculpt(
+            ray, containing, pg, containingBlock, entryFace);
+        if (hit != null) {
+            this.hoveredHit = hit;
+            this.hoveredSculpt = containing;
+            return true;
+        }
+
+        if (!traceWorldGap(ray, containing, pg)) {
+            this.hoveredHit = null;
+            this.hoveredSculpt = null;
+        }
+        return true;
     }
 
     private static FaceDir hitFace(

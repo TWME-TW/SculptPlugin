@@ -19,6 +19,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Slab;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
@@ -38,6 +39,7 @@ import dev.twme.sculpt.transport.TransportSession;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,6 +90,51 @@ class PlayerEditSessionTest {
         assertEquals(1, combinedTraces.get());
         assertEquals(0, entityTraces.get());
         assertEquals(0, blockTraces.get());
+    }
+
+    @Test
+    void eyeInsideSculptTargetsContainingCellBeforeExternalBlock() {
+        final RayWorld rayWorld = new RayWorld();
+        final CountingHeadResolver resolver = new CountingHeadResolver();
+        final SculptBlock sculpt = rayWorld.addSculpt(0, 64, 0, resolver);
+        sculpt.leafAt(4, 12, 12).remove();
+        rayWorld.setMaterial(1, 64, 0, Material.STONE);
+        final Block external = rayWorld.block(1, 64, 0);
+        rayWorld.setCombinedRayResult(new RayTraceResult(
+            new Vector(1, 64.75, 0.75), external, BlockFace.WEST));
+
+        final Player player = rayPlayer(
+            rayWorld.world(), 0.25, 64.75, 0.75, new Vector(1, 0, 0));
+        final PlayerEditSession session = raySession(player, rayWorld, 2);
+
+        assertEquals(2, session.tickHoverAndGetGrid());
+        assertSame(sculpt, session.getHoveredSculpt());
+        assertEquals(1, session.getHoveredHit().pgx());
+        assertEquals(1, session.getHoveredHit().pgy());
+        assertEquals(1, session.getHoveredHit().pgz());
+        assertEquals(FaceDir.WEST, session.getHoveredHit().face());
+    }
+
+    @Test
+    void eyeInsideSculptCanStillTraceThroughAnEmptyPath() throws Exception {
+        final RayWorld rayWorld = new RayWorld();
+        final CountingHeadResolver resolver = new CountingHeadResolver();
+        final SculptBlock sculpt = rayWorld.addSculpt(0, 64, 0, resolver);
+        removeWestEastRayCells(sculpt);
+        rayWorld.setMaterial(1, 64, 0, Material.STONE);
+        final Block external = rayWorld.block(1, 64, 0);
+        rayWorld.setCombinedRayResult(new RayTraceResult(
+            new Vector(1, 64.75, 0.75), external, BlockFace.WEST));
+
+        final Player player = rayPlayer(
+            rayWorld.world(), 0.25, 64.75, 0.75, new Vector(1, 0, 0));
+        final PlayerEditSession session = raySession(player, rayWorld, 2);
+
+        assertEquals(2, session.tickHoverAndGetGrid());
+        assertNull(session.getHoveredSculpt());
+        assertSame(external, session.getHoveredHit().block());
+        assertTrue(session.hasGapRestoreTarget());
+        assertSame(sculpt, fieldValue(session, "gapRestoreSculpt"));
     }
 
     @Test
@@ -606,12 +653,15 @@ class PlayerEditSessionTest {
         private final Map<BlockPosKey, AtomicReference<Material>> materials = new HashMap<>();
         private final Map<BlockPosKey, Block> blocks = new HashMap<>();
         private final Map<BlockPosKey, SculptBlock> sculpts = new HashMap<>();
+        private final AtomicReference<RayTraceResult> combinedRayResult =
+            new AtomicReference<>();
         private final World world;
 
         RayWorld() {
             this.world = interfaceProxy(World.class, Map.of(
                 "getName", args -> "world",
-                "getBlockAt", this::blockAt));
+                "getBlockAt", this::blockAt,
+                "rayTrace", args -> combinedRayResult.get()));
         }
 
         World world() {
@@ -632,6 +682,10 @@ class PlayerEditSessionTest {
 
         SculptBlock sculptAt(final BlockPosKey key) {
             return sculpts.get(key);
+        }
+
+        void setCombinedRayResult(final RayTraceResult result) {
+            combinedRayResult.set(result);
         }
 
         void setMaterial(final int x, final int y, final int z, final Material material) {
