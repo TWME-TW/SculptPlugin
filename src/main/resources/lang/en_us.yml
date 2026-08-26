@@ -1,0 +1,392 @@
+# English (US) translations for Sculpt
+# Messages use MiniMessage format — see https://docs.advntr.dev/minimessage/format.html
+languageVersion: 2
+
+general:
+  prefix: "<#478FC6>[Sculpt]</#478FC6>"
+  no_permission: "<#CE5F4E>You don't have permission to use this command."
+  required_perm: "<#C2C7D3>Required: <white>{0}"
+  player_only: "<#CE5F4E>This command must be run by a player."
+  reload_success: "<#5FBA6B>Config reloaded (defaultGridSize=<white>{0}<#5FBA6B>)."
+  reload_failed: "<#CE5F4E>Config error: <white>{0}"
+
+command:
+  sculpt:
+    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|tool|blueprint|heads|admin>"
+    unknown_subcommand: "<#CE5F4E>Unknown subcommand: <white>{0}"
+
+    help:
+      header: "<#478FC6><bold>Sculpt commands</bold> <dark_gray>— one entry point, grouped by task"
+      sculpting_header: "<#7A8B9C>Sculpting"
+      resolution: "<click:suggest_command:/sculpt resolution ><#C2C7D3>  /sculpt <white>resolution <dark_gray>— grid density</click>"
+      preview: "<click:suggest_command:/sculpt preview ><#C2C7D3>  /sculpt <white>preview <dark_gray>— hover overlay</click>"
+      mode: "<click:suggest_command:/sculpt mode ><#C2C7D3>  /sculpt <white>mode <dark_gray>— turn SculptMode on or off</click>"
+      fill: "<click:suggest_command:/sculpt fill ><#C2C7D3>  /sculpt <white>fill <dark_gray>— barrier, shulker, or no fill</click>"
+      display: "<click:suggest_command:/sculpt display ><#C2C7D3>  /sculpt <white>display <dark_gray>— head, TextDisplay, or automatic rendering</click>"
+      convert: "<click:suggest_command:/sculpt convert ><#C2C7D3>  /sculpt <white>convert <dark_gray>— change existing block fill</click>"
+      replace: "<click:suggest_command:/sculpt replace ><#C2C7D3>  /sculpt <white>replace <dark_gray>— replace selected block materials</click>"
+      relight: "<click:run_command:/sculpt relight><#C2C7D3>  /sculpt <white>relight <dark_gray>— restore automatic TextDisplay lighting</click>"
+      content_header: "<#7A8B9C>Tools and content"
+      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— get a region or blueprint selector</click>"
+      blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— save and share builds</click>"
+      heads: "<click:suggest_command:/sculpt heads ><#C2C7D3>  /sculpt <white>heads <dark_gray>— browse baked heads</click>"
+      admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  Administration: <white>admin</click>"
+      admin_usage: "<#C2C7D3>/sculpt admin <list|teleport|reload|status>"
+      hint: "<#7A8B9C>Use tab completion or <white>/sculpt help<#7A8B9C> to explore commands available to you."
+
+    grid:
+      player_only: "<#CE5F4E>/sculpt resolution must be run by a player."
+      invalid_grid: "<#CE5F4E>gridN must be one of: 1, 2, 4, 8, 16"
+      no_permission_grid: "<#CE5F4E>You don't have permission to use grid size <white>{0}<#CE5F4E>."
+      required_perm: "<#C2C7D3>Required: <white>sculpt.command.resolution.{0}"
+      look_at_block: "<#C2C7D3>Look at a block to see the grid preview."
+      set: "<#C2C7D3>Grid size set to <white>{0}<#C2C7D3>."
+      invalid_grid_arg: "<#CE5F4E>Invalid gridN: <white>{0}"
+      current: "<#C2C7D3>Current grid size: <white>{0}<#C2C7D3>. Turn on Sculpt mode to edit."
+
+
+
+    preview:
+      player_only: "<#CE5F4E>/sculpt preview must be run by a player."
+      enabled: "<#5FBA6B>Hover preview: <white>ON"
+      disabled: "<#E8C96D>Hover preview: <white>OFF"
+      usage: "<#CE5F4E>Usage: <#D1968C>/sculpt preview [on|off]"
+
+    replace:
+      player_only: "<#CE5F4E>/sculpt replace must be run by a player."
+      usage: "<#C2C7D3>Usage: <#D1968C>/sculpt replace <block-data>"
+      no_selection: "<#CE5F4E>Select a complete region first with the selection wand."
+      invalid_material: "<#CE5F4E>Invalid block material or block data: <white>{0}"
+      non_bakeable: "<#CE5F4E>The replacement material cannot be baked: <white>{0}"
+      too_large: "<#CE5F4E>The selected volume ({0}) exceeds the replacement limit ({1})."
+      not_ready: "<#E8C96D>Sculpt textures are still loading; try again shortly."
+      already_running: "<#E8C96D>You already have a region material replacement in progress."
+      started: "<#E8C96D>Analyzing up to {1} selected blocks and replacing them with <white>{0}<#E8C96D>..."
+      completed: "<#5FBA6B>Material replacement complete: <white>{0}<#5FBA6B> vanilla blocks, <white>{1}<#5FBA6B> existing SculptBlocks, and <white>{2}<#5FBA6B> visual shapes converted to SculptBlocks."
+      no_changes: "<#C2C7D3>No non-air blocks in the selection needed replacement."
+      protected: "<#CE5F4E>Skipped {0} block(s) in protected areas."
+      no_collision: "<#E8C96D>Skipped {0} source block(s) without collision."
+      unsupported_source: "<#E8C96D>Skipped {0} source block(s) whose visual model is not supported."
+      blocked_source: "<#E8C96D>Skipped {0} source block(s) because their visual shape touched a preserved block."
+      stale: "<#E8C96D>Skipped {0} position(s) changed while models were being analyzed."
+      out_of_bounds: "<#CE5F4E>A visual model extends outside the selection at <white>{0}<#CE5F4E>. Expand the selection and retry; nothing was changed."
+      too_many_leaves: "<#CE5F4E>The visual result needs {0} Sculpt leaves, above the configured limit of {1}; nothing was changed."
+      limit_reached: "<#CE5F4E>The operation needs {0} additional SculptBlock slot(s), but the server limit has been reached; nothing was changed."
+      preflight_failed: "<#CE5F4E>Could not analyze the selected visual models; nothing was changed. See the server log."
+      failed: "<#CE5F4E>{0} block position(s) failed; see the server log."
+
+    relight:
+      player_only: "<#CE5F4E>/sculpt relight must be run by a player."
+      usage: "<#C2C7D3>Usage: <#D1968C>/sculpt relight"
+      no_selection: "<#CE5F4E>Select a complete region first with the selection wand."
+      no_blocks: "<#C2C7D3>The selection contains no active SculptBlocks."
+      already_running: "<#E8C96D>You already have a TextDisplay lighting reset in progress."
+      started: "<#E8C96D>Restoring automatic TextDisplay lighting for {0} active SculptBlock(s)..."
+      completed: "<#5FBA6B>Lighting reset complete: checked <white>{0}<#5FBA6B> SculptBlock(s) and <white>{1}<#5FBA6B> TextDisplay(s); cleared <white>{2}<#5FBA6B> brightness override(s)."
+      failed: "<#CE5F4E>{0} SculptBlock(s) failed; see the server log."
+
+    page:
+      previous_hover: "<#5FBA6B>Previous page</#5FBA6B>"
+      next_hover: "<#5FBA6B>Next page</#5FBA6B>"
+      info: "<#7A8B9C>Page <white>{0}<#7A8B9C>/<white>{1}"
+
+    list:
+      player_only: "<#CE5F4E>/sculpt admin list must be run by a player."
+      empty: "<#C2C7D3>No active SculptBlocks in this world."
+      header: "<#478FC6>Active SculptBlocks <dark_gray>({0})<#C2C7D3>: <#7A8B9C>click to TP"
+      entry: "<click:run_command:/sculpt admin teleport {0}><#C2C7D3>  {0}</click> <dark_gray>{1} <#C2C7D3>[{2} leaves]"
+      invalid_page: "<#CE5F4E>Page must be an integer."
+      read_failed: "<#CE5F4E>Could not read the active SculptBlock list; see the server log."
+
+    status:
+      loading: "<#E8C96D>Health: LOADING (configured gridN={0})."
+      ready: "<#5FBA6B>Health: READY. gridN={0}, indexed blocks={1}, all grids={2}, runtime bake={3}."
+      degraded: "<#E8C96D>Health: DEGRADED. No heads for gridN={0} and runtime baking is disabled; HEAD uses placeholders while TEXTDISPLAY and AUTO fallback remain available."
+      failed: "<#CE5F4E>Health: FAILED. {0}"
+
+    tp:
+      player_only: "<#CE5F4E>/sculpt admin teleport must be run by a player."
+      usage: "<#CE5F4E>Usage: <#D1968C>/sculpt admin teleport <world,x,y,z>"
+      invalid_format: "<#CE5F4E>Invalid location format: <white>{0}<#CE5F4E>. Expected: <white>world,x,y,z"
+      world_not_found: "<#CE5F4E>World not found: <white>{0}"
+      teleported: "<#5FBA6B>Teleported to <white>{0}"
+      failed: "<#CE5F4E>Teleport failed: <white>{0}"
+
+
+  sculpt_edit:
+    non_bakeable_block: "<#CE5F4E>This block cannot be sculpted into smaller cells."
+    display_incompatible: "<#CE5F4E>Your selected display cannot render <white>{0}<#CE5F4E>; choose a compatible display first."
+    player_head_grid_required: "<#CE5F4E>Player-head cells require a resolution above 1x1x1."
+    player_head_without_texture: "<#CE5F4E>This player head has no texture to place."
+    limit_reached: "<#CE5F4E>The active SculptBlock limit has been reached."
+    protected_region: "<#CE5F4E>You cannot edit blocks in this protected area."
+
+  grid_cycle:
+    no_others: "<#C2C7D3>Grid size: <white>{0}<#C2C7D3> (no other sizes available)"
+    cycled: "<#C2C7D3>Grid size cycled: <white>{0} <#C2C7D3>→ <white>{1}"
+
+  sculptheads:
+    usage: "<#C2C7D3>Usage: <#D1968C>/sculpt heads [search <search> [grid]]"
+    search:
+      usage: "<#CE5F4E>Usage: <#D1968C>/sculpt heads search <search> [grid]"
+      invalid_grid: "<#CE5F4E>Invalid grid: <white>{0}<#CE5F4E>. Must be 2, 4, 8, or 16."
+
+wand_tool:
+  name: "<#E8C96D>Selection <white>Wand</#E8C96D>"
+
+command.sculpt.convert:
+  usage: "<#C2C7D3>Usage: <#D1968C>/sculpt convert <barrier|shulker|null> [region|single]"
+  player_only: "<#CE5F4E>/sculpt convert must be run by a player."
+  changing: "<#E8C96D>Changing {0} SculptBlock(s) to <white>{1}<#E8C96D> fill..."
+  changed: "<#5FBA6B>Changed {0} SculptBlock(s) to <white>{1}<#5FBA6B> fill."
+  convert_failed: "<#CE5F4E>Conversion failed: {0}"
+  failed: "<#CE5F4E>{0} SculptBlock conversion(s) failed; see the server log."
+  protected: "<#CE5F4E>Skipped {0} SculptBlock(s) in protected areas."
+  no_selection: "<#CE5F4E>Select a region first with the selection wand."
+  no_target: "<#CE5F4E>No SculptBlock found at target position."
+  already: "<#C2C7D3>Target SculptBlock already uses <white>{0}<#C2C7D3> fill."
+  not_initialized: "<#CE5F4E>Fill converter not initialized."
+
+# Wand tool selection messages (used by WandListener)
+wandtool:
+  pos1: "<#C2C7D3>Position 1 set to <white>{0}, {1}, {2}"
+  pos2: "<#C2C7D3>Position 2 set to <white>{0}, {1}, {2}"
+  cleared: "<#C2C7D3>Selection cleared"
+  volume: "<#C2C7D3>Region: <white>{0} × {1} × {2} = {3} blocks"
+
+command.sculpt.blueprint:
+  player_only: "<#CE5F4E>This command must be run by a player."
+  admin_only: "<#CE5F4E>This command is admin-only."
+  disabled: "<#CE5F4E>The blueprint system is disabled by configuration."
+  invalid_argument: "<#CE5F4E>Invalid value for {0}."
+  usage_header: "<#7A8B9C>=== <white>Blueprint Commands <#7A8B9C>==="
+  usage_save: "<#7A8B9C>/sculpt blueprint save <name> [--public]"
+  usage_list: "<#7A8B9C>/sculpt blueprint list [--public] [--page <n>]"
+  usage_delete: "<#7A8B9C>/sculpt blueprint delete <name>"
+  usage_bind: "<#7A8B9C>/sculpt blueprint bind/unbind <name> [--rotate <mode>]"
+  usage_download: "<#7A8B9C>/sculpt blueprint download <url>"
+  usage_publish: "<#7A8B9C>/sculpt blueprint publish <name> [--visibility <mode>] [--description <text>]"
+  usage_unpublish: "<#7A8B9C>/sculpt blueprint unpublish <name|UUID>"
+  usage_export: "<#7A8B9C>/sculpt blueprint export <name>"
+  usage_import: "<#7A8B9C>/sculpt blueprint import <filename>"
+  folia_cross_region: "<#CE5F4E>The blueprint area is not fully owned by your current Folia region. Move closer or use a smaller area."
+
+  save:
+    usage: "<#7A8B9C>/sculpt blueprint save <name> [--public]"
+    success: "<#5FBA6B>Blueprint saved: <white>{0}"
+    invalid_name: "<#CE5F4E>Name must contain 1-64 characters."
+    no_selection: "<#CE5F4E>Select a SculptBlock first (left-click with selector tool)."
+    empty_selection: "<#CE5F4E>The selected region currently contains no non-air blocks."
+    limit_reached: "<#CE5F4E>Blueprint limit reached. Delete some blueprints first."
+    write_error: "<#CE5F4E>Failed to write blueprint file."
+    no_public_perm: "<#CE5F4E>You don't have permission to publish public blueprints."
+
+  select:
+    success: "<#5FBA6B>Blueprint source selected at <white>{0}, {1}, {2}<#5FBA6B>."
+    not_sculpt: "<#CE5F4E>The selected block is not a SculptBlock."
+    first_corner: "<#5FBA6B>First corner set at <white>{0}, {1}, {2}<#5FBA6B>. Right-click to set the second corner."
+    cuboid_success: "<#5FBA6B>Cuboid selected at second corner <white>{0}, {1}, {2}<#5FBA6B>. Press Q for single/paste mode, then right-click to paste."
+    first_corner_required: "<#CE5F4E>Left-click to set the cuboid's first corner first."
+    different_world: "<#CE5F4E>Both cuboid corners must be in the same world."
+    too_large: "<#CE5F4E>The selected region exceeds the server's volume limit."
+    mode_cuboid: "<#D1968C>Blueprint selection mode: <white>Cuboid<#D1968C> (left first corner, right second corner)"
+    mode_single: "<#D1968C>Blueprint selection mode: <white>Single / paste"
+    cleared: "<#C2C7D3>Blueprint selection cancelled."
+
+  paste:
+    success: "<#5FBA6B>Blueprint pasted: <white>{0}"
+    not_found: "<#CE5F4E>Blueprint not found: {0}"
+    invalid_world: "<#CE5F4E>The paste target is not in a valid world."
+    invalid_settings: "<#CE5F4E>Invalid rotation or flip settings."
+    invalid_data: "<#CE5F4E>The blueprint failed structural validation."
+    deserialize_error: "<#CE5F4E>The blueprint octree is malformed."
+    protected_region: "<#CE5F4E>You cannot paste a blueprint in this protected area."
+    block_in_way: "<#CE5F4E>A solid block is in the way. Enable overwrite to replace it."
+    limit_reached: "<#CE5F4E>The active SculptBlock limit has been reached."
+    create_failed: "<#CE5F4E>Could not create the SculptBlock."
+    unsupported_display: "<#CE5F4E>The selected display cannot render one or more SculptBlock materials in this blueprint."
+
+  list:
+    header_private: "<#7A8B9C>=== <white>Private Blueprints <#7A8B9C>({0} total) ==="
+    header_public: "<#7A8B9C>=== <white>Public Blueprints <#7A8B9C>({0} total) ==="
+    empty_private: "<#7A8B9C>No saved blueprints."
+    empty_public: "<#7A8B9C>No public blueprints yet."
+    entry: "<gold>{0}. <white>{1} <#7A8B9C>grid={2} <dark_gray>{3}"
+    read_error: "<#CE5F4E>Failed to read blueprint list: {0}"
+    folder_header: "<#7A8B9C>=== Folders ==="
+    folder_entry: "<click:run_command:/sculpt blueprint list {1}><#E8C96D>  📁 {1}</click>"
+
+  delete:
+    usage: "<#7A8B9C>/sculpt blueprint delete <name>"
+    success: "<#5FBA6B>Blueprint deleted: <white>{0}"
+    not_found: "<#CE5F4E>Blueprint not found: {0}"
+    failed: "<#CE5F4E>Failed to delete: {0}"
+
+  rename:
+    usage: "<#7A8B9C>/sculpt blueprint rename <name> <newName>"
+    success: "<#5FBA6B>Blueprint renamed to: <white>{0}"
+    not_found: "<#CE5F4E>Blueprint not found: {0}"
+    invalid_name: "<#CE5F4E>Name must be 1-64 characters."
+    failed: "<#CE5F4E>Failed to rename blueprint."
+
+  download:
+    usage: "<#7A8B9C>/sculpt blueprint download <url>"
+    started: "<#7A8B9C>Downloading and validating blueprint..."
+    success: "<#5FBA6B>Blueprint downloaded."
+    invalid_url: "<#CE5F4E>Invalid URL format."
+    domain_not_allowed: "<#CE5F4E>Downloads from this domain are not allowed."
+    expired: "<#CE5F4E>This blueprint has expired."
+    http_error: "<#CE5F4E>Server responded with an error."
+    format_error: "<#CE5F4E>Server response was not valid JSON."
+    too_large: "<#CE5F4E>Blueprint too large to download."
+    invalid_data: "<#CE5F4E>Downloaded blueprint data is invalid."
+    failed: "<#CE5F4E>Download failed."
+
+  bind:
+    usage: "<#7A8B9C>/sculpt blueprint bind <name> [--pasteAir|--no-pasteAir] [--overwrite] [--adhesive] [--rotate <mode>] [--ry <deg>] [--flip <axis>]"
+    success: "<#5FBA6B>Bound blueprint <white>{0} <#5FBA6B>to <white>{1}"
+    not_found: "<#CE5F4E>Blueprint not found: {0}"
+    empty_hand: "<#CE5F4E>Your main hand must not be empty."
+    cannot_modify: "<#CE5F4E>Cannot modify that item."
+    item_name: "<#478FC6>Blueprint: <white>{0}"
+    item_lore:
+      - "<#7A8B9C>Grid: <white>{0}<#7A8B9C> | <white>{1}"
+      - "<#C2C7D3>Right-click to paste</#C2C7D3>"
+
+  unbind:
+    success: "<#5FBA6B>Blueprint unbound."
+    not_bound: "<#7A8B9C>This item has no blueprint binding."
+
+  give:
+    usage: "<#7A8B9C>/sculpt blueprint give <name> [player]"
+    success: "<#5FBA6B>Received blueprint item: <white>{0}"
+    not_found: "<#CE5F4E>Blueprint not found: {0}"
+
+  settings:
+    usage: "<#7A8B9C>Usage: /sculpt blueprint settings [--pasteAir|--no-pasteAir] [--overwrite|--no-overwrite] [--adhesive|--no-adhesive] [--rotate <mode>] [--ry <deg>]"
+    header: "<#7A8B9C>=== Your Paste Settings ==="
+    pasteAir: "<#7A8B9C>  Paste Air: <white>{0}"
+    overwriteCells: "<#7A8B9C>  Overwrite Cells: <white>{0}"
+    overwriteBlocks: "<#7A8B9C>  Overwrite Blocks: <white>{0}"
+    adhesive: "<#7A8B9C>  Adhesive (Fusion): <white>{0}"
+    rotateMode: "<#7A8B9C>  Rotate Mode: <white>{0}"
+    ry: "<#7A8B9C>  Y Rotation: <white>{0}"
+    saved: "<#5FBA6B>Settings saved."
+
+  publish:
+    usage: "<#7A8B9C>/sculpt blueprint publish <name> [--visibility public|unlist|secret] [--description <text>]"
+    started: "<#7A8B9C>Publishing blueprint..."
+    not_found: "<#CE5F4E>Blueprint not found: {0}"
+    no_perm: "<#CE5F4E>You don't have permission to publish blueprints."
+    no_endpoint: "<#CE5F4E>No SculptWeb API endpoint configured in config.yml (blueprint.web.apiEndpoint)."
+    invalid_data: "<#CE5F4E>Blueprint data is incomplete and cannot be published."
+    http_error: "<#CE5F4E>Server returned an error. Please try again later."
+    rate_limited: "<#CE5F4E>Rate limited. Please wait before publishing again."
+    invalid_response: "<#CE5F4E>Server returned an invalid response."
+    network_error: "<#CE5F4E>Network error. Please check your connection."
+    key_store_unavailable: "<#CE5F4E>The server cannot prepare secure management-key storage, so the blueprint was not uploaded. Contact an administrator."
+    key_store_error: "<#CE5F4E>The blueprint was uploaded, but its management key could not be saved. Contact an administrator before publishing it again."
+    success: "<#5FBA6B>Blueprint published to SculptWeb!"
+    share_url: "<#7A8B9C>  Share URL: <click:open_url:{0}><hover:show_text:\"<#5FBA6B>Click to open</#5FBA6B>\"><#6BB8DB><underlined>{0}</underlined></hover></click>"
+    visibility: "<#7A8B9C>  Visibility: <white>{0}"
+    key_saved: "<#7A8B9C>  The management key was saved securely by this server."
+    unpublish_hint: "<#7A8B9C>  Remove later: <click:suggest_command:/sculpt blueprint unpublish {0}><hover:show_text:\"<#5FBA6B>Click to fill the command</#5FBA6B>\"><#D1968C>/sculpt blueprint unpublish {0}</hover></click>"
+    access_password: "<#E8C96D>  Access Password: <click:copy_to_clipboard:{0}><hover:show_text:\"<#5FBA6B>Click to copy</#5FBA6B>\"><white>{0}</hover></click><#E8C96D> (click to copy, for SECRET mode)"
+
+  unpublish:
+    usage: "<#7A8B9C>/sculpt blueprint unpublish <name|UUID>"
+    started: "<#7A8B9C>Deleting the SculptWeb copy..."
+    success: "<#5FBA6B>Blueprint removed from SculptWeb: <white>{0}"
+    already_absent: "<#5FBA6B>The SculptWeb copy was already absent; its stored key was removed: <white>{0}"
+    not_found: "<#CE5F4E>No stored SculptWeb management key was found for: {0}"
+    no_endpoint: "<#CE5F4E>The saved publication has no valid SculptWeb endpoint. Check blueprint.web.apiEndpoint."
+    invalid_key: "<#CE5F4E>SculptWeb rejected the stored management key. The key was retained for administrator review."
+    rate_limited: "<#CE5F4E>SculptWeb is rate limiting this request. Please try again later."
+    http_error: "<#CE5F4E>SculptWeb could not delete this blueprint. Please try again later."
+    network_error: "<#CE5F4E>Could not reach SculptWeb. Please try again later."
+    local_store_error: "<#CE5F4E>The server could not read or update the stored management key."
+
+  export:
+    usage: "<#7A8B9C>/sculpt blueprint export <name>"
+    success: "<#5FBA6B>Blueprint exported: <white>{0}"
+    not_found: "<#CE5F4E>Blueprint not found: {0}"
+    failed: "<#CE5F4E>Failed to export blueprint."
+
+  import:
+    usage: "<#7A8B9C>/sculpt blueprint import <filename>"
+    success: "<#5FBA6B>Blueprint imported: <white>{0}"
+    not_found: "<#CE5F4E>File not found in export directory: {0}"
+    invalid_data: "<#CE5F4E>Invalid blueprint data in file."
+    failed: "<#CE5F4E>Failed to import blueprint."
+    no_files: "<#7A8B9C>No exported blueprint files found."
+    available: "<#7A8B9C>Available files in export directory:"
+
+# Head browser GUI
+head_browser:
+  title: "<#5B3F8C>Head Browser"
+  title_search: "<#5B3F8C>Search: <white>{0}"
+  grid_button: "<{0}><bold>Grid {1}</bold></{0}>"
+  grid_all: "<{0}><bold>All Grids</bold></{0}>"
+  grid_button_selected: "<green>✔ Currently selected"
+  close_button: "<red><bold>✕ Close</bold></red>"
+  prev_button: "<{0}>◀ Previous"
+  next_button: "<{0}>Next ▶"
+  first_button: "<{0}>⏮ First"
+  last_button: "<{0}>⏭ Last"
+  jump_prev5: "<{0}>◀◀ -5"
+  jump_next5: "<{0}>▶▶ +5"
+  page_info: "<white>Page {0}/{1}"
+  total_heads: "<gray>{0} total heads"
+  search_info: "<dark_gray>Search: \"{0}\""
+  head_item_name: "<white>{0} <gray>(G{1} [{2}])"
+  head_lore_grid: "<dark_gray>Grid: <gray>{0}"
+  head_lore_block: "<dark_gray>Block: <gray>{0}"
+  head_lore_coord: "<dark_gray>Coord: <gray>{0}"
+  head_lore_click: "<yellow>⇨ Click to receive this head"
+  summary_item_name: "<white>{0} <gray>(G{1})"
+  summary_lore_cells: "<gray>{0} cells — click to view"
+  summary_lore_click: "<yellow>⇨ Click to browse individual cells"
+  back_button: "<red><bold>← Back to blocks</bold></red>"
+  total_blocks: "<gray>{0} blocks total"
+  head_received: "<green>Received head: {0}"
+  head_dropped: "<red>Inventory full — head dropped at your feet"
+
+sculptmode:
+  usage: "<#C2C7D3>/sculpt mode [on|off]"
+  player_only: "<#CE5F4E>/sculpt mode must be run by a player."
+  unknown: "<#CE5F4E>Unknown sculpt mode: <white>{0}<#CE5F4E>. Use <white>on<#CE5F4E> or <white>off<#CE5F4E>."
+  enabled: "<#5FBA6B>Sculpt: <white>ON <dark_gray>· <#C2C7D3>F grid / F×2 pause <dark_gray>· <#C2C7D3>Q fill / Q×2 display"
+  disabled: "<#E8C96D>SculptMode: <white>OFF"
+
+sculptcontrols:
+  paused: "<#E8C96D>Sculpt paused <dark_gray>· <#C2C7D3>vanilla interaction restored <dark_gray>· <white>F×2 <#C2C7D3>resume"
+  resumed: "<#5FBA6B>Sculpt resumed <dark_gray>· <#C2C7D3>F grid / F×2 pause <dark_gray>· <#C2C7D3>Q fill / Q×2 display"
+  paused_reminder: "<#E8C96D>Sculpt is paused <dark_gray>· <white>F×2 <#C2C7D3>to resume"
+
+sculptfill:
+  player_only: "<#CE5F4E>/sculpt fill must be run by a player."
+  unknown: "<#CE5F4E>Unknown fill: <white>{0}<#CE5F4E>. Use <white>barrier<#CE5F4E>, <white>shulker<#CE5F4E>, or <white>null<#CE5F4E>."
+  barrier: "<#5FBA6B>Sculpt fill: <white>BARRIER"
+  shulker: "<#5FBA6B>Sculpt fill: <white>SHULKER"
+  null: "<#5FBA6B>Sculpt fill: <white>NONE"
+
+sculptdisplay:
+  player_only: "<#CE5F4E>/sculpt display must be run by a player."
+  unknown: "<#CE5F4E>Unknown display: <white>{0}<#CE5F4E>. Use <white>head<#CE5F4E>, <white>textdisplay<#CE5F4E>, or <white>auto<#CE5F4E>."
+  head: "<#5FBA6B>Sculpt display: <white>HEAD"
+  textdisplay: "<#5FBA6B>Sculpt display: <white>TextDisplay"
+  auto: "<#5FBA6B>Sculpt display: <white>AUTO"
+
+sculptwand:
+  usage: "<#C2C7D3>/sculpt tool <selector|blueprint> [player]"
+  player_only: "<#CE5F4E>/sculpt tool must be run by a player."
+  unknown: "<#CE5F4E>Unknown tool: <white>{0}<#CE5F4E>. Use <white>selector<#CE5F4E> or <white>blueprint<#CE5F4E>."
+  no_player: "<#CE5F4E>Player not found: <white>{0}"
+  selector:
+    self: "<#5FBA6B>You received the selection wand."
+    other: "<#5FBA6B>Gave selection wand to <white>{0}<#5FBA6B>."
+    given: "<#5FBA6B>You received a selection wand."
+  blueprint:
+    self: "<#5FBA6B>You received a Blueprint Selector tool."
+    other: "<#5FBA6B>Gave Blueprint Selector to <white>{0}<#5FBA6B>."
+    given: "<#5FBA6B>You received a Blueprint Selector tool."

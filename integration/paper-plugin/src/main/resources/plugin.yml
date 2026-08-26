@@ -1,0 +1,15 @@
+name: SculptIntegration
+version: '1.0.0'
+main: dev.twme.sculpt.integrationtest.SculptIntegrationPlugin
+api-version: '1.21.11'
+folia-supported: true
+depend: [ Sculpt ]
+
+commands:
+  sculpttest:
+    description: Inspect Sculpt state for the Mineflayer integration test
+    permission: sculpt.integration.test
+
+permissions:
+  sculpt.integration.test:
+    default: op

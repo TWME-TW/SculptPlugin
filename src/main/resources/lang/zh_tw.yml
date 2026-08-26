@@ -1,0 +1,391 @@
+# 繁體中文（台灣）翻譯 — Sculpt
+# 訊息使用 MiniMessage 格式
+languageVersion: 2
+
+general:
+  prefix: "<#478FC6>[Sculpt]</#478FC6>"
+  no_permission: "<#CE5F4E>你沒有使用此指令的權限。"
+  required_perm: "<#C2C7D3>需求權限：<white>{0}"
+  player_only: "<#CE5F4E>此指令必須由玩家執行。"
+  reload_success: "<#5FBA6B>設定檔已重新載入（defaultGridSize=<white>{0}<#5FBA6B>）。"
+  reload_failed: "<#CE5F4E>設定檔錯誤：<white>{0}"
+
+command:
+  sculpt:
+    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|tool|blueprint|heads|admin>"
+    unknown_subcommand: "<#CE5F4E>未知的子指令：<white>{0}"
+
+    help:
+      header: "<#478FC6><bold>Sculpt 指令</bold> <dark_gray>— 單一入口，依工作分類"
+      sculpting_header: "<#7A8B9C>雕刻設定"
+      resolution: "<click:suggest_command:/sculpt resolution ><#C2C7D3>  /sculpt <white>resolution <dark_gray>— 網格解析度</click>"
+      preview: "<click:suggest_command:/sculpt preview ><#C2C7D3>  /sculpt <white>preview <dark_gray>— 懸浮預覽</click>"
+      mode: "<click:suggest_command:/sculpt mode ><#C2C7D3>  /sculpt <white>mode <dark_gray>— 開啟或關閉雕刻模式</click>"
+      fill: "<click:suggest_command:/sculpt fill ><#C2C7D3>  /sculpt <white>fill <dark_gray>— 屏障、界伏蚌或不填充</click>"
+      display: "<click:suggest_command:/sculpt display ><#C2C7D3>  /sculpt <white>display <dark_gray>— 頭顱、TextDisplay 或自動顯示</click>"
+      convert: "<click:suggest_command:/sculpt convert ><#C2C7D3>  /sculpt <white>convert <dark_gray>— 轉換既有方塊填充</click>"
+      replace: "<click:suggest_command:/sculpt replace ><#C2C7D3>  /sculpt <white>replace <dark_gray>— 替換選取區域材質</click>"
+      relight: "<click:run_command:/sculpt relight><#C2C7D3>  /sculpt <white>relight <dark_gray>— 恢復 TextDisplay 自動環境光</click>"
+      content_header: "<#7A8B9C>工具與內容"
+      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— 取得區域或藍圖選取器</click>"
+      blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— 儲存與分享作品</click>"
+      heads: "<click:suggest_command:/sculpt heads ><#C2C7D3>  /sculpt <white>heads <dark_gray>— 瀏覽烘焙頭顱</click>"
+      admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  伺服器維運：<white>admin</click>"
+      admin_usage: "<#C2C7D3>/sculpt admin <list|teleport|reload|status>"
+      hint: "<#7A8B9C>使用 Tab 補全或 <white>/sculpt help<#7A8B9C> 探索你可使用的指令。"
+
+    grid:
+      player_only: "<#CE5F4E>/sculpt resolution 必須由玩家執行。"
+      invalid_grid: "<#CE5F4E>gridN 必須為：1、2、4、8、16 其中之一"
+      no_permission_grid: "<#CE5F4E>你沒有使用 grid size <white>{0}<#CE5F4E> 的權限。"
+      required_perm: "<#C2C7D3>需求權限：<white>sculpt.command.resolution.{0}"
+      look_at_block: "<#C2C7D3>請看著一個方塊以預覽網格。"
+      set: "<#C2C7D3>Grid size 已設為 <white>{0}<#C2C7D3>。"
+      invalid_grid_arg: "<#CE5F4E>無效的 gridN：<white>{0}"
+      current: "<#C2C7D3>目前 grid size：<white>{0}<#C2C7D3>。請開啟 Sculpt mode 進行編輯。"
+
+    preview:
+      player_only: "<#CE5F4E>/sculpt preview 必須由玩家執行。"
+      enabled: "<#5FBA6B>懸浮預覽：<white>開啟"
+      disabled: "<#E8C96D>懸浮預覽：<white>關閉"
+      usage: "<#CE5F4E>用法：<#D1968C>/sculpt preview [on|off]"
+
+    replace:
+      player_only: "<#CE5F4E>/sculpt replace 必須由玩家執行。"
+      usage: "<#C2C7D3>用法：<#D1968C>/sculpt replace <方塊資料>"
+      no_selection: "<#CE5F4E>請先使用選取棒完成一個區域選取。"
+      invalid_material: "<#CE5F4E>無效的方塊材質或 BlockData：<white>{0}"
+      non_bakeable: "<#CE5F4E>指定的替換材質無法烘焙：<white>{0}"
+      too_large: "<#CE5F4E>選取體積（{0}）超過材質替換上限（{1}）。"
+      not_ready: "<#E8C96D>Sculpt 紋理仍在載入，請稍後再試。"
+      already_running: "<#E8C96D>你已有一個區域材質替換工作正在執行。"
+      started: "<#E8C96D>正在分析選取範圍內最多 {1} 個方塊，並將材質替換為 <white>{0}<#E8C96D>..."
+      completed: "<#5FBA6B>材質替換完成：已變更 <white>{0}<#5FBA6B> 個原版方塊、<white>{1}<#5FBA6B> 個既有 SculptBlock，並將 <white>{2}<#5FBA6B> 個視覺外形轉為 SculptBlock。"
+      no_changes: "<#C2C7D3>選取範圍內沒有需要替換的非空氣方塊。"
+      protected: "<#CE5F4E>已略過受保護區域中的 {0} 個方塊。"
+      no_collision: "<#E8C96D>已略過 {0} 個沒有碰撞範圍的來源方塊。"
+      unsupported_source: "<#E8C96D>已略過 {0} 個無法解析視覺模型的來源方塊。"
+      blocked_source: "<#E8C96D>已略過 {0} 個視覺外形會碰到保留方塊的來源方塊。"
+      stale: "<#E8C96D>模型分析期間有 {0} 個位置被變更，已略過。"
+      out_of_bounds: "<#CE5F4E>視覺模型在 <white>{0}<#CE5F4E> 超出選取範圍。請擴大選區後重試；本次未修改任何方塊。"
+      too_many_leaves: "<#CE5F4E>視覺結果需要 {0} 個 Sculpt leaf，超過設定上限 {1}；本次未修改任何方塊。"
+      limit_reached: "<#CE5F4E>本次操作需要額外 {0} 個 SculptBlock 名額，但伺服器上限已滿；本次未修改任何方塊。"
+      preflight_failed: "<#CE5F4E>無法完成選取範圍的視覺模型分析；本次未修改任何方塊。請查看伺服器記錄。"
+      failed: "<#CE5F4E>{0} 個方塊位置處理失敗；請查看伺服器記錄。"
+
+    relight:
+      player_only: "<#CE5F4E>/sculpt relight 必須由玩家執行。"
+      usage: "<#C2C7D3>用法：<#D1968C>/sculpt relight"
+      no_selection: "<#CE5F4E>請先使用選取棒完成一個區域選取。"
+      no_blocks: "<#C2C7D3>選取範圍內沒有作用中的 SculptBlock。"
+      already_running: "<#E8C96D>你已有一個 TextDisplay 自動光照還原工作正在執行。"
+      started: "<#E8C96D>正在為 {0} 個作用中 SculptBlock 恢復 TextDisplay 自動環境光..."
+      completed: "<#5FBA6B>光照還原完成：已檢查 <white>{0}<#5FBA6B> 個 SculptBlock、<white>{1}<#5FBA6B> 個 TextDisplay，並清除 <white>{2}<#5FBA6B> 個亮度覆寫。"
+      failed: "<#CE5F4E>{0} 個 SculptBlock 處理失敗；請查看伺服器記錄。"
+
+    page:
+      previous_hover: "<#5FBA6B>上一頁</#5FBA6B>"
+      next_hover: "<#5FBA6B>下一頁</#5FBA6B>"
+      info: "<#7A8B9C>第 <white>{0}<#7A8B9C>/<white>{1} <#7A8B9C>頁"
+
+    list:
+      player_only: "<#CE5F4E>/sculpt admin list 必須由玩家執行。"
+      empty: "<#C2C7D3>此世界中沒有作用中的 SculptBlock。"
+      header: "<#478FC6>作用中的 SculptBlock <dark_gray>（{0}）<#C2C7D3>：<#7A8B9C>點擊傳送"
+      entry: "<click:run_command:/sculpt admin teleport {0}><#C2C7D3>  {0}</click> <dark_gray>{1} <#C2C7D3>[{2} leaves]"
+      invalid_page: "<#CE5F4E>頁碼必須是整數。"
+      read_failed: "<#CE5F4E>無法讀取作用中的 SculptBlock 清單；請查看伺服器記錄。"
+
+    status:
+      loading: "<#E8C96D>健康狀態：載入中（設定 gridN={0}）。"
+      ready: "<#5FBA6B>健康狀態：正常。gridN={0}、可用方塊={1}、全部網格索引={2}、執行期烘焙={3}。"
+      degraded: "<#E8C96D>健康狀態：降級。gridN={0} 沒有 head 資料且執行期烘焙已停用；head 顯示會使用 placeholder，TextDisplay 與自動顯示的像素替代仍可使用。"
+      failed: "<#CE5F4E>健康狀態：失敗。{0}"
+
+    tp:
+      player_only: "<#CE5F4E>/sculpt admin teleport 必須由玩家執行。"
+      usage: "<#CE5F4E>用法：<#D1968C>/sculpt admin teleport <世界,x,y,z>"
+      invalid_format: "<#CE5F4E>無效的位置格式：<white>{0}<#CE5F4E>。預期格式：<white>世界,x,y,z"
+      world_not_found: "<#CE5F4E>找不到世界：<white>{0}"
+      teleported: "<#5FBA6B>已傳送至 <white>{0}"
+      failed: "<#CE5F4E>無法傳送至 <white>{0}"
+
+    convert:
+      usage: "<#C2C7D3>用法：<#D1968C>/sculpt convert <barrier|shulker|null> [region|single]"
+      player_only: "<#CE5F4E>/sculpt convert 必須由玩家執行。"
+      changing: "<#E8C96D>正在將 {0} 個 SculptBlock 的填充方式設為 <white>{1}<#E8C96D>..."
+      changed: "<#5FBA6B>已將 {0} 個 SculptBlock 的填充方式設為 <white>{1}<#5FBA6B>。"
+      convert_failed: "<#CE5F4E>轉換失敗：{0}"
+      failed: "<#CE5F4E>{0} 個 SculptBlock 轉換失敗；請查看伺服器記錄。"
+      protected: "<#CE5F4E>已略過受保護區域中的 {0} 個 SculptBlock。"
+      no_selection: "<#CE5F4E>請先使用選取棒選擇一個區域。"
+      no_target: "<#CE5F4E>目標位置沒有 SculptBlock。"
+      already: "<#C2C7D3>目標 SculptBlock 已經使用 <white>{0}<#C2C7D3> 填充。"
+      not_initialized: "<#CE5F4E>填充轉換器尚未初始化。"
+
+
+  sculpt_edit:
+    non_bakeable_block: "<#CE5F4E>此方塊無法雕刻成小方塊"
+    display_incompatible: "<#CE5F4E>目前選擇的顯示方式無法呈現 <white>{0}<#CE5F4E>；請先切換相容的顯示方式。"
+    player_head_grid_required: "<#CE5F4E>頭顱 cell 僅能在高於 1x1x1 的解析度放置。"
+    player_head_without_texture: "<#CE5F4E>此玩家頭顱沒有可放置的紋理。"
+    limit_reached: "<#CE5F4E>作用中的 SculptBlock 已達數量上限。"
+    protected_region: "<#CE5F4E>你無法在此受保護區域編輯方塊。"
+
+  grid_cycle:
+    no_others: "<#C2C7D3>Grid size：<white>{0}<#C2C7D3>（無其他可用大小）"
+    cycled: "<#C2C7D3>Grid size 已切換：<white>{0} <#C2C7D3>→ <white>{1}"
+
+  sculptheads:
+    usage: "<#C2C7D3>用法：<#D1968C>/sculpt heads [search <search> [grid]]"
+    search:
+      usage: "<#CE5F4E>用法：<#D1968C>/sculpt heads search <search> [grid]"
+      invalid_grid: "<#CE5F4E>無效的 grid：<white>{0}<#CE5F4E>。必須為 2、4、8 或 16。"
+
+# Wand tool selection messages (used by WandListener)
+wandtool:
+  pos1: "<#C2C7D3>位置 1 已設為 <white>{0}, {1}, {2}"
+  pos2: "<#C2C7D3>位置 2 已設為 <white>{0}, {1}, {2}"
+  cleared: "<#C2C7D3>已清除選取範圍"
+  volume: "<#C2C7D3>區域：<white>{0} × {1} × {2} = {3} 個方塊"
+
+command.sculpt.blueprint:
+  player_only: "<#CE5F4E>此指令必須由玩家執行。"
+  admin_only: "<#CE5F4E>此指令僅限管理員使用。"
+  disabled: "<#CE5F4E>藍圖系統已由設定停用。"
+  invalid_argument: "<#CE5F4E>{0} 的值無效。"
+  usage_header: "<#7A8B9C>=== <white>藍圖指令 <#7A8B9C>==="
+  usage_save: "<#7A8B9C>/sculpt blueprint save <name> [--public]"
+  usage_list: "<#7A8B9C>/sculpt blueprint list [--public] [--page <n>]"
+  usage_delete: "<#7A8B9C>/sculpt blueprint delete <name>"
+  usage_bind: "<#7A8B9C>/sculpt blueprint bind/unbind <name> [--rotate <mode>]"
+  usage_download: "<#D1968C>/sculpt blueprint download <url>"
+  usage_publish: "<#7A8B9C>/sculpt blueprint publish <名稱> [--visibility 模式] [--description 描述]"
+  usage_unpublish: "<#7A8B9C>/sculpt blueprint unpublish <名稱|UUID>"
+  usage_export: "<#7A8B9C>/sculpt blueprint export <名稱>"
+  usage_import: "<#7A8B9C>/sculpt blueprint import <檔案名稱>"
+  folia_cross_region: "<#CE5F4E>藍圖範圍不完全位於玩家目前的 Folia region；請靠近範圍或縮小選區。"
+
+  save:
+    usage: "<#7A8B9C>/sculpt blueprint save <名稱> [--public]"
+    success: "<#5FBA6B>藍圖已儲存：<white>{0}"
+    invalid_name: "<#CE5F4E>名稱必須為 1 至 64 個字元。"
+    no_selection: "<#CE5F4E>請先以選取工具左鍵點擊要儲存的 SculptBlock。"
+    empty_selection: "<#CE5F4E>選取範圍內目前沒有可記錄的非空氣方塊。"
+    limit_reached: "<#CE5F4E>藍圖數量已達上限，請刪除一些藍圖後再試。"
+    write_error: "<#CE5F4E>無法寫入藍圖檔案。"
+    no_public_perm: "<#CE5F4E>你沒有權限發布公開藍圖。"
+
+  select:
+    success: "<#5FBA6B>已選取位於 <white>{0}, {1}, {2} <#5FBA6B>的藍圖來源。"
+    not_sculpt: "<#CE5F4E>選取的方塊不是 SculptBlock。"
+    first_corner: "<#5FBA6B>已設定第一點：<white>{0}, {1}, {2}<#5FBA6B>；請右鍵設定第二點。"
+    cuboid_success: "<#5FBA6B>已完成長方體選取，第二點：<white>{0}, {1}, {2}<#5FBA6B>。按 Q 切回單顆模式即可右鍵貼上。"
+    first_corner_required: "<#CE5F4E>請先左鍵設定長方體的第一點。"
+    different_world: "<#CE5F4E>長方體的兩個選取點必須位於同一個世界。"
+    too_large: "<#CE5F4E>選取範圍超過伺服器允許的體積上限。"
+    mode_cuboid: "<#D1968C>藍圖選取模式：<white>長方體<#D1968C>（左鍵第一點、右鍵第二點）"
+    mode_single: "<#D1968C>藍圖選取模式：<white>單顆 / 貼上"
+    cleared: "<#C2C7D3>已取消藍圖選取。"
+
+  paste:
+    success: "<#5FBA6B>藍圖已貼上：<white>{0}"
+    not_found: "<#CE5F4E>找不到藍圖：{0}"
+    invalid_world: "<#CE5F4E>貼上位置不在有效世界中。"
+    invalid_settings: "<#CE5F4E>旋轉或鏡像設定無效。"
+    invalid_data: "<#CE5F4E>藍圖未通過結構驗證。"
+    deserialize_error: "<#CE5F4E>藍圖的 octree 資料格式錯誤。"
+    protected_region: "<#CE5F4E>你無法在此受保護區域貼上藍圖。"
+    block_in_way: "<#CE5F4E>目標有實心方塊；請啟用 overwrite 後再試。"
+    limit_reached: "<#CE5F4E>作用中的 SculptBlock 已達數量上限。"
+    create_failed: "<#CE5F4E>無法建立 SculptBlock。"
+    unsupported_display: "<#CE5F4E>目前選擇的顯示方式無法呈現此藍圖中的部分 SculptBlock 材質。"
+
+  list:
+    header_private: "<#7A8B9C>=== <white>私人藍圖 <#7A8B9C>（共 {0} 筆）==="
+    header_public: "<#7A8B9C>=== <white>公開藍圖 <#7A8B9C>（共 {0} 筆）==="
+    empty_private: "<#7A8B9C>目前沒有儲存的藍圖。"
+    empty_public: "<#7A8B9C>目前還沒有公開藍圖。"
+    entry: "<gold>{0}. <white>{1} <#7A8B9C>grid={2} <dark_gray>{3}"
+    read_error: "<#CE5F4E>讀取藍圖列表失敗：{0}"
+    folder_header: "<#7A8B9C>=== 資料夾 ==="
+    folder_entry: "<click:run_command:/sculpt blueprint list {1}><#E8C96D>  📁 {1}</click>"
+
+  delete:
+    usage: "<#7A8B9C>/sculpt blueprint delete <name>"
+    success: "<#5FBA6B>藍圖已刪除：<white>{0}"
+    not_found: "<#CE5F4E>找不到藍圖：{0}"
+    failed: "<#CE5F4E>刪除失敗：{0}"
+
+  rename:
+    usage: "<#7A8B9C>/sculpt blueprint rename <name> <newName>"
+    not_found: "<#CE5F4E>找不到藍圖：{0}"
+    invalid_name: "<#CE5F4E>名稱必須為 1–64 個字元。"
+    failed: "<#CE5F4E>重新命名失敗。"
+    success: "<#5FBA6B>藍圖已重新命名為：<white>{0}"
+
+  download:
+    usage: "<#7A8B9C>/sculpt blueprint download <url>"
+    started: "<#7A8B9C>正在下載並驗證藍圖..."
+    success: "<#5FBA6B>藍圖已下載。"
+    invalid_url: "<#CE5F4E>無效的 URL 格式。"
+    domain_not_allowed: "<#CE5F4E>不允許從此網域下載藍圖。"
+    expired: "<#CE5F4E>該藍圖已到期，無法下載。"
+    http_error: "<#CE5F4E>伺服器回應錯誤。"
+    format_error: "<#CE5F4E>伺服器回應格式錯誤（非 JSON）。"
+    too_large: "<#CE5F4E>藍圖檔案過大，無法下載。"
+    invalid_data: "<#CE5F4E>下載的藍圖格式無效。"
+    failed: "<#CE5F4E>下載失敗。"
+
+  bind:
+    usage: "<#7A8B9C>/sculpt blueprint bind <name> [--pasteAir|--no-pasteAir] [--overwrite] [--adhesive] [--rotate <mode>] [--ry <deg>] [--flip <axis>]"
+    success: "<#5FBA6B>已將藍圖 <white>{0} <#5FBA6B>綁定到 <white>{1}"
+    not_found: "<#CE5F4E>找不到藍圖：{0}"
+    empty_hand: "<#CE5F4E>主手不能為空。"
+    cannot_modify: "<#CE5F4E>無法修改此物品。"
+    item_name: "<#478FC6>藍圖：<white>{0}"
+    item_lore:
+      - "<#7A8B9C>網格：<white>{0}<#7A8B9C> | <white>{1}"
+      - "<#C2C7D3>右鍵貼上藍圖</#C2C7D3>"
+
+  unbind:
+    success: "<#5FBA6B>已解除藍圖綁定。"
+    not_bound: "<#7A8B9C>此物品未綁定任何藍圖。"
+
+  give:
+    usage: "<#7A8B9C>/sculpt blueprint give <name> [player]"
+    success: "<#5FBA6B>已取得藍圖物品：<white>{0}"
+    not_found: "<#CE5F4E>找不到藍圖：{0}"
+
+  settings:
+    usage: "<#7A8B9C>用法：/sculpt blueprint settings [--pasteAir|--no-pasteAir] [--overwrite|--no-overwrite] [--adhesive|--no-adhesive] [--rotate <模式>] [--ry <度數>]"
+    header: "<#7A8B9C>=== 你的貼上設定 ==="
+    pasteAir: "<#7A8B9C>  貼上空洞：<white>{0}"
+    overwriteCells: "<#7A8B9C>  覆蓋 Cell：<white>{0}"
+    overwriteBlocks: "<#7A8B9C>  覆蓋方塊：<white>{0}"
+    adhesive: "<#7A8B9C>  融合貼上：<white>{0}"
+    rotateMode: "<#C2C7D3>  旋轉模式：<white>{0}"
+    ry: "<#7A8B9C>  Y 軸旋轉：<white>{0}"
+    saved: "<#5FBA6B>設定已儲存。"
+
+  publish:
+    usage: "<#7A8B9C>/sculpt blueprint publish <名稱> [--visibility public|unlist|secret] [--description 描述]"
+    started: "<#7A8B9C>正在發布藍圖..."
+    not_found: "<#CE5F4E>找不到藍圖：{0}"
+    no_perm: "<#CE5F4E>你沒有權限發布藍圖。"
+    no_endpoint: "<#CE5F4E>config.yml 中未設定 SculptWeb API 端點（blueprint.web.apiEndpoint）。"
+    invalid_data: "<#CE5F4E>藍圖資料不完整，無法發布。"
+    http_error: "<#CE5F4E>伺服器回應錯誤，請稍後再試。"
+    rate_limited: "<#CE5F4E>請求次數過多，請稍後再發布。"
+    invalid_response: "<#CE5F4E>伺服器回應格式無效。"
+    network_error: "<#CE5F4E>網路錯誤，請檢查連線。"
+    key_store_unavailable: "<#CE5F4E>伺服器無法準備安全的管理金鑰儲存空間，因此尚未上傳藍圖；請聯絡管理員。"
+    key_store_error: "<#CE5F4E>藍圖已上傳，但無法保存管理金鑰；再次發布前請先聯絡管理員。"
+    success: "<#5FBA6B>藍圖已發布到 SculptWeb！"
+    share_url: "<#7A8B9C>  分享連結：<click:open_url:{0}><hover:show_text:\"<#5FBA6B>點擊開啟連結</#5FBA6B>\"><#6BB8DB><underlined>{0}</underlined></hover></click>"
+    visibility: "<#7A8B9C>  可見性：<white>{0}"
+    key_saved: "<#7A8B9C>  管理金鑰已由此伺服器安全保存。"
+    unpublish_hint: "<#7A8B9C>  日後移除：<click:suggest_command:/sculpt blueprint unpublish {0}><hover:show_text:\"<#5FBA6B>點擊填入指令</#5FBA6B>\"><#D1968C>/sculpt blueprint unpublish {0}</hover></click>"
+    access_password: "<#E8C96D>  存取密碼：<click:copy_to_clipboard:{0}><hover:show_text:\"<#5FBA6B>點擊複製</#5FBA6B>\"><white>{0}</hover></click><#E8C96D> （點擊複製，僅 SECRET 模式）"
+
+  unpublish:
+    usage: "<#7A8B9C>/sculpt blueprint unpublish <名稱|UUID>"
+    started: "<#7A8B9C>正在刪除 SculptWeb 上的藍圖..."
+    success: "<#5FBA6B>已從 SculptWeb 移除藍圖：<white>{0}"
+    already_absent: "<#5FBA6B>SculptWeb 上的藍圖已不存在，已清除保存的管理金鑰：<white>{0}"
+    not_found: "<#CE5F4E>找不到此藍圖的 SculptWeb 管理金鑰：{0}"
+    no_endpoint: "<#CE5F4E>保存的發布資料沒有有效的 SculptWeb 端點，請檢查 blueprint.web.apiEndpoint。"
+    invalid_key: "<#CE5F4E>SculptWeb 拒絕了保存的管理金鑰；金鑰已保留供管理員檢查。"
+    rate_limited: "<#CE5F4E>SculptWeb 暫時限制了請求次數，請稍後再試。"
+    http_error: "<#CE5F4E>SculptWeb 無法刪除此藍圖，請稍後再試。"
+    network_error: "<#CE5F4E>目前無法連線至 SculptWeb，請稍後再試。"
+    local_store_error: "<#CE5F4E>伺服器無法讀取或更新保存的管理金鑰。"
+
+  export:
+    usage: "<#7A8B9C>/sculpt blueprint export <名稱>"
+    success: "<#5FBA6B>藍圖已匯出：<white>{0}"
+    not_found: "<#CE5F4E>找不到藍圖：{0}"
+    failed: "<#CE5F4E>匯出藍圖失敗。"
+
+  import:
+    usage: "<#7A8B9C>/sculpt blueprint import <檔案名稱>"
+    success: "<#5FBA6B>藍圖已匯入：<white>{0}"
+    not_found: "<#CE5F4E>找不到該匯出檔案：{0}"
+    invalid_data: "<#CE5F4E>檔案中的藍圖資料格式無效。"
+    failed: "<#CE5F4E>匯入藍圖失敗。"
+    no_files: "<#7A8B9C>匯出目錄中沒有藍圖檔案。"
+    available: "<#C2C7D3>可匯入的檔案："
+
+# Head browser GUI
+head_browser:
+  title: "<#5B3F8C>頭顱瀏覽器"
+  title_search: "<#5B3F8C>搜尋：<white>{0}"
+  grid_button: "<{0}><bold>Grid {1}</bold></{0}>"
+  grid_all: "<{0}><bold>所有 Grid</bold></{0}>"
+  grid_button_selected: "<green>✔ 目前已選"
+  close_button: "<red><bold>✕ 關閉</bold></red>"
+  prev_button: "<{0}>◀ 上一頁"
+  next_button: "<{0}>下一頁 ▶"
+  first_button: "<{0}>⏮ 首頁"
+  last_button: "<{0}>⏭ 末頁"
+  jump_prev5: "<{0}>◀◀ -5"
+  jump_next5: "<{0}>▶▶ +5"
+  page_info: "<white>第 {0}/{1} 頁"
+  total_heads: "<gray>共 {0} 個頭顱"
+  search_info: "<dark_gray>搜尋：\"{0}\""
+  head_item_name: "<white>{0} <gray>(G{1} [{2}])"
+  head_lore_grid: "<dark_gray>Grid：<gray>{0}"
+  head_lore_block: "<dark_gray>方塊：<gray>{0}"
+  head_lore_coord: "<dark_gray>座標：<gray>{0}"
+  head_lore_click: "<yellow>⇨ 點擊獲得此頭顱"
+  summary_item_name: "<white>{0} <gray>(G{1})"
+  summary_lore_cells: "<gray>共 {0} 個 cell — 點擊檢視"
+  summary_lore_click: "<yellow>⇨ 點擊瀏覽個別 cell"
+  back_button: "<red><bold>← 返回方塊列表</bold></red>"
+  total_blocks: "<gray>共 {0} 個方塊"
+  head_received: "<green>已獲得頭顱：{0}"
+  head_dropped: "<red>背包已滿 — 頭顱掉落在腳邊"
+
+wand_tool:
+  name: "<#E8C96D>區域選取<white>棒</#E8C96D>"
+
+
+sculptmode:
+  usage: "<#C2C7D3>/sculpt mode [on|off]"
+  player_only: "<#CE5F4E>/sculpt mode 必須由玩家執行。"
+  unknown: "<#CE5F4E>未知的雕刻模式：<white>{0}<#CE5F4E>。請使用 <white>on<#CE5F4E> 或 <white>off<#CE5F4E>。"
+  enabled: "<#5FBA6B>Sculpt：<white>開啟 <dark_gray>· <#C2C7D3>F 解析度／F×2 暫停 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示"
+  disabled: "<#E8C96D>雕刻模式：<white>關閉"
+
+sculptcontrols:
+  paused: "<#E8C96D>Sculpt 已暫停 <dark_gray>· <#C2C7D3>已恢復原版互動 <dark_gray>· <white>F×2 <#C2C7D3>繼續"
+  resumed: "<#5FBA6B>Sculpt 已繼續 <dark_gray>· <#C2C7D3>F 解析度／F×2 暫停 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示"
+  paused_reminder: "<#E8C96D>Sculpt 目前暫停中 <dark_gray>· <white>F×2 <#C2C7D3>繼續"
+
+sculptfill:
+  player_only: "<#CE5F4E>/sculpt fill 必須由玩家執行。"
+  unknown: "<#CE5F4E>未知的填充方式：<white>{0}<#CE5F4E>。請使用 <white>barrier<#CE5F4E>、<white>shulker<#CE5F4E> 或 <white>null<#CE5F4E>。"
+  barrier: "<#5FBA6B>雕刻填充：<white>屏障"
+  shulker: "<#5FBA6B>雕刻填充：<white>界伏蚌"
+  null: "<#5FBA6B>雕刻填充：<white>不填充"
+
+sculptdisplay:
+  player_only: "<#CE5F4E>/sculpt display 必須由玩家執行。"
+  unknown: "<#CE5F4E>未知的顯示方式：<white>{0}<#CE5F4E>。請使用 <white>head<#CE5F4E>、<white>textdisplay<#CE5F4E> 或 <white>auto<#CE5F4E>。"
+  head: "<#5FBA6B>雕刻顯示：<white>頭顱"
+  textdisplay: "<#5FBA6B>雕刻顯示：<white>TextDisplay"
+  auto: "<#5FBA6B>雕刻顯示：<white>自動"
+
+sculptwand:
+  usage: "<#C2C7D3>/sculpt tool <selector|blueprint> [player]"
+  player_only: "<#CE5F4E>/sculpt tool 必須由玩家執行。"
+  unknown: "<#CE5F4E>未知的工具：<white>{0}<#CE5F4E>。請使用 <white>selector<#CE5F4E> 或 <white>blueprint<#CE5F4E>。"
+  no_player: "<#CE5F4E>找不到該玩家：<white>{0}"
+  selector:
+    self: "<#5FBA6B>你已取得選取魔杖。"
+    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>選取魔杖。"
+    given: "<#5FBA6B>你已收到選取魔杖。"
+  blueprint:
+    self: "<#5FBA6B>你已取得藍圖選取工具。"
+    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>藍圖選取工具。"
+    given: "<#5FBA6B>你已收到藍圖選取工具。"

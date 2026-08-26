@@ -1,0 +1,239 @@
+name: Sculpt
+version: '${version}'
+
+main: dev.twme.sculpt.Sculpt
+api-version: '1.21.11'
+load: POSTWORLD
+folia-supported: true
+softdepend: [ WorldEdit, FastAsyncWorldEdit ]
+libraries:
+  - org.xerial:sqlite-jdbc:${sqlite.version}
+
+authors: [ TWME-TW ]
+
+commands:
+  sculpt:
+    description: Main entry point for Sculpt
+    usage: /<command> <help|resolution|preview|mode|fill|display|convert|replace|relight|tool|blueprint|heads|admin>
+
+permissions:
+  sculpt.command.*:
+    description: Allow every /sculpt command
+    default: op
+    children:
+      sculpt.command.resolution.*: true
+      sculpt.command.preview: true
+      sculpt.command.mode.*: true
+      sculpt.command.fill.*: true
+      sculpt.command.display.*: true
+      sculpt.command.convert: true
+      sculpt.command.replace: true
+      sculpt.command.relight: true
+      sculpt.command.tool.*: true
+      sculpt.command.blueprint.*: true
+      sculpt.command.heads: true
+      sculpt.command.admin.*: true
+
+  sculpt.command.resolution:
+    description: Allow using /sculpt resolution
+    default: true
+  sculpt.command.resolution.1:
+    description: Allow selecting resolution 1
+    default: op
+  sculpt.command.resolution.2:
+    description: Allow selecting resolution 2
+    default: op
+  sculpt.command.resolution.4:
+    description: Allow selecting resolution 4
+    default: op
+  sculpt.command.resolution.8:
+    description: Allow selecting resolution 8
+    default: op
+  sculpt.command.resolution.16:
+    description: Allow selecting resolution 16
+    default: op
+  sculpt.command.resolution.*:
+    description: Allow selecting every resolution
+    default: op
+    children:
+      sculpt.command.resolution: true
+      sculpt.command.resolution.1: true
+      sculpt.command.resolution.2: true
+      sculpt.command.resolution.4: true
+      sculpt.command.resolution.8: true
+      sculpt.command.resolution.16: true
+
+  sculpt.command.preview:
+    description: Allow using /sculpt preview
+    default: false
+
+  sculpt.command.convert:
+    description: Allow using /sculpt convert
+    default: op
+
+  sculpt.command.replace:
+    description: Allow replacing regular and SculptBlock materials in a selected region
+    default: op
+
+  sculpt.command.relight:
+    description: Allow restoring automatic TextDisplay lighting in a selected region
+    default: op
+
+  sculpt.command.mode.on:
+    description: Allow using /sculpt mode on
+    default: true
+  sculpt.command.mode.off:
+    description: Allow using /sculpt mode off
+    default: true
+  sculpt.command.mode.*:
+    description: Allow using all /sculpt mode choices
+    default: op
+    children:
+      sculpt.command.mode.on: true
+      sculpt.command.mode.off: true
+
+  sculpt.command.fill.barrier:
+    description: Allow using /sculpt fill barrier
+    default: true
+  sculpt.command.fill.shulker:
+    description: Allow using /sculpt fill shulker
+    default: true
+  sculpt.command.fill.null:
+    description: Allow using /sculpt fill null
+    default: op
+  sculpt.command.fill.*:
+    description: Allow using every Sculpt fill strategy
+    default: op
+    children:
+      sculpt.command.fill.barrier: true
+      sculpt.command.fill.shulker: true
+      sculpt.command.fill.null: true
+
+  sculpt.command.display.head:
+    description: Allow using /sculpt display head
+    default: true
+  sculpt.command.display.textdisplay:
+    description: Allow using /sculpt display textdisplay
+    default: op
+  sculpt.command.display.auto:
+    description: Allow using /sculpt display auto
+    default: op
+  sculpt.command.display.*:
+    description: Allow using every Sculpt display backend
+    default: op
+    children:
+      sculpt.command.display.head: true
+      sculpt.command.display.textdisplay: true
+      sculpt.command.display.auto: true
+
+  sculpt.command.tool.selector:
+    description: Allow using /sculpt tool selector
+    default: op
+  sculpt.command.tool.blueprint:
+    description: Allow using /sculpt tool blueprint
+    default: op
+  sculpt.command.tool.*:
+    description: Allow using all /sculpt tool choices
+    default: op
+    children:
+      sculpt.command.tool.selector: true
+      sculpt.command.tool.blueprint: true
+
+  sculpt.command.blueprint.save:
+    description: Allow using /sculpt blueprint save
+    default: op
+  sculpt.command.blueprint.list:
+    description: Allow using /sculpt blueprint list
+    default: op
+  sculpt.command.blueprint.delete:
+    description: Allow using /sculpt blueprint delete
+    default: op
+  sculpt.command.blueprint.rename:
+    description: Allow using /sculpt blueprint rename
+    default: op
+  sculpt.command.blueprint.download:
+    description: Allow using /sculpt blueprint download
+    default: op
+  sculpt.command.blueprint.bind:
+    description: Allow using /sculpt blueprint bind
+    default: op
+  sculpt.command.blueprint.unbind:
+    description: Allow using /sculpt blueprint unbind
+    default: op
+  sculpt.command.blueprint.give:
+    description: Allow using /sculpt blueprint give
+    default: op
+  sculpt.command.blueprint.settings:
+    description: Allow using /sculpt blueprint settings
+    default: op
+  sculpt.command.blueprint.publish:
+    description: Allow publishing blueprints
+    default: op
+  sculpt.command.blueprint.unpublish:
+    description: Allow deleting owned blueprints from SculptWeb
+    default: op
+  sculpt.command.blueprint.export:
+    description: Allow exporting blueprints to local files
+    default: op
+  sculpt.command.blueprint.import:
+    description: Allow importing blueprints from local files
+    default: op
+  sculpt.command.blueprint.*:
+    description: Allow every /sculpt blueprint operation
+    default: op
+    children:
+      sculpt.command.blueprint.save: true
+      sculpt.command.blueprint.list: true
+      sculpt.command.blueprint.delete: true
+      sculpt.command.blueprint.rename: true
+      sculpt.command.blueprint.download: true
+      sculpt.command.blueprint.bind: true
+      sculpt.command.blueprint.unbind: true
+      sculpt.command.blueprint.give: true
+      sculpt.command.blueprint.settings: true
+      sculpt.command.blueprint.publish: true
+      sculpt.command.blueprint.unpublish: true
+      sculpt.command.blueprint.export: true
+      sculpt.command.blueprint.import: true
+
+  sculpt.command.heads:
+    description: Allow using /sculpt heads
+    default: op
+
+  sculpt.command.admin.list:
+    description: Allow using /sculpt admin list
+    default: op
+  sculpt.command.admin.teleport:
+    description: Allow using /sculpt admin teleport
+    default: op
+  sculpt.command.admin.reload:
+    description: Allow using /sculpt admin reload
+    default: op
+  sculpt.command.admin.status:
+    description: Allow using /sculpt admin status
+    default: op
+  sculpt.command.admin.*:
+    description: Allow every /sculpt admin operation
+    default: op
+    children:
+      sculpt.command.admin.list: true
+      sculpt.command.admin.teleport: true
+      sculpt.command.admin.reload: true
+      sculpt.command.admin.status: true
+
+  sculpt.use.selector:
+    description: Allow using the region selection tool
+    default: true
+  sculpt.use.preview.auto:
+    description: Enable hover preview by default
+    default: false
+  sculpt.use.*:
+    description: Allow every non-command player capability
+    default: false
+    children:
+      sculpt.use.selector: true
+      sculpt.use.preview.auto: true
+
+  sculpt.bypass.region-protection:
+    description: Bypass region protection checks for all Sculpt edits
+    default: op
