@@ -14,7 +14,7 @@ This README is split into a [player guide](#for-players) and an [administrator g
 1. Run `/sculpt mode on` to enable sculpting.
 2. Press `F` to cycle through the resolutions you are allowed to use.
 3. Press `Q` to cycle through your permitted fill modes.
-4. Quickly press `Q` twice to change the display mode; quickly press `F` twice whenever you need to pause or resume sculpting without changing your preferences.
+4. Quickly press `Q` twice to change the display mode; press `Shift` + `Q` whenever you need to pause or resume sculpting without changing your preferences.
 5. Left-click a supported block to turn it into a SculptBlock and remove the targeted cell.
 6. Right-click a SculptBlock to place a cell using the block in your main hand.
 7. Optionally run `/sculpt preview on` to show the cell currently under your cursor.
@@ -30,13 +30,13 @@ If a normal block does not convert, automatic conversion may be disabled, its ma
 | Right-click a SculptBlock | Place the targeted cell using the block in your main hand. |
 | Right-click an exposed edge | Extend the sculpture into the adjacent block position. |
 | `F` | Cycle forward through permitted resolutions. |
-| Quickly press `F` twice | Temporarily pause or resume Sculpt mode. Vanilla clicking and placement are restored while paused. |
 | `Q` | Cycle through permitted fill modes without dropping the item. |
 | Quickly press `Q` twice | Cycle through permitted display modes. |
+| `Shift` + `Q` | Temporarily pause or resume Sculpt mode. Vanilla controls are restored while paused. |
 
 You can target cells behind holes in a sculpture. At `1×1×1`, Sculpt does not create subdivided cells: left-clicking a SculptBlock removes the whole block and right-clicking restores its original block. Normal blocks retain vanilla interaction at this resolution.
 
-`F` and `Q` become Sculpt controls only while Sculpt mode is active. A single press waits about 300 ms to make sure it is not part of a double press, so pausing or changing the display mode will not also change the resolution or fill mode. Every cycle skips choices the player does not have permission to use.
+`F` and `Q` become Sculpt controls only while Sculpt mode is active. `F` changes resolution immediately. A single `Q` press, and a single `F` press with the Blueprint Selector, waits for the configured double-tap window so a double press does not also trigger its single-press action. The window defaults to 300 ms and every cycle skips choices the player does not have permission to use.
 
 Pausing is a temporary safety state. It keeps the selected resolution, fill, and display settings, but clears when the player disconnects or the server restarts. Whether Sculpt mode itself is enabled remains associated with the player's UUID for the lifetime of the current server process.
 
@@ -50,7 +50,7 @@ These settings are independent:
 | Fill mode | Controls the physical collision inside a SculptBlock. |
 | Display mode | Controls how visible cells are rendered. |
 
-Use `/sculpt mode on` to enable sculpting. Right-clicking with a block in your main hand uses that block as the material for a new cell. Quickly press `F` twice for a temporary pause, or use `/sculpt mode off` to disable sculpting completely.
+Use `/sculpt mode on` to enable sculpting. Right-clicking with a block in your main hand uses that block as the material for a new cell. Press `Shift` + `Q` for a temporary pause, or use `/sculpt mode off` to disable sculpting completely.
 
 Choose a fill mode with `/sculpt fill <mode>`:
 
@@ -221,7 +221,7 @@ Permissions default conservatively. Grant only the nodes appropriate for each gr
 
 The main configuration file is `plugins/Sculpt/config.yml`.
 
-The current configuration schema is `configVersion: 5`, and bundled language files use `languageVersion: 2`. These values are migration markers and should not be edited manually.
+The current configuration schema is `configVersion: 6`, and bundled language files use `languageVersion: 3`. These values are migration markers and should not be edited manually.
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
@@ -230,6 +230,7 @@ The current configuration schema is `configVersion: 5`, and bundled language fil
 | `sculpt.defaultDisplayMode` | `auto` | Default cell-rendering strategy. |
 | `sculpt.maxActiveBlocks` | `-1` | Server-wide SculptBlock limit; `-1` is unlimited. |
 | `sculpt.convertNormalBlocks` | `true` | Let Sculpt mode convert supported normal blocks into SculptBlocks. |
+| `controls.doubleTapWindowMs` | `300` | Maximum interval for `Q` double-tap display switching and Blueprint Selector `F` double taps; accepts 50–2000 ms. |
 | `storage.autoSaveIntervalSeconds` | `300` | Interval for saving dirty SculptBlock data. |
 | `rendering.textDisplay.maxEntitiesPerBlock` | `4096` | Safety limit for TextDisplay entities per SculptBlock. |
 | `regionOperations.replace.maxVolume` | `32768` | Maximum world-block volume for `/sculpt replace`. |

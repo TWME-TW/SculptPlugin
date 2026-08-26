@@ -19,6 +19,7 @@ public record SculptConfig(
         String mineskinApiKey,
         String mineskinApiUrl,
         int autoSaveIntervalSeconds,
+        int doubleTapWindowMs,
         boolean blockBreakListenerEnabled,
         FillMode defaultFillMode,
         SculptDisplayMode defaultDisplayMode,
@@ -32,6 +33,9 @@ public record SculptConfig(
 
     public static final String DEFAULT_MINESKIN_API_URL =
             SkinUploader.DEFAULT_API_URL;
+    public static final int DEFAULT_DOUBLE_TAP_WINDOW_MS = 300;
+    public static final int MIN_DOUBLE_TAP_WINDOW_MS = 50;
+    public static final int MAX_DOUBLE_TAP_WINDOW_MS = 2000;
 
     private static final int[] VALID_GRIDS = {1, 2, 4, 8, 16};
 
@@ -44,7 +48,8 @@ public record SculptConfig(
             String languageDefault, boolean languageAutoDetect) {
         this(chunkGridSize, maxActiveSculptBlocks, mineskinApiKey,
             DEFAULT_MINESKIN_API_URL,
-            autoSaveIntervalSeconds, blockBreakListenerEnabled,
+            autoSaveIntervalSeconds, DEFAULT_DOUBLE_TAP_WINDOW_MS,
+            blockBreakListenerEnabled,
             FillMode.SHULKER, SculptDisplayMode.AUTO, 4096, debug,
             skinUploadBatchDelayMs, skinUploadTimeoutMinutes,
             languageDefault, languageAutoDetect);
@@ -60,7 +65,7 @@ public record SculptConfig(
             boolean languageAutoDetect) {
         this(chunkGridSize, maxActiveSculptBlocks, mineskinApiKey,
             DEFAULT_MINESKIN_API_URL, autoSaveIntervalSeconds,
-            blockBreakListenerEnabled,
+            DEFAULT_DOUBLE_TAP_WINDOW_MS, blockBreakListenerEnabled,
             defaultShulkerMode ? FillMode.SHULKER : FillMode.BARRIER,
             SculptDisplayMode.AUTO, 4096, debug,
             skinUploadBatchDelayMs, skinUploadTimeoutMinutes,
@@ -76,10 +81,28 @@ public record SculptConfig(
             long skinUploadBatchDelayMs, long skinUploadTimeoutMinutes,
             String languageDefault, boolean languageAutoDetect) {
         this(chunkGridSize, maxActiveSculptBlocks, mineskinApiKey,
-            mineskinApiUrl, autoSaveIntervalSeconds, blockBreakListenerEnabled,
+            mineskinApiUrl, autoSaveIntervalSeconds,
+            DEFAULT_DOUBLE_TAP_WINDOW_MS, blockBreakListenerEnabled,
             defaultShulkerMode ? FillMode.SHULKER : FillMode.BARRIER,
             SculptDisplayMode.AUTO, 4096, debug,
             skinUploadBatchDelayMs, skinUploadTimeoutMinutes,
+            languageDefault, languageAutoDetect);
+    }
+
+    /** Compatibility constructor for callers predating configurable controls. */
+    public SculptConfig(
+            int chunkGridSize, int maxActiveSculptBlocks,
+            String mineskinApiKey, String mineskinApiUrl,
+            int autoSaveIntervalSeconds, boolean blockBreakListenerEnabled,
+            FillMode defaultFillMode, SculptDisplayMode defaultDisplayMode,
+            int textDisplayMaxEntitiesPerBlock, boolean debug,
+            long skinUploadBatchDelayMs, long skinUploadTimeoutMinutes,
+            String languageDefault, boolean languageAutoDetect) {
+        this(chunkGridSize, maxActiveSculptBlocks, mineskinApiKey,
+            mineskinApiUrl, autoSaveIntervalSeconds,
+            DEFAULT_DOUBLE_TAP_WINDOW_MS, blockBreakListenerEnabled,
+            defaultFillMode, defaultDisplayMode, textDisplayMaxEntitiesPerBlock,
+            debug, skinUploadBatchDelayMs, skinUploadTimeoutMinutes,
             languageDefault, languageAutoDetect);
     }
 
@@ -102,6 +125,13 @@ public record SculptConfig(
             throw new IllegalArgumentException(
                     "storage.autoSaveIntervalSeconds must be positive; got "
                         + autoSaveIntervalSeconds);
+        }
+        if (!isValidDoubleTapWindow(doubleTapWindowMs)) {
+            throw new IllegalArgumentException(
+                "controls.doubleTapWindowMs must be between "
+                    + MIN_DOUBLE_TAP_WINDOW_MS + " and "
+                    + MAX_DOUBLE_TAP_WINDOW_MS + "; got "
+                    + doubleTapWindowMs);
         }
         if (defaultFillMode == null) defaultFillMode = FillMode.SHULKER;
         if (defaultDisplayMode == null) defaultDisplayMode = SculptDisplayMode.AUTO;
@@ -143,6 +173,11 @@ public record SculptConfig(
                 "runtimeBaking.mineskin.apiUrl", DEFAULT_MINESKIN_API_URL);
         int autoSave = cfg.getInt("storage.autoSaveIntervalSeconds", 300);
         if (autoSave <= 0) autoSave = 300;
+        int doubleTapWindow = cfg.getInt("controls.doubleTapWindowMs",
+            DEFAULT_DOUBLE_TAP_WINDOW_MS);
+        if (!isValidDoubleTapWindow(doubleTapWindow)) {
+            doubleTapWindow = DEFAULT_DOUBLE_TAP_WINDOW_MS;
+        }
         boolean bblEnabled = cfg.getBoolean("sculpt.convertNormalBlocks", true);
         FillMode defaultFillMode = FillMode.parse(
             cfg.getString("sculpt.defaultFillMode", "shulker"), FillMode.SHULKER);
@@ -158,7 +193,8 @@ public record SculptConfig(
         boolean langAutoDetect = cfg.getBoolean("language.autoDetect", true);
 
         return new SculptConfig(grid, maxBlocks, apiKey, apiUrl,
-                autoSave, bblEnabled, defaultFillMode, defaultDisplayMode,
+                autoSave, doubleTapWindow, bblEnabled,
+                defaultFillMode, defaultDisplayMode,
                 maxTextDisplays, debug, batchDelay, timeoutMin,
                 langDefault, langAutoDetect);
     }
@@ -172,5 +208,10 @@ public record SculptConfig(
         return FillMode.parse(cfg.getString("sculpt.defaultFillMode",
             cfg.getString("sculpt.defaultCollisionMode", "shulker")),
             FillMode.SHULKER) == FillMode.SHULKER;
+    }
+
+    private static boolean isValidDoubleTapWindow(final int windowMillis) {
+        return windowMillis >= MIN_DOUBLE_TAP_WINDOW_MS
+            && windowMillis <= MAX_DOUBLE_TAP_WINDOW_MS;
     }
 }

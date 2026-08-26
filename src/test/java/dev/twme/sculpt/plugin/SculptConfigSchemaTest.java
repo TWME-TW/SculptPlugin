@@ -21,6 +21,7 @@ class SculptConfigSchemaTest {
         "sculpt.defaultDisplayMode",
         "sculpt.maxActiveBlocks",
         "sculpt.convertNormalBlocks",
+        "controls.doubleTapWindowMs",
         "runtimeBaking.mineskin.apiKey",
         "runtimeBaking.mineskin.apiUrl",
         "runtimeBaking.upload.batchDelayMs",

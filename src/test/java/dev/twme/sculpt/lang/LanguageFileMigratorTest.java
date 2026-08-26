@@ -31,7 +31,7 @@ class LanguageFileMigratorTest {
         assertTrue(result.changed());
         assertTrue(result.migrated());
         assertFalse(result.newerVersion());
-        assertEquals(2, current.getInt("languageVersion"));
+        assertEquals(3, current.getInt("languageVersion"));
         assertEquals("custom enabled",
             current.getString("command.sculpt.preview.enabled"));
         assertEquals(List.of("custom lore"),
@@ -62,7 +62,7 @@ class LanguageFileMigratorTest {
     @Test
     void currentVersionOnlyMergesMissingMessages() {
         YamlConfiguration current = new YamlConfiguration();
-        current.set("languageVersion", 2);
+        current.set("languageVersion", 3);
         current.set("command.sculpt.preview.enabled", "custom enabled");
 
         LanguageFileMigrator.MigrationResult result =
@@ -93,12 +93,42 @@ class LanguageFileMigratorTest {
             LanguageFileMigrator.migrateAndMerge(current, defaults);
 
         assertTrue(result.migrated());
-        assertEquals(2, current.getInt("languageVersion"));
+        assertEquals(3, current.getInt("languageVersion"));
         assertNull(current.getConfigurationSection("sculpt_tool"));
         assertNull(current.getConfigurationSection("sculptwand.chisel"));
         assertEquals("new selector usage", current.getString("sculptwand.usage"));
         assertEquals("new selector choices", current.getString("sculptwand.unknown"));
         assertEquals("custom clear", current.getString("wandtool.cleared"));
+    }
+
+    @Test
+    void versionThreeRefreshesPauseShortcutMessages() {
+        YamlConfiguration current = new YamlConfiguration();
+        current.set("languageVersion", 2);
+        current.set("sculptmode.enabled", "old F double shortcut");
+        current.set("sculptcontrols.paused", "old pause message");
+        current.set("sculptcontrols.resumed", "old resume message");
+        current.set("sculptcontrols.paused_reminder", "old reminder");
+        current.set("general.no_permission", "custom permission message");
+        YamlConfiguration defaults = defaults();
+        defaults.set("sculptmode.enabled", "new Shift+Q shortcut");
+        defaults.set("sculptcontrols.paused", "new pause message");
+        defaults.set("sculptcontrols.resumed", "new resume message");
+
+        LanguageFileMigrator.MigrationResult result =
+            LanguageFileMigrator.migrateAndMerge(current, defaults);
+
+        assertTrue(result.migrated());
+        assertEquals(3, current.getInt("languageVersion"));
+        assertEquals("new Shift+Q shortcut",
+            current.getString("sculptmode.enabled"));
+        assertEquals("new pause message",
+            current.getString("sculptcontrols.paused"));
+        assertEquals("new resume message",
+            current.getString("sculptcontrols.resumed"));
+        assertNull(current.getString("sculptcontrols.paused_reminder"));
+        assertEquals("custom permission message",
+            current.getString("general.no_permission"));
     }
 
     @Test
@@ -123,13 +153,13 @@ class LanguageFileMigratorTest {
     void legacyDottedCustomValueIsNotShadowedByBundledDefault() throws Exception {
         YamlConfiguration current = new YamlConfiguration();
         current.loadFromString("""
-            languageVersion: 2
+            languageVersion: 3
             command.sculpt.blueprint:
               existing: custom translation
             """);
         YamlConfiguration defaults = new YamlConfiguration();
         defaults.loadFromString("""
-            languageVersion: 2
+            languageVersion: 3
             command.sculpt.blueprint:
               existing: bundled translation
               added: newly bundled translation
@@ -152,14 +182,14 @@ class LanguageFileMigratorTest {
         Path destination = temporaryDirectory.resolve("en_us.yml");
         Files.writeString(destination, "languageVersion: 0\n");
         YamlConfiguration updated = new YamlConfiguration();
-        updated.set("languageVersion", 2);
+        updated.set("languageVersion", 3);
         updated.set("general.message", "updated");
 
         LanguageManager.saveLanguageAtomically(destination, updated);
 
         YamlConfiguration reloaded = YamlConfiguration.loadConfiguration(
             destination.toFile());
-        assertEquals(2, reloaded.getInt("languageVersion"));
+        assertEquals(3, reloaded.getInt("languageVersion"));
         assertEquals("updated", reloaded.getString("general.message"));
         try (var files = Files.list(temporaryDirectory)) {
             assertEquals(List.of("en_us.yml"),
@@ -169,7 +199,7 @@ class LanguageFileMigratorTest {
 
     private static YamlConfiguration defaults() {
         YamlConfiguration defaults = new YamlConfiguration();
-        defaults.set("languageVersion", 2);
+        defaults.set("languageVersion", 3);
         defaults.set("command.sculpt.preview.enabled", "default enabled");
         defaults.set("command.sculpt.preview.disabled", "default disabled");
         defaults.set("new_message", "new default");

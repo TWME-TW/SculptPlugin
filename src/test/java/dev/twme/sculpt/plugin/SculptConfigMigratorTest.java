@@ -68,7 +68,7 @@ class SculptConfigMigratorTest {
         assertFalse(yaml.getKeys(true).contains("blockBreakListener"));
         assertFalse(yaml.getKeys(true).contains("blueprint.defaultPasteSettings"));
         assertFalse(yaml.getKeys(true).contains("blueprint.webApi"));
-        assertEquals(5, yaml.getInt("configVersion"));
+        assertEquals(6, yaml.getInt("configVersion"));
         assertFalse(SculptConfigMigrator.migrate(yaml));
     }
 
@@ -82,7 +82,17 @@ class SculptConfigMigratorTest {
         assertTrue(SculptConfigMigrator.migrate(yaml));
         assertFalse(yaml.contains("sculptTool", true));
         assertFalse(yaml.contains("sculpt.tool", true));
-        assertEquals(5, yaml.getInt("configVersion"));
+        assertEquals(6, yaml.getInt("configVersion"));
+    }
+
+    @Test
+    void versionFiveAdvancesForTheNewControlDefault() {
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("configVersion", 5);
+
+        assertTrue(SculptConfigMigrator.migrate(yaml));
+        assertEquals(6, yaml.getInt("configVersion"));
+        assertFalse(SculptConfigMigrator.migrate(yaml));
     }
 
     @Test
@@ -108,7 +118,7 @@ class SculptConfigMigratorTest {
 
         assertTrue(SculptConfigMigrator.migrate(yaml));
         assertEquals(16, yaml.getInt("sculpt.defaultGridSize"));
-        assertEquals(5, yaml.getInt("configVersion"));
+        assertEquals(6, yaml.getInt("configVersion"));
         assertFalse(yaml.contains("chunkGridSize", true));
     }
 

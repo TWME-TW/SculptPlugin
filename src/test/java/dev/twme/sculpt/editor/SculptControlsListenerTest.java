@@ -1,7 +1,10 @@
 package dev.twme.sculpt.editor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 
@@ -12,6 +15,22 @@ import dev.twme.sculpt.core.SculptDisplayMode;
 import dev.twme.sculpt.plugin.SculptPermissions;
 
 class SculptControlsListenerTest {
+
+    @Test
+    void doubleTapWindowRoundsUpToWholeServerTicks() {
+        assertEquals(1L, SculptControlsListener.doubleTapDelayTicks(50));
+        assertEquals(6L, SculptControlsListener.doubleTapDelayTicks(300));
+        assertEquals(7L, SculptControlsListener.doubleTapDelayTicks(301));
+        assertThrows(IllegalArgumentException.class,
+            () -> SculptControlsListener.doubleTapDelayTicks(0));
+    }
+
+    @Test
+    void suspensionShortcutRequiresSneakingAndEnabledSculptMode() {
+        assertTrue(SculptControlsListener.isSuspensionShortcut(true, true));
+        assertFalse(SculptControlsListener.isSuspensionShortcut(false, true));
+        assertFalse(SculptControlsListener.isSuspensionShortcut(true, false));
+    }
 
     @Test
     void fillCycleUsesTheDesignedOrder() {

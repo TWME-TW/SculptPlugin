@@ -13,36 +13,33 @@ import java.util.UUID;
  */
 final class DoubleTapTracker<C> {
 
-    private final long windowNanos;
     private final Map<UUID, PendingTap<C>> pending = new HashMap<>();
-
-    DoubleTapTracker(final long windowNanos) {
-        if (windowNanos <= 0L) {
-            throw new IllegalArgumentException("windowNanos must be positive");
-        }
-        this.windowNanos = windowNanos;
-    }
 
     synchronized Registration<C> register(
             final UUID playerId,
             final C context,
             final long nowNanos,
+            final long windowNanos,
             final Runnable singleAction) {
         Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(singleAction, "singleAction");
+        if (windowNanos <= 0L) {
+            throw new IllegalArgumentException("windowNanos must be positive");
+        }
 
         final PendingTap<C> previous = pending.get(playerId);
         if (previous != null
                 && previous.context().equals(context)
                 && nowNanos >= previous.startedAtNanos()
-                && nowNanos - previous.startedAtNanos() <= windowNanos) {
+                && nowNanos - previous.startedAtNanos()
+                    <= previous.windowNanos()) {
             pending.remove(playerId);
             return new Registration<>(true, null, previous);
         }
 
         final PendingTap<C> next = new PendingTap<>(
-            playerId, context, nowNanos, singleAction);
+            playerId, context, nowNanos, windowNanos, singleAction);
         pending.put(playerId, next);
         return new Registration<>(false, next, previous);
     }
@@ -71,6 +68,7 @@ final class DoubleTapTracker<C> {
         private final UUID playerId;
         private final C context;
         private final long startedAtNanos;
+        private final long windowNanos;
         private final Runnable singleAction;
         private volatile Object taskHandle;
 
@@ -78,10 +76,12 @@ final class DoubleTapTracker<C> {
                 final UUID playerId,
                 final C context,
                 final long startedAtNanos,
+                final long windowNanos,
                 final Runnable singleAction) {
             this.playerId = playerId;
             this.context = context;
             this.startedAtNanos = startedAtNanos;
+            this.windowNanos = windowNanos;
             this.singleAction = singleAction;
         }
 
@@ -95,6 +95,10 @@ final class DoubleTapTracker<C> {
 
         long startedAtNanos() {
             return startedAtNanos;
+        }
+
+        long windowNanos() {
+            return windowNanos;
         }
 
         Runnable singleAction() {

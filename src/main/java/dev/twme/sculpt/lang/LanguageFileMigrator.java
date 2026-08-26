@@ -7,7 +7,7 @@ import dev.twme.sculpt.util.YamlMigrationSupport;
 /** Applies versioned language-key migrations and persists newly bundled messages. */
 public final class LanguageFileMigrator {
 
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
     public static final String VERSION_PATH = "languageVersion";
 
     private LanguageFileMigrator() {}
@@ -41,6 +41,19 @@ public final class LanguageFileMigrator {
             changed |= remove(current, "sculptwand.usage");
             changed |= remove(current, "sculptwand.unknown");
             current.set(VERSION_PATH, 2);
+            changed = true;
+            migrated = true;
+        }
+
+        if (sourceVersion < 3) {
+            // Contextual controls now use Shift+Q for pause/resume instead of
+            // F×2. Reset shortcut-bearing bundled messages while preserving
+            // every unrelated custom translation.
+            changed |= remove(current, "sculptmode.enabled");
+            changed |= remove(current, "sculptcontrols.paused");
+            changed |= remove(current, "sculptcontrols.resumed");
+            changed |= remove(current, "sculptcontrols.paused_reminder");
+            current.set(VERSION_PATH, 3);
             changed = true;
             migrated = true;
         }

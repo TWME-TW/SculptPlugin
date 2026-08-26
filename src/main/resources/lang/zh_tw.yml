@@ -1,6 +1,6 @@
 # 繁體中文（台灣）翻譯 — Sculpt
 # 訊息使用 MiniMessage 格式
-languageVersion: 2
+languageVersion: 3
 
 general:
   prefix: "<#478FC6>[Sculpt]</#478FC6>"
@@ -354,13 +354,12 @@ sculptmode:
   usage: "<#C2C7D3>/sculpt mode [on|off]"
   player_only: "<#CE5F4E>/sculpt mode 必須由玩家執行。"
   unknown: "<#CE5F4E>未知的雕刻模式：<white>{0}<#CE5F4E>。請使用 <white>on<#CE5F4E> 或 <white>off<#CE5F4E>。"
-  enabled: "<#5FBA6B>Sculpt：<white>開啟 <dark_gray>· <#C2C7D3>F 解析度／F×2 暫停 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示"
+  enabled: "<#5FBA6B>Sculpt：<white>開啟 <dark_gray>· <#C2C7D3>F 解析度 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示 <dark_gray>· <#C2C7D3>Shift+Q 暫停"
   disabled: "<#E8C96D>雕刻模式：<white>關閉"
 
 sculptcontrols:
-  paused: "<#E8C96D>Sculpt 已暫停 <dark_gray>· <#C2C7D3>已恢復原版互動 <dark_gray>· <white>F×2 <#C2C7D3>繼續"
-  resumed: "<#5FBA6B>Sculpt 已繼續 <dark_gray>· <#C2C7D3>F 解析度／F×2 暫停 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示"
-  paused_reminder: "<#E8C96D>Sculpt 目前暫停中 <dark_gray>· <white>F×2 <#C2C7D3>繼續"
+  paused: "<#E8C96D>Sculpt 已暫停 <dark_gray>· <#C2C7D3>已恢復原版互動 <dark_gray>· <white>Shift+Q <#C2C7D3>繼續"
+  resumed: "<#5FBA6B>Sculpt 已繼續 <dark_gray>· <#C2C7D3>F 解析度 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示 <dark_gray>· <#C2C7D3>Shift+Q 暫停"
 
 sculptfill:
   player_only: "<#CE5F4E>/sculpt fill 必須由玩家執行。"

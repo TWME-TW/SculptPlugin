@@ -9,7 +9,7 @@ import dev.twme.sculpt.util.YamlMigrationSupport;
 /** Migrates older flat and mixed config layouts into the current schema. */
 public final class SculptConfigMigrator {
 
-    public static final int CURRENT_VERSION = 5;
+    public static final int CURRENT_VERSION = 6;
 
     private static final List<PathMigration> LEGACY_PATHS = List.of(
         new PathMigration("chunkGridSize", "sculpt.defaultGridSize"),

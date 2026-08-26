@@ -115,6 +115,17 @@ class SculptConfigTest {
         assertTrue(SculptConfig.defaultShulkerMode(new YamlConfiguration()));
         assertEquals(FillMode.SHULKER, config.defaultFillMode());
         assertEquals(SculptDisplayMode.AUTO, config.defaultDisplayMode());
+        assertEquals(SculptConfig.DEFAULT_DOUBLE_TAP_WINDOW_MS,
+            config.doubleTapWindowMs());
+    }
+
+    @Test
+    void invalidDoubleTapWindowFallsBackToDefault() {
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.set("controls.doubleTapWindowMs", 10);
+
+        assertEquals(SculptConfig.DEFAULT_DOUBLE_TAP_WINDOW_MS,
+            SculptConfig.from(yaml).doubleTapWindowMs());
     }
 
     @Test
@@ -147,6 +158,7 @@ class SculptConfigTest {
         yaml.set("runtimeBaking.upload.batchDelayMs", 1200L);
         yaml.set("runtimeBaking.upload.timeoutMinutes", 5L);
         yaml.set("storage.autoSaveIntervalSeconds", 90);
+        yaml.set("controls.doubleTapWindowMs", 450);
         yaml.set("language.default", "zh_tw");
         yaml.set("language.autoDetect", false);
         yaml.set("debug.textureMarkers", true);
@@ -164,6 +176,7 @@ class SculptConfigTest {
         assertEquals(1200L, config.skinUploadBatchDelayMs());
         assertEquals(5L, config.skinUploadTimeoutMinutes());
         assertEquals(90, config.autoSaveIntervalSeconds());
+        assertEquals(450, config.doubleTapWindowMs());
         assertEquals("zh_tw", config.languageDefault());
         assertFalse(config.languageAutoDetect());
         assertTrue(config.debug());

@@ -26,9 +26,7 @@ import dev.twme.sculpt.util.WandTool;
 /** Contextual F/Q controls for Sculpt mode and the two explicit selector tools. */
 public final class SculptControlsListener implements Listener {
 
-    private static final long DOUBLE_TAP_WINDOW_NANOS =
-        TimeUnit.MILLISECONDS.toNanos(300L);
-    private static final long DOUBLE_TAP_DELAY_TICKS = 6L;
+    private static final long MILLISECONDS_PER_TICK = 50L;
     private static final FillMode[] FILL_CYCLE = {
         FillMode.SHULKER, FillMode.BARRIER, FillMode.NONE
     };
@@ -39,9 +37,9 @@ public final class SculptControlsListener implements Listener {
 
     private final Sculpt plugin;
     private final DoubleTapTracker<SwapContext> swapTaps =
-        new DoubleTapTracker<>(DOUBLE_TAP_WINDOW_NANOS);
+        new DoubleTapTracker<>();
     private final DoubleTapTracker<DropContext> dropTaps =
-        new DoubleTapTracker<>(DOUBLE_TAP_WINDOW_NANOS);
+        new DoubleTapTracker<>();
 
     public SculptControlsListener(final Sculpt plugin) {
         this.plugin = plugin;
@@ -89,21 +87,27 @@ public final class SculptControlsListener implements Listener {
         // Bound blueprint items remain explicit content controls rather than
         // inheriting Sculpt mode's keyboard shortcuts.
         if (BlueprintSelectorItem.isBoundItem(mainHand)) return;
-        if (!plugin.isSculptMode(player)) return;
+        if (!plugin.isSculptModeActive(player)) return;
 
         event.setCancelled(true);
-        final SwapContext context = plugin.isSculptModeSuspended(player)
-            ? SwapContext.SCULPT_SUSPENDED : SwapContext.SCULPT_ACTIVE;
-        registerTap(
-            swapTaps, player, context,
-            () -> handleSingleSculptSwap(player, context),
-            () -> toggleSculptSuspension(player));
+        cycleResolution(player);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onDrop(final PlayerDropItemEvent event) {
         final Player player = event.getPlayer();
         final ItemStack dropped = event.getItemDrop().getItemStack();
+
+        // Shift+Q is the global pause/resume shortcut while Sculpt mode is
+        // enabled. Check it before tool dispatch so it can also resume from
+        // the suspended state without dropping the held item.
+        if (isSuspensionShortcut(player.isSneaking(),
+                plugin.isSculptMode(player))) {
+            event.setCancelled(true);
+            clearPending(player);
+            toggleSculptSuspension(player);
+            return;
+        }
 
         // Q is unmodified for explicit tools and blueprint items.
         if (WandTool.isWandTool(dropped)
@@ -136,16 +140,8 @@ public final class SculptControlsListener implements Listener {
         dropTaps.clearAll().forEach(SculptControlsListener::cancel);
     }
 
-    private void handleSingleSculptSwap(
-            final Player player,
-            final SwapContext originalContext) {
-        if (!player.isOnline() || !plugin.isSculptMode(player)) return;
-        if (originalContext == SwapContext.SCULPT_SUSPENDED
-                || plugin.isSculptModeSuspended(player)) {
-            MessageUtil.sendTranslatedActionBar(
-                player, "sculptcontrols.paused_reminder");
-            return;
-        }
+    private void cycleResolution(final Player player) {
+        if (!player.isOnline() || !plugin.isSculptModeActive(player)) return;
 
         final int previous = plugin.gridSizeFor(player);
         final int next = plugin.cycleGridSize(player);
@@ -196,8 +192,10 @@ public final class SculptControlsListener implements Listener {
             final C context,
             final Runnable singleAction,
             final Runnable doubleAction) {
+        final int windowMillis = plugin.sculptConfig().doubleTapWindowMs();
         final DoubleTapTracker.Registration<C> registration = tracker.register(
-            player.getUniqueId(), context, System.nanoTime(), singleAction);
+            player.getUniqueId(), context, System.nanoTime(),
+            TimeUnit.MILLISECONDS.toNanos(windowMillis), singleAction);
         final DoubleTapTracker.PendingTap<C> previous = registration.previous();
         if (previous != null) {
             cancel(previous);
@@ -214,8 +212,23 @@ public final class SculptControlsListener implements Listener {
                 if (tracker.expire(pending) && player.isOnline()) {
                     pending.singleAction().run();
                 }
-            }, DOUBLE_TAP_DELAY_TICKS);
+            }, doubleTapDelayTicks(windowMillis));
         pending.taskHandle(task);
+    }
+
+    static long doubleTapDelayTicks(final int windowMillis) {
+        if (windowMillis <= 0) {
+            throw new IllegalArgumentException("windowMillis must be positive");
+        }
+        return Math.max(1L,
+            (windowMillis + MILLISECONDS_PER_TICK - 1L)
+                / MILLISECONDS_PER_TICK);
+    }
+
+    static boolean isSuspensionShortcut(
+            final boolean sneaking,
+            final boolean sculptModeEnabled) {
+        return sneaking && sculptModeEnabled;
     }
 
     private static void cancel(final DoubleTapTracker.PendingTap<?> tap) {
@@ -257,8 +270,6 @@ public final class SculptControlsListener implements Listener {
     }
 
     private enum SwapContext {
-        SCULPT_ACTIVE,
-        SCULPT_SUSPENDED,
         BLUEPRINT
     }
 

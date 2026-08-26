@@ -1,6 +1,6 @@
 # English (US) translations for Sculpt
 # Messages use MiniMessage format — see https://docs.advntr.dev/minimessage/format.html
-languageVersion: 2
+languageVersion: 3
 
 general:
   prefix: "<#478FC6>[Sculpt]</#478FC6>"
@@ -355,13 +355,12 @@ sculptmode:
   usage: "<#C2C7D3>/sculpt mode [on|off]"
   player_only: "<#CE5F4E>/sculpt mode must be run by a player."
   unknown: "<#CE5F4E>Unknown sculpt mode: <white>{0}<#CE5F4E>. Use <white>on<#CE5F4E> or <white>off<#CE5F4E>."
-  enabled: "<#5FBA6B>Sculpt: <white>ON <dark_gray>· <#C2C7D3>F grid / F×2 pause <dark_gray>· <#C2C7D3>Q fill / Q×2 display"
+  enabled: "<#5FBA6B>Sculpt: <white>ON <dark_gray>· <#C2C7D3>F grid <dark_gray>· <#C2C7D3>Q fill / Q×2 display <dark_gray>· <#C2C7D3>Shift+Q pause"
   disabled: "<#E8C96D>SculptMode: <white>OFF"
 
 sculptcontrols:
-  paused: "<#E8C96D>Sculpt paused <dark_gray>· <#C2C7D3>vanilla interaction restored <dark_gray>· <white>F×2 <#C2C7D3>resume"
-  resumed: "<#5FBA6B>Sculpt resumed <dark_gray>· <#C2C7D3>F grid / F×2 pause <dark_gray>· <#C2C7D3>Q fill / Q×2 display"
-  paused_reminder: "<#E8C96D>Sculpt is paused <dark_gray>· <white>F×2 <#C2C7D3>to resume"
+  paused: "<#E8C96D>Sculpt paused <dark_gray>· <#C2C7D3>vanilla interaction restored <dark_gray>· <white>Shift+Q <#C2C7D3>resume"
+  resumed: "<#5FBA6B>Sculpt resumed <dark_gray>· <#C2C7D3>F grid <dark_gray>· <#C2C7D3>Q fill / Q×2 display <dark_gray>· <#C2C7D3>Shift+Q pause"
 
 sculptfill:
   player_only: "<#CE5F4E>/sculpt fill must be run by a player."

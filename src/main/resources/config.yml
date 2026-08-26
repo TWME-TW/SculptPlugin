@@ -1,5 +1,5 @@
 # Sculpt configuration schema. Do not change this value manually.
-configVersion: 5
+configVersion: 6
 
 # Core sculpting behavior. These settings support /sculpt admin reload.
 sculpt:
@@ -14,6 +14,12 @@ sculpt:
   maxActiveBlocks: -1
   # Allow Sculpt mode to convert a clicked normal block into a SculptBlock.
   convertNormalBlocks: true
+
+# Contextual keyboard shortcuts. These settings support /sculpt admin reload.
+controls:
+  # Maximum interval for Q×2 display switching and Blueprint Selector F×2.
+  # Valid range: 50 to 2000 milliseconds.
+  doubleTapWindowMs: 300
 
 # Runtime texture generation. Changes in this section require a server restart.
 runtimeBaking:
