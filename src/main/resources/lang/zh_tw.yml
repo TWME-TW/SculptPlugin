@@ -351,11 +351,14 @@ wand_tool:
 
 
 sculptmode:
-  usage: "<#C2C7D3>/sculpt mode [on|off]"
+  usage: "<#C2C7D3>/sculpt mode <on|off> [玩家名稱]"
   player_only: "<#CE5F4E>/sculpt mode 必須由玩家執行。"
+  no_player: "<#CE5F4E>找不到該玩家：<white>{0}"
   unknown: "<#CE5F4E>未知的雕刻模式：<white>{0}<#CE5F4E>。請使用 <white>on<#CE5F4E> 或 <white>off<#CE5F4E>。"
   enabled: "<#5FBA6B>Sculpt：<white>開啟 <dark_gray>· <#C2C7D3>F 解析度 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示 <dark_gray>· <#C2C7D3>Shift+Q 暫停"
   disabled: "<#E8C96D>雕刻模式：<white>關閉"
+  other_enabled: "<#5FBA6B>已為 <white>{0}<#5FBA6B> 開啟雕刻模式。"
+  other_disabled: "<#E8C96D>已為 <white>{0}<#E8C96D> 關閉雕刻模式。"
 
 sculptcontrols:
   paused: "<#E8C96D>Sculpt 已暫停 <dark_gray>· <#C2C7D3>已恢復原版互動 <dark_gray>· <white>Shift+Q <#C2C7D3>繼續"
