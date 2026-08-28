@@ -33,33 +33,57 @@ public final class SculptModeCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(final CommandSender sender, final Command cmd,
                              final String label, final String[] args) {
-        if (!(sender instanceof Player p)) {
-            MessageUtil.sendTranslated(sender, "sculptmode.player_only");
-            return true;
-        }
         if (args.length == 0) {
+            if (!(sender instanceof Player p)) {
+                MessageUtil.sendTranslated(sender, "sculptmode.usage");
+                return true;
+            }
             MessageUtil.sendTranslatedActionBar(p,
                 !plugin.isSculptMode(p) ? "sculptmode.disabled"
                     : plugin.isSculptModeSuspended(p)
                         ? "sculptcontrols.paused" : "sculptmode.enabled");
             return true;
         }
-        return switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "on" -> setMode(p, true);
-            case "off" -> setMode(p, false);
+        if (args.length > 2) {
+            MessageUtil.sendTranslated(sender, "sculptmode.usage");
+            return true;
+        }
+
+        final boolean enabled;
+        switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "on" -> enabled = true;
+            case "off" -> enabled = false;
             default -> {
                 MessageUtil.sendTranslated(sender, "sculptmode.unknown", args[0]);
-                yield true;
+                return true;
             }
-        };
-    }
+        }
 
-    private boolean setMode(final Player p, final boolean enabled) {
-        if (!checkPerm(p, enabled
+        if (!checkPerm(sender, enabled
                 ? SculptPermissions.MODE_ON : SculptPermissions.MODE_OFF)) return true;
-        plugin.setSculptMode(p, enabled);
-        MessageUtil.sendTranslatedActionBar(p, enabled
+
+        final Player target;
+        if (args.length == 2) {
+            target = sender.getServer().getPlayerExact(args[1]);
+            if (target == null) {
+                MessageUtil.sendTranslated(sender, "sculptmode.no_player", args[1]);
+                return true;
+            }
+        } else if (sender instanceof Player p) {
+            target = p;
+        } else {
+            MessageUtil.sendTranslated(sender, "sculptmode.usage");
+            return true;
+        }
+
+        plugin.setSculptMode(target, enabled);
+        MessageUtil.sendTranslatedActionBar(target, enabled
             ? "sculptmode.enabled" : "sculptmode.disabled");
+        if (!sender.equals(target)) {
+            MessageUtil.sendTranslated(sender,
+                enabled ? "sculptmode.other_enabled" : "sculptmode.other_disabled",
+                target.getName());
+        }
         return true;
     }
 
@@ -75,6 +99,20 @@ public final class SculptModeCommand implements CommandExecutor, TabCompleter {
                 })
                 .toList();
             return StringUtil.copyPartialMatches(args[0], allowed, new ArrayList<>());
+        }
+        if (args.length == 2) {
+            final String mode = args[0].toLowerCase(Locale.ROOT);
+            final String permission = switch (mode) {
+                case "on" -> SculptPermissions.MODE_ON;
+                case "off" -> SculptPermissions.MODE_OFF;
+                default -> null;
+            };
+            if (permission != null && hasPerm(sender, permission)) {
+                final List<String> playerNames = sender.getServer().getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .toList();
+                return StringUtil.copyPartialMatches(args[1], playerNames, new ArrayList<>());
+            }
         }
         return List.of();
     }
