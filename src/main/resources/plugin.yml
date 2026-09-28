@@ -14,7 +14,7 @@ authors: [ TWME-TW ]
 commands:
   sculpt:
     description: Main entry point for Sculpt
-    usage: /<command> <help|resolution|preview|mode|fill|display|convert|replace|relight|tool|blueprint|heads|admin>
+    usage: /<command> <help|resolution|preview|mode|fill|display|convert|replace|relight|build|brush|undo|redo|tool|blueprint|heads|admin>
 
 permissions:
   sculpt.command.*:
@@ -29,6 +29,9 @@ permissions:
       sculpt.command.convert: true
       sculpt.command.replace: true
       sculpt.command.relight: true
+      sculpt.command.build: true
+      sculpt.command.brush: true
+      sculpt.command.undo: true
       sculpt.command.tool.*: true
       sculpt.command.blueprint.*: true
       sculpt.command.heads: true
@@ -78,6 +81,18 @@ permissions:
   sculpt.command.relight:
     description: Allow restoring automatic TextDisplay lighting in a selected region
     default: op
+
+  sculpt.command.build:
+    description: Allow building planes, surfaces, curves, and solids with /sculpt build and the Builder tool
+    default: op
+
+  sculpt.command.brush:
+    description: Allow configuring and using the sculpting brush
+    default: op
+
+  sculpt.command.undo:
+    description: Allow undoing and redoing your own Sculpt edits with /sculpt undo and /sculpt redo
+    default: true
 
   sculpt.command.mode.on:
     description: Allow using /sculpt mode on
@@ -132,12 +147,20 @@ permissions:
   sculpt.command.tool.blueprint:
     description: Allow using /sculpt tool blueprint
     default: op
+  sculpt.command.tool.builder:
+    description: Allow using /sculpt tool builder
+    default: op
+  sculpt.command.tool.brush:
+    description: Allow using /sculpt tool brush
+    default: op
   sculpt.command.tool.*:
     description: Allow using all /sculpt tool choices
     default: op
     children:
       sculpt.command.tool.selector: true
       sculpt.command.tool.blueprint: true
+      sculpt.command.tool.builder: true
+      sculpt.command.tool.brush: true
 
   sculpt.command.blueprint.save:
     description: Allow using /sculpt blueprint save

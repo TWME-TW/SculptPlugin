@@ -31,7 +31,7 @@ class LanguageFileMigratorTest {
         assertTrue(result.changed());
         assertTrue(result.migrated());
         assertFalse(result.newerVersion());
-        assertEquals(3, current.getInt("languageVersion"));
+        assertEquals(LanguageFileMigrator.CURRENT_VERSION, current.getInt("languageVersion"));
         assertEquals("custom enabled",
             current.getString("command.sculpt.preview.enabled"));
         assertEquals(List.of("custom lore"),
@@ -62,7 +62,7 @@ class LanguageFileMigratorTest {
     @Test
     void currentVersionOnlyMergesMissingMessages() {
         YamlConfiguration current = new YamlConfiguration();
-        current.set("languageVersion", 3);
+        current.set("languageVersion", LanguageFileMigrator.CURRENT_VERSION);
         current.set("command.sculpt.preview.enabled", "custom enabled");
 
         LanguageFileMigrator.MigrationResult result =
@@ -93,7 +93,7 @@ class LanguageFileMigratorTest {
             LanguageFileMigrator.migrateAndMerge(current, defaults);
 
         assertTrue(result.migrated());
-        assertEquals(3, current.getInt("languageVersion"));
+        assertEquals(LanguageFileMigrator.CURRENT_VERSION, current.getInt("languageVersion"));
         assertNull(current.getConfigurationSection("sculpt_tool"));
         assertNull(current.getConfigurationSection("sculptwand.chisel"));
         assertEquals("new selector usage", current.getString("sculptwand.usage"));
@@ -119,7 +119,7 @@ class LanguageFileMigratorTest {
             LanguageFileMigrator.migrateAndMerge(current, defaults);
 
         assertTrue(result.migrated());
-        assertEquals(3, current.getInt("languageVersion"));
+        assertEquals(LanguageFileMigrator.CURRENT_VERSION, current.getInt("languageVersion"));
         assertEquals("new Shift+Q shortcut",
             current.getString("sculptmode.enabled"));
         assertEquals("new pause message",
@@ -129,6 +129,34 @@ class LanguageFileMigratorTest {
         assertNull(current.getString("sculptcontrols.paused_reminder"));
         assertEquals("custom permission message",
             current.getString("general.no_permission"));
+    }
+
+    @Test
+    void versionFourRefreshesCommandAndToolListings() {
+        YamlConfiguration current = new YamlConfiguration();
+        current.set("languageVersion", 3);
+        current.set("command.sculpt.usage", "old usage");
+        current.set("command.sculpt.help.tool", "old tool help");
+        current.set("sculptwand.usage", "old tool usage");
+        current.set("sculptwand.unknown", "old tool choices");
+        current.set("sculptwand.selector.self", "custom selector message");
+        YamlConfiguration defaults = defaults();
+        defaults.set("command.sculpt.usage", "new usage");
+        defaults.set("command.sculpt.help.tool", "new tool help");
+        defaults.set("sculptwand.usage", "new tool usage");
+        defaults.set("sculptwand.unknown", "new tool choices");
+
+        LanguageFileMigrator.MigrationResult result =
+            LanguageFileMigrator.migrateAndMerge(current, defaults);
+
+        assertTrue(result.migrated());
+        assertEquals(4, current.getInt("languageVersion"));
+        assertEquals("new usage", current.getString("command.sculpt.usage"));
+        assertEquals("new tool help", current.getString("command.sculpt.help.tool"));
+        assertEquals("new tool usage", current.getString("sculptwand.usage"));
+        assertEquals("new tool choices", current.getString("sculptwand.unknown"));
+        assertEquals("custom selector message",
+            current.getString("sculptwand.selector.self"));
     }
 
     @Test
@@ -153,13 +181,13 @@ class LanguageFileMigratorTest {
     void legacyDottedCustomValueIsNotShadowedByBundledDefault() throws Exception {
         YamlConfiguration current = new YamlConfiguration();
         current.loadFromString("""
-            languageVersion: 3
+            languageVersion: 4
             command.sculpt.blueprint:
               existing: custom translation
             """);
         YamlConfiguration defaults = new YamlConfiguration();
         defaults.loadFromString("""
-            languageVersion: 3
+            languageVersion: 4
             command.sculpt.blueprint:
               existing: bundled translation
               added: newly bundled translation

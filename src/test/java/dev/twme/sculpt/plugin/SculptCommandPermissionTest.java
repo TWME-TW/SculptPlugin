@@ -219,6 +219,18 @@ class SculptCommandPermissionTest {
     }
 
     @Test
+    void primaryCommands_exposeBuildingToolkit() {
+        assertEquals(List.of("help", "build", "brush", "undo", "redo", "tool"),
+                SculptCommand.allowedPrimaryCommands(checker(
+                    SculptPermissions.BUILD, SculptPermissions.BRUSH,
+                    SculptPermissions.UNDO, SculptPermissions.TOOL_BUILDER)));
+        assertEquals(List.of("help", "undo", "redo"),
+                SculptCommand.allowedPrimaryCommands(checker(SculptPermissions.UNDO)));
+        assertEquals(List.of("help", "tool"),
+                SculptCommand.allowedPrimaryCommands(checker(SculptPermissions.TOOL_BRUSH)));
+    }
+
+    @Test
     void primaryCommands_collapseMaintenancePermissionsUnderAdmin() {
         Predicate<String> admin = checker(
                 "sculpt.command.admin.list",

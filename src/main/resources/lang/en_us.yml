@@ -1,6 +1,6 @@
 # English (US) translations for Sculpt
 # Messages use MiniMessage format — see https://docs.advntr.dev/minimessage/format.html
-languageVersion: 3
+languageVersion: 4
 
 general:
   prefix: "<#478FC6>[Sculpt]</#478FC6>"
@@ -12,7 +12,7 @@ general:
 
 command:
   sculpt:
-    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|tool|blueprint|heads|admin>"
+    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|build|brush|undo|redo|tool|blueprint|heads|admin>"
     unknown_subcommand: "<#CE5F4E>Unknown subcommand: <white>{0}"
 
     help:
@@ -26,8 +26,12 @@ command:
       convert: "<click:suggest_command:/sculpt convert ><#C2C7D3>  /sculpt <white>convert <dark_gray>— change existing block fill</click>"
       replace: "<click:suggest_command:/sculpt replace ><#C2C7D3>  /sculpt <white>replace <dark_gray>— replace selected block materials</click>"
       relight: "<click:run_command:/sculpt relight><#C2C7D3>  /sculpt <white>relight <dark_gray>— restore automatic TextDisplay lighting</click>"
+      building_header: "<#7A8B9C>Building"
+      build: "<click:suggest_command:/sculpt build ><#C2C7D3>  /sculpt <white>build <dark_gray>— planes, curved surfaces, curves, and solids from points</click>"
+      brush: "<click:suggest_command:/sculpt brush ><#C2C7D3>  /sculpt <white>brush <dark_gray>— sculpt, smooth, or paint with the brush</click>"
+      undo: "<click:suggest_command:/sculpt undo><#C2C7D3>  /sculpt <white>undo <dark_gray>/ <white>redo <dark_gray>— step through your recent edits</click>"
       content_header: "<#7A8B9C>Tools and content"
-      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— get a region or blueprint selector</click>"
+      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— get a selector, builder, or brush</click>"
       blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— save and share builds</click>"
       heads: "<click:suggest_command:/sculpt heads ><#C2C7D3>  /sculpt <white>heads <dark_gray>— browse baked heads</click>"
       admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  Administration: <white>admin</click>"
@@ -380,9 +384,9 @@ sculptdisplay:
   auto: "<#5FBA6B>Sculpt display: <white>AUTO"
 
 sculptwand:
-  usage: "<#C2C7D3>/sculpt tool <selector|blueprint> [player]"
+  usage: "<#C2C7D3>/sculpt tool <selector|blueprint|builder|brush> [player]"
   player_only: "<#CE5F4E>/sculpt tool must be run by a player."
-  unknown: "<#CE5F4E>Unknown tool: <white>{0}<#CE5F4E>. Use <white>selector<#CE5F4E> or <white>blueprint<#CE5F4E>."
+  unknown: "<#CE5F4E>Unknown tool: <white>{0}<#CE5F4E>. Use <white>selector<#CE5F4E>, <white>blueprint<#CE5F4E>, <white>builder<#CE5F4E>, or <white>brush<#CE5F4E>."
   no_player: "<#CE5F4E>Player not found: <white>{0}"
   selector:
     self: "<#5FBA6B>You received the selection wand."
@@ -392,3 +396,89 @@ sculptwand:
     self: "<#5FBA6B>You received a Blueprint Selector tool."
     other: "<#5FBA6B>Gave Blueprint Selector to <white>{0}<#5FBA6B>."
     given: "<#5FBA6B>You received a Blueprint Selector tool."
+  builder:
+    self: "<#5FBA6B>You received the Builder. Right-click to place points, then run <white>/sculpt build<#5FBA6B>."
+    other: "<#5FBA6B>Gave the Builder to <white>{0}<#5FBA6B>."
+    given: "<#5FBA6B>You received the Builder."
+  brush:
+    self: "<#5FBA6B>You received the Sculpt Brush. Configure it with <white>/sculpt brush<#5FBA6B>."
+    other: "<#5FBA6B>Gave the Sculpt Brush to <white>{0}<#5FBA6B>."
+    given: "<#5FBA6B>You received the Sculpt Brush."
+
+building:
+  player_only: "<#CE5F4E>Building commands must be run by a player."
+  not_ready: "<#E8C96D>Sculpt textures are still loading; try again shortly."
+  busy: "<#E8C96D>Your previous building operation is still running."
+  usage: "<#C2C7D3>Usage: <#D1968C>/sculpt build <plane|surface|curve|sphere|cylinder> [--thickness <n>] [--hollow] [--carve] [--material <block>] [--rows <n>]<#C2C7D3> or <#D1968C>/sculpt build <point [surface]|undo-point|points|clear>"
+  tool:
+    builder:
+      name: "<!italic><#E8C96D>Builder"
+      lore1: "<!italic><gray>Right-click: add a point in front of the face"
+      lore2: "<!italic><gray>Shift + right-click: add a point on the surface"
+      lore3: "<!italic><gray>Left-click: remove the last point · Shift: clear all"
+      lore4: "<!italic><gray>Then run <white>/sculpt build <shape>"
+    brush:
+      name: "<!italic><#7AB8E8>Sculpt Brush"
+      lore1: "<!italic><gray>Sculpt: left-click carves, right-click adds"
+      lore2: "<!italic><gray>Smooth: any click rounds spikes and fills pits"
+      lore3: "<!italic><gray>Paint: right-click paints, left-click picks a material"
+      lore4: "<!italic><gray>Material: brush setting, off hand, then main hand"
+  points:
+    added: "<#5FBA6B>Point <white>#{0}<#5FBA6B> at <white>{1}, {2}, {3}"
+    removed: "<#E8C96D>Removed the last point; <white>{0}<#E8C96D> left."
+    cleared: "<#E8C96D>All building points cleared."
+    none: "<#C2C7D3>You have no building points in this world."
+    limit: "<#CE5F4E>A shape can use at most {0} points."
+    no_target: "<#CE5F4E>Look at a block or SculptBlock within reach."
+    header: "<#478FC6>Building points ({0}):"
+    entry: "<#C2C7D3>  <white>#{0}<#C2C7D3>: {1}, {2}, {3}"
+  shape:
+    plane:
+      points: "<#CE5F4E>A plane needs at least 3 points (you have {0}). Points are joined in order as a fan from the first point."
+    surface:
+      points: "<#CE5F4E>A curved surface needs a control grid of at least 2×2 points (you have {0})."
+      grid: "<#CE5F4E>{0} points do not form a control grid; add points or use <white>--rows <n><#CE5F4E>."
+    curve:
+      points: "<#CE5F4E>A curve needs at least 2 points (you have {0})."
+    sphere:
+      points: "<#CE5F4E>A sphere needs exactly 2 points: the center and a point on the surface (you have {0})."
+    cylinder:
+      points: "<#CE5F4E>A cylinder needs exactly 3 points: both ends of the axis and a point on the side (you have {0})."
+  options:
+    unknown: "<#CE5F4E>Unknown option: <white>{0}"
+    missing_value: "<#CE5F4E>Option <white>{0}<#CE5F4E> needs a value."
+    invalid_number: "<#CE5F4E>Invalid number: <white>{0}"
+    thickness_limit: "<#CE5F4E>Thickness cannot exceed {0} cells."
+  material:
+    missing: "<#CE5F4E>Hold a block in your off hand or main hand, or use <white>--material <block><#CE5F4E>."
+    invalid: "<#CE5F4E>Invalid block material or block data: <white>{0}"
+    unsupported: "<#CE5F4E>This material cannot be used for Sculpt cells: <white>{0}"
+  result:
+    started: "<#E8C96D>Building <white>{0}<#E8C96D>: {1} cells in {2} blocks..."
+    completed: "<#5FBA6B>Finished <white>{0}<#5FBA6B>: changed <white>{1}<#5FBA6B> block(s). Use <white>/sculpt undo<#5FBA6B> to revert."
+    no_changes: "<#C2C7D3>Nothing needed to change."
+    too_many_blocks: "<#CE5F4E>The shape touches more than {0} blocks; nothing was changed."
+    too_many_cells: "<#CE5F4E>The shape needs more than {0} cells; lower the resolution or size. Nothing was changed."
+    invalid_shape: "<#CE5F4E>The points do not form a valid shape: <white>{0}"
+    protected: "<#CE5F4E>Skipped {0} block(s) in protected areas."
+    obstructed: "<#E8C96D>Skipped {0} block(s) that cannot become SculptBlocks (partial shapes, block entities, or unsupported materials)."
+    locked: "<#E8C96D>Skipped {0} block(s) where only indivisible player-head cells would change."
+    limit_reached: "<#CE5F4E>{0} block(s) were skipped because the server SculptBlock limit was reached."
+    stale: "<#E8C96D>Skipped {0} block(s) that changed during the operation."
+    failed: "<#CE5F4E>{0} block position(s) failed; see the server log."
+    not_recorded: "<#E8C96D>This operation was too large to keep in your undo history."
+  brush:
+    usage: "<#C2C7D3>Usage: <#D1968C>/sculpt brush [size <n>|shape <sphere|cube>|mode <sculpt|smooth|paint>|material <block|hand>]"
+    settings: "<#478FC6>Brush<#C2C7D3>: radius <white>{0}<#C2C7D3>, shape <white>{1}<#C2C7D3>, mode <white>{2}<#C2C7D3>, material <white>{3}"
+    invalid_size: "<#CE5F4E>Brush radius must be between 0 and {0} cells."
+    picked: "<#5FBA6B>Brush material: <white>{0}"
+    protected: "<#CE5F4E>{0} block(s) are protected."
+  undo:
+    usage: "<#C2C7D3>Usage: <#D1968C>/sculpt undo [steps]"
+    invalid_steps: "<#CE5F4E>Steps must be between 1 and {0}."
+    nothing: "<#C2C7D3>Nothing to undo."
+    completed: "<#5FBA6B>Undid <white>{0}<#5FBA6B> action(s), restoring <white>{1}<#5FBA6B> block(s). Use <white>/sculpt redo<#5FBA6B> to reapply."
+  redo:
+    usage: "<#C2C7D3>Usage: <#D1968C>/sculpt redo [steps]"
+    nothing: "<#C2C7D3>Nothing to redo."
+    completed: "<#5FBA6B>Redid <white>{0}<#5FBA6B> action(s), changing <white>{1}<#5FBA6B> block(s)."

@@ -49,6 +49,24 @@ regionOperations:
     # Full outputs remain vanilla blocks and do not consume this budget.
     maxGeneratedLeaves: 131072
 
+# Building toolkit: /sculpt build, the Sculpt Brush, and /sculpt undo.
+# These settings support /sculpt admin reload.
+building:
+  # Maximum world blocks one build or brush operation may touch.
+  maxBlocks: 4096
+  # Maximum cells one operation may generate at the player's resolution.
+  maxCells: 262144
+  # Largest accepted --thickness for planes, surfaces, curves, and shells.
+  maxThickness: 16
+  brush:
+    # Largest brush radius, in cells at the player's resolution.
+    maxRadius: 8
+  history:
+    # Undo steps kept per player until they leave the server.
+    maxEntries: 30
+    # Total block snapshots kept per player; the oldest steps are dropped first.
+    maxBlocks: 32768
+
 language:
   default: "en_us"
   autoDetect: true

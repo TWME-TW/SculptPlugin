@@ -48,6 +48,12 @@ class SculptConfigSchemaTest {
         "blueprint.web.apiEndpoint",
         "blueprint.download.allowedDomains",
         "blueprint.download.maxBytes",
+        "building.maxBlocks",
+        "building.maxCells",
+        "building.maxThickness",
+        "building.brush.maxRadius",
+        "building.history.maxEntries",
+        "building.history.maxBlocks",
         "debug.textureMarkers"
     );
 

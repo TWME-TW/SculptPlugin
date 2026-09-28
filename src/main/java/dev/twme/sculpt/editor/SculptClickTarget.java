@@ -11,13 +11,13 @@ import dev.twme.sculpt.util.InteractionSpawner;
 import dev.twme.sculpt.util.ShulkerSpawner;
 
 /** Resolves the parent block of an entity used by adaptive collision. */
-final class SculptClickTarget {
+public final class SculptClickTarget {
 
     private SculptClickTarget() {
     }
 
     @Nullable
-    static Location blockLocation(final Entity entity) {
+    public static Location blockLocation(final Entity entity) {
         if (entity instanceof Interaction interaction
                 && InteractionSpawner.isSculptInteraction(interaction)) {
             return interaction.getLocation().toBlockLocation();

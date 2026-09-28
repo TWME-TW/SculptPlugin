@@ -85,7 +85,10 @@ Mode, fill, and display choices remain associated with the player's UUID when th
 | `/sculpt convert <fill> [single\|region]` | Change the fill mode of a looked-at SculptBlock or selected region. |
 | `/sculpt replace <block data>` | Replace the material of blocks and SculptBlocks in a selected region while preserving their visible shape. |
 | `/sculpt relight` | Remove legacy TextDisplay brightness overrides in the selected region and restore automatic environment lighting. |
-| `/sculpt tool <selector\|blueprint>` | Receive a region or blueprint selector. |
+| `/sculpt build <shape> [options]` | Build planes, curved surfaces, curves, spheres, or cylinders from control points. |
+| `/sculpt brush [setting] [value]` | Show or change the Sculpt Brush settings. |
+| `/sculpt undo [steps]` / `/sculpt redo [steps]` | Undo or redo your recent building, brush, and Sculpt mode edits. |
+| `/sculpt tool <selector\|blueprint\|builder\|brush>` | Receive a region selector, blueprint selector, Builder, or Sculpt Brush. |
 | `/sculpt heads [search <query> [resolution]]` | Browse or search available head textures. |
 
 ### Region selection and replacement
@@ -100,6 +103,53 @@ The same selection is used by `/sculpt convert` and `/sculpt replace`. `replace`
 ```
 
 Regular full blocks remain vanilla blocks. Slabs, fences, walls, doors, panes, and other supported partial shapes are represented with Sculpt cells so their visual model is preserved. Decorative blocks without a collision shape, such as grass and flowers, are left unchanged.
+
+### Building toolkit
+
+The building toolkit creates shapes out of Sculpt cells at your current resolution, so walls, ramps, roofs, and curves can run at any angle instead of following the block grid.
+
+**Control points.** Run `/sculpt tool builder` to receive the Builder:
+
+| Input with the Builder | Result |
+| --- | --- |
+| Right-click | Add a point in the empty cell in front of the targeted face, like placing a block. |
+| `Shift` + right-click | Add a point on the targeted cell itself. |
+| Left-click | Remove the last point. |
+| `Shift` + left-click | Clear all points. |
+
+Points snap to cell centers at your resolution and are shown with particles while you hold the Builder, joined in order. The same actions are available as `/sculpt build point [surface]`, `/sculpt build undo-point`, `/sculpt build clear`, and `/sculpt build points`. A shape uses at most 16 points, and changing worlds clears them.
+
+**Shapes.** Run `/sculpt build <shape>` once the points are placed:
+
+| Shape | Points | Result |
+| --- | --- | --- |
+| `plane` | 3 or more | A multi-angle plane: the points are joined in order as a fan from the first point. Three points form a triangle at any angle; four points form a quad, which may be folded. |
+| `surface` | a grid of 2×2 to 4×4 | A curved Bézier surface. Points are read row by row; 4, 9, or 16 points form square control grids, and `--rows <n>` selects other layouts. The surface touches the corner points and is pulled towards the others. |
+| `curve` | 2 or more | A beam or smooth curve passing through every point. |
+| `sphere` | 2 | A sphere around the first point, passing through the second. |
+| `cylinder` | 3 | A cylinder whose axis runs from the first to the second point, with the third point on its side. |
+
+| Option | Effect |
+| --- | --- |
+| `--thickness <n>` | Thickness in cells (default 1). One-cell surfaces stay watertight at every angle. |
+| `--hollow` | Make a sphere or cylinder a shell of the given thickness instead of a solid. |
+| `--carve` | Remove cells instead of adding them, for example to cut a curved opening. |
+| `--material <block>` | Build with this block. Without it, the block in your off hand is used, then the block in your main hand. |
+| `--rows <n>` | Number of rows in a `surface` control grid. |
+
+For example, with three points on the ground and a fourth on top of a wall, `/sculpt build plane --material stone` builds a ramp; nine points and `/sculpt build surface --thickness 2 --material oak_planks` build a curved roof. Building replaces air, grass, fluids, and other replaceable blocks, joins existing SculptBlocks, and can carve or extend plain full blocks. Partial blocks such as stairs and blocks with contents such as chests are left untouched.
+
+**Sculpt Brush.** Run `/sculpt tool brush` to receive the brush, and `/sculpt brush` to configure it:
+
+| Mode | Left-click | Right-click |
+| --- | --- | --- |
+| `sculpt` | Carve cells around the targeted cell. | Add material around the cell in front of the targeted face. |
+| `smooth` | Round off spikes and corners and fill pits. | Same as left-click. |
+| `paint` | Pick the targeted material as the brush material. | Repaint occupied cells without changing the shape. |
+
+Use `/sculpt brush size <0-8>` for the radius in cells, `/sculpt brush shape <sphere|cube>`, `/sculpt brush mode <sculpt|smooth|paint>`, and `/sculpt brush material <block|hand>`. With `hand`, the brush uses the block in your off hand. Particles preview the brush size at the cursor.
+
+**Undo and redo.** `/sculpt undo [steps]` reverts your most recent building commands, brush strokes, and Sculpt mode clicks; `/sculpt redo [steps]` reapplies them. A block that someone else changed after your edit is skipped instead of being overwritten, and region protection is checked again. History is kept per player until they leave the server.
 
 ### Blueprints
 
@@ -210,6 +260,10 @@ Permissions default conservatively. Grant only the nodes appropriate for each gr
 | Receive the blueprint selector | `sculpt.command.tool.blueprint` |
 | Convert fill modes | `sculpt.command.convert` |
 | Replace a selected region's material | `sculpt.command.replace` |
+| Build shapes with `/sculpt build` and the Builder | `sculpt.command.build` |
+| Configure and use the Sculpt Brush | `sculpt.command.brush` |
+| Undo and redo your own edits (default: everyone) | `sculpt.command.undo` |
+| Receive the Builder or Sculpt Brush | `sculpt.command.tool.builder`, `sculpt.command.tool.brush` |
 | Restore automatic TextDisplay lighting | `sculpt.command.relight` |
 | Use blueprints | Grant the required `sculpt.command.blueprint.<operation>` nodes |
 | Bypass region-protection build checks | `sculpt.bypass.region-protection` |
@@ -221,7 +275,7 @@ Permissions default conservatively. Grant only the nodes appropriate for each gr
 
 The main configuration file is `plugins/Sculpt/config.yml`.
 
-The current configuration schema is `configVersion: 6`, and bundled language files use `languageVersion: 3`. These values are migration markers and should not be edited manually.
+The current configuration schema is `configVersion: 6`, and bundled language files use `languageVersion: 4`. These values are migration markers and should not be edited manually.
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
@@ -235,6 +289,12 @@ The current configuration schema is `configVersion: 6`, and bundled language fil
 | `rendering.textDisplay.maxEntitiesPerBlock` | `4096` | Safety limit for TextDisplay entities per SculptBlock. |
 | `regionOperations.replace.maxVolume` | `32768` | Maximum world-block volume for `/sculpt replace`. |
 | `regionOperations.replace.maxGeneratedLeaves` | `131072` | Safety budget for partial-shape replacement output. |
+| `building.maxBlocks` | `4096` | Maximum world blocks one build or brush operation may touch. |
+| `building.maxCells` | `262144` | Maximum cells one build or brush operation may generate. |
+| `building.maxThickness` | `16` | Largest accepted `--thickness`. |
+| `building.brush.maxRadius` | `8` | Largest brush radius in cells. |
+| `building.history.maxEntries` | `30` | Undo steps kept per player. |
+| `building.history.maxBlocks` | `32768` | Block snapshots kept per player; the oldest steps are dropped first. |
 | `language.default` | `en_us` | Fallback language. |
 | `language.autoDetect` | `true` | Use the player's client language when possible. |
 | `blueprint.enabled` | `true` | Enable the blueprint system. |
@@ -248,7 +308,7 @@ Run `/sculpt admin reload` after changing reloadable settings. Restart the serve
 
 ### Region protection and backups
 
-Before Sculpt changes a world location, it performs the same build check used for block placement. This covers sculpting, extension, restoration, fill conversion, replacement, and blueprint paste operations. Region-protection plugins such as WorldGuard can therefore keep enforcing their normal rules.
+Before Sculpt changes a world location, it performs the same build check used for block placement. This covers sculpting, extension, restoration, fill conversion, replacement, building, brush, undo, redo, and blueprint paste operations. Region-protection plugins such as WorldGuard can therefore keep enforcing their normal rules.
 
 Back up the complete `plugins/Sculpt/` directory and the relevant world data. SculptBlock data is stored in entity PDC data in the world; deleting the plugin directory does not remove Sculpt entities from existing worlds.
 

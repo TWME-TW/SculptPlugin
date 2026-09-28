@@ -58,6 +58,9 @@ class SculptPermissionManifestTest {
             SculptPermissions.CONVERT,
             SculptPermissions.REPLACE,
             SculptPermissions.RELIGHT,
+            SculptPermissions.BUILD,
+            SculptPermissions.BRUSH,
+            SculptPermissions.UNDO,
             SculptPermissions.MODE_ON,
             SculptPermissions.MODE_OFF,
             SculptPermissions.MODE_ALL,
@@ -71,6 +74,8 @@ class SculptPermissionManifestTest {
             SculptPermissions.DISPLAY_ALL,
             SculptPermissions.TOOL_SELECTOR,
             SculptPermissions.TOOL_BLUEPRINT,
+            SculptPermissions.TOOL_BUILDER,
+            SculptPermissions.TOOL_BRUSH,
             SculptPermissions.TOOL_ALL,
             SculptPermissions.BLUEPRINT_SAVE,
             SculptPermissions.BLUEPRINT_LIST,
@@ -109,6 +114,9 @@ class SculptPermissionManifestTest {
             SculptPermissions.CONVERT,
             SculptPermissions.REPLACE,
             SculptPermissions.RELIGHT,
+            SculptPermissions.BUILD,
+            SculptPermissions.BRUSH,
+            SculptPermissions.UNDO,
             SculptPermissions.MODE_ALL,
             SculptPermissions.FILL_ALL,
             SculptPermissions.DISPLAY_ALL,
@@ -141,7 +149,9 @@ class SculptPermissionManifestTest {
         ), children(permissions, SculptPermissions.DISPLAY_ALL));
         assertEquals(Set.of(
             SculptPermissions.TOOL_SELECTOR,
-            SculptPermissions.TOOL_BLUEPRINT
+            SculptPermissions.TOOL_BLUEPRINT,
+            SculptPermissions.TOOL_BUILDER,
+            SculptPermissions.TOOL_BRUSH
         ), children(permissions, SculptPermissions.TOOL_ALL));
         assertEquals(Set.of(
             SculptPermissions.BLUEPRINT_SAVE,
@@ -189,6 +199,16 @@ class SculptPermissionManifestTest {
         assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.USE_SELECTOR).get("default"));
         assertEquals(Boolean.FALSE,
             permissions.get(SculptPermissions.USE_PREVIEW_AUTO).get("default"));
+    }
+
+    @Test
+    void buildingToolkitDefaults() throws IOException {
+        final Map<String, Map<String, Object>> permissions = permissions();
+        assertEquals("op", permissions.get(SculptPermissions.BUILD).get("default"));
+        assertEquals("op", permissions.get(SculptPermissions.BRUSH).get("default"));
+        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.UNDO).get("default"));
+        assertEquals("op", permissions.get(SculptPermissions.TOOL_BUILDER).get("default"));
+        assertEquals("op", permissions.get(SculptPermissions.TOOL_BRUSH).get("default"));
     }
 
     @Test

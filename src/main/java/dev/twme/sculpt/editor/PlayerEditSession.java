@@ -276,6 +276,25 @@ public final class PlayerEditSession {
         };
     }
 
+    /**
+     * Blocks the next click may modify, for undo recording: the hovered
+     * block, its neighbor across the hit face (edge placement), and the
+     * positions involved in a click through a SculptBlock gap.
+     */
+    public List<Block> editCandidates() {
+        final List<Block> blocks = new ArrayList<>();
+        if (hoveredHit != null && hoveredHit.block() != null) {
+            final Block hit = hoveredHit.block();
+            blocks.add(hit);
+            blocks.add(hit.getRelative(hoveredHit.face().dx,
+                hoveredHit.face().dy, hoveredHit.face().dz));
+        }
+        if (hoveredSculpt != null) blocks.add(hoveredSculpt.pos.getBlock());
+        if (gapRestoreSculpt != null) blocks.add(gapRestoreSculpt.pos.getBlock());
+        if (gapBehindBlock != null) blocks.add(gapBehindBlock);
+        return blocks;
+    }
+
     public VirtualGridHit getHoveredHit() { return hoveredHit; }
     public SculptBlock getHoveredSculpt() { return hoveredSculpt; }
     public boolean hasGapRestoreTarget() { return gapRestoreX >= 0 && gapRestoreSculpt != null; }
