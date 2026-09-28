@@ -15,6 +15,7 @@ import org.bukkit.util.StringUtil;
 
 import dev.twme.sculpt.Sculpt;
 import dev.twme.sculpt.blueprint.BlueprintManager;
+import dev.twme.sculpt.building.BuildTools;
 import dev.twme.sculpt.util.MessageUtil;
 import dev.twme.sculpt.util.WandTool;
 
@@ -25,6 +26,8 @@ import dev.twme.sculpt.util.WandTool;
  * <ul>
  *   <li>{@code selector} — give the region selection wand</li>
  *   <li>{@code blueprint} — give the blueprint selector tool</li>
+ *   <li>{@code builder} — give the building control-point tool</li>
+ *   <li>{@code brush} — give the sculpting brush</li>
  * </ul>
  *
  * <p>Each subcommand optionally accepts a player name to give the tool
@@ -32,7 +35,7 @@ import dev.twme.sculpt.util.WandTool;
  */
 public final class SculptWandCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("selector", "blueprint");
+    private static final List<String> SUBCOMMANDS = List.of("selector", "blueprint", "builder", "brush");
 
     private final Sculpt plugin;
     private final BlueprintManager bpManager;
@@ -52,6 +55,10 @@ public final class SculptWandCommand implements CommandExecutor, TabCompleter {
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "selector" -> handleSelector(sender, args);
             case "blueprint" -> handleBlueprint(sender, args);
+            case "builder" -> handleBuildTool(sender, args, BuildTools.Tool.BUILDER,
+                SculptPermissions.TOOL_BUILDER);
+            case "brush" -> handleBuildTool(sender, args, BuildTools.Tool.BRUSH,
+                SculptPermissions.TOOL_BRUSH);
             default -> {
                 MessageUtil.sendTranslated(sender, "sculptwand.unknown", args[0]);
                 yield true;
@@ -115,6 +122,42 @@ public final class SculptWandCommand implements CommandExecutor, TabCompleter {
         } else {
             MessageUtil.sendTranslated(sender, "sculptwand.blueprint.other", target.getName());
             MessageUtil.sendTranslated(target, "sculptwand.blueprint.given");
+        }
+        return true;
+    }
+
+    /**
+     * /sculpt tool &lt;builder|brush&gt; [player] — give a building toolkit item.
+     */
+    private boolean handleBuildTool(
+            final CommandSender sender,
+            final String[] args,
+            final BuildTools.Tool tool,
+            final String permission) {
+        if (!checkPerm(sender, permission)) return true;
+
+        final Player target;
+        if (args.length > 1) {
+            target = Bukkit.getPlayerExact(args[1]);
+            if (target == null) {
+                MessageUtil.sendTranslated(sender, "sculptwand.no_player", args[1]);
+                return true;
+            }
+        } else if (sender instanceof Player self) {
+            target = self;
+        } else {
+            MessageUtil.sendTranslated(sender, "sculptwand.player_only");
+            return true;
+        }
+
+        target.getInventory().addItem(
+            BuildTools.create(tool, plugin.getLanguageManager(), target));
+        final String prefix = "sculptwand." + tool.id();
+        if (sender.equals(target)) {
+            MessageUtil.sendTranslated(target, prefix + ".self");
+        } else {
+            MessageUtil.sendTranslated(sender, prefix + ".other", target.getName());
+            MessageUtil.sendTranslated(target, prefix + ".given");
         }
         return true;
     }

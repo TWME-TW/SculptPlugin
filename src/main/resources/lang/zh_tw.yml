@@ -1,6 +1,6 @@
 # 繁體中文（台灣）翻譯 — Sculpt
 # 訊息使用 MiniMessage 格式
-languageVersion: 3
+languageVersion: 4
 
 general:
   prefix: "<#478FC6>[Sculpt]</#478FC6>"
@@ -12,7 +12,7 @@ general:
 
 command:
   sculpt:
-    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|tool|blueprint|heads|admin>"
+    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|build|brush|undo|redo|tool|blueprint|heads|admin>"
     unknown_subcommand: "<#CE5F4E>未知的子指令：<white>{0}"
 
     help:
@@ -26,8 +26,12 @@ command:
       convert: "<click:suggest_command:/sculpt convert ><#C2C7D3>  /sculpt <white>convert <dark_gray>— 轉換既有方塊填充</click>"
       replace: "<click:suggest_command:/sculpt replace ><#C2C7D3>  /sculpt <white>replace <dark_gray>— 替換選取區域材質</click>"
       relight: "<click:run_command:/sculpt relight><#C2C7D3>  /sculpt <white>relight <dark_gray>— 恢復 TextDisplay 自動環境光</click>"
+      building_header: "<#7A8B9C>建築工具"
+      build: "<click:suggest_command:/sculpt build ><#C2C7D3>  /sculpt <white>build <dark_gray>— 以控制點建立平面、曲面、曲線與立體</click>"
+      brush: "<click:suggest_command:/sculpt brush ><#C2C7D3>  /sculpt <white>brush <dark_gray>— 以筆刷雕刻、平滑或上色</click>"
+      undo: "<click:suggest_command:/sculpt undo><#C2C7D3>  /sculpt <white>undo <dark_gray>/ <white>redo <dark_gray>— 復原或重做最近的編輯</click>"
       content_header: "<#7A8B9C>工具與內容"
-      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— 取得區域或藍圖選取器</click>"
+      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— 取得選取器、建築工具或筆刷</click>"
       blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— 儲存與分享作品</click>"
       heads: "<click:suggest_command:/sculpt heads ><#C2C7D3>  /sculpt <white>heads <dark_gray>— 瀏覽烘焙頭顱</click>"
       admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  伺服器維運：<white>admin</click>"
@@ -379,9 +383,9 @@ sculptdisplay:
   auto: "<#5FBA6B>雕刻顯示：<white>自動"
 
 sculptwand:
-  usage: "<#C2C7D3>/sculpt tool <selector|blueprint> [player]"
+  usage: "<#C2C7D3>/sculpt tool <selector|blueprint|builder|brush> [player]"
   player_only: "<#CE5F4E>/sculpt tool 必須由玩家執行。"
-  unknown: "<#CE5F4E>未知的工具：<white>{0}<#CE5F4E>。請使用 <white>selector<#CE5F4E> 或 <white>blueprint<#CE5F4E>。"
+  unknown: "<#CE5F4E>未知的工具：<white>{0}<#CE5F4E>。請使用 <white>selector<#CE5F4E>、<white>blueprint<#CE5F4E>、<white>builder<#CE5F4E> 或 <white>brush<#CE5F4E>。"
   no_player: "<#CE5F4E>找不到該玩家：<white>{0}"
   selector:
     self: "<#5FBA6B>你已取得選取魔杖。"
@@ -391,3 +395,89 @@ sculptwand:
     self: "<#5FBA6B>你已取得藍圖選取工具。"
     other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>藍圖選取工具。"
     given: "<#5FBA6B>你已收到藍圖選取工具。"
+  builder:
+    self: "<#5FBA6B>你已取得建築工具。右鍵放置控制點，再執行 <white>/sculpt build<#5FBA6B>。"
+    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>建築工具。"
+    given: "<#5FBA6B>你已收到建築工具。"
+  brush:
+    self: "<#5FBA6B>你已取得雕刻筆刷。使用 <white>/sculpt brush<#5FBA6B> 調整設定。"
+    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>雕刻筆刷。"
+    given: "<#5FBA6B>你已收到雕刻筆刷。"
+
+building:
+  player_only: "<#CE5F4E>建築指令必須由玩家執行。"
+  not_ready: "<#E8C96D>Sculpt 材質仍在載入中，請稍後再試。"
+  busy: "<#E8C96D>你上一個建築操作仍在進行中。"
+  usage: "<#C2C7D3>用法：<#D1968C>/sculpt build <plane|surface|curve|sphere|cylinder> [--thickness <n>] [--hollow] [--carve] [--material <方塊>] [--rows <n>]<#C2C7D3> 或 <#D1968C>/sculpt build <point [surface]|undo-point|points|clear>"
+  tool:
+    builder:
+      name: "<!italic><#E8C96D>建築工具"
+      lore1: "<!italic><gray>右鍵：在目標面前方新增控制點"
+      lore2: "<!italic><gray>Shift + 右鍵：在表面上新增控制點"
+      lore3: "<!italic><gray>左鍵：移除最後一點 · Shift：清除全部"
+      lore4: "<!italic><gray>接著執行 <white>/sculpt build <形狀>"
+    brush:
+      name: "<!italic><#7AB8E8>雕刻筆刷"
+      lore1: "<!italic><gray>雕刻：左鍵挖除、右鍵堆加"
+      lore2: "<!italic><gray>平滑：任一鍵削去尖角、填平凹洞"
+      lore3: "<!italic><gray>上色：右鍵上色、左鍵吸取材質"
+      lore4: "<!italic><gray>材質：筆刷設定 → 副手 → 主手"
+  points:
+    added: "<#5FBA6B>控制點 <white>#{0}<#5FBA6B>：<white>{1}, {2}, {3}"
+    removed: "<#E8C96D>已移除最後一個控制點，剩餘 <white>{0}<#E8C96D> 個。"
+    cleared: "<#E8C96D>已清除所有控制點。"
+    none: "<#C2C7D3>你在此世界沒有控制點。"
+    limit: "<#CE5F4E>一個形狀最多只能使用 {0} 個控制點。"
+    no_target: "<#CE5F4E>請看向可觸及範圍內的方塊或 SculptBlock。"
+    header: "<#478FC6>控制點（{0}）："
+    entry: "<#C2C7D3>  <white>#{0}<#C2C7D3>：{1}, {2}, {3}"
+  shape:
+    plane:
+      points: "<#CE5F4E>平面至少需要 3 個控制點（目前 {0} 個）。控制點會依序以第一點為中心組成扇形。"
+    surface:
+      points: "<#CE5F4E>曲面至少需要 2×2 的控制網格（目前 {0} 個點）。"
+      grid: "<#CE5F4E>{0} 個點無法組成控制網格；請增加控制點或使用 <white>--rows <n><#CE5F4E>。"
+    curve:
+      points: "<#CE5F4E>曲線至少需要 2 個控制點（目前 {0} 個）。"
+    sphere:
+      points: "<#CE5F4E>球體需要剛好 2 個控制點：球心與球面上一點（目前 {0} 個）。"
+    cylinder:
+      points: "<#CE5F4E>圓柱需要剛好 3 個控制點：軸線兩端與側面上一點（目前 {0} 個）。"
+  options:
+    unknown: "<#CE5F4E>未知的選項：<white>{0}"
+    missing_value: "<#CE5F4E>選項 <white>{0}<#CE5F4E> 需要一個值。"
+    invalid_number: "<#CE5F4E>無效的數字：<white>{0}"
+    thickness_limit: "<#CE5F4E>厚度不可超過 {0} 格。"
+  material:
+    missing: "<#CE5F4E>請在副手或主手拿著方塊，或使用 <white>--material <方塊><#CE5F4E>。"
+    invalid: "<#CE5F4E>無效的方塊材質或方塊資料：<white>{0}"
+    unsupported: "<#CE5F4E>此材質無法用於 Sculpt 格子：<white>{0}"
+  result:
+    started: "<#E8C96D>正在建立 <white>{0}<#E8C96D>：共 {1} 格，分布於 {2} 個方塊……"
+    completed: "<#5FBA6B>完成 <white>{0}<#5FBA6B>：變更了 <white>{1}<#5FBA6B> 個方塊。可用 <white>/sculpt undo<#5FBA6B> 復原。"
+    no_changes: "<#C2C7D3>沒有需要變更的內容。"
+    too_many_blocks: "<#CE5F4E>形狀涉及超過 {0} 個方塊，未進行任何變更。"
+    too_many_cells: "<#CE5F4E>形狀需要超過 {0} 格；請降低解析度或尺寸。未進行任何變更。"
+    invalid_shape: "<#CE5F4E>控制點無法組成有效形狀：<white>{0}"
+    protected: "<#CE5F4E>已略過 {0} 個位於保護區域的方塊。"
+    obstructed: "<#E8C96D>已略過 {0} 個無法轉為 SculptBlock 的方塊（非完整方塊、方塊實體或不支援的材質）。"
+    locked: "<#E8C96D>已略過 {0} 個只會變更不可分割頭顱格的方塊。"
+    limit_reached: "<#CE5F4E>已達伺服器 SculptBlock 上限，略過 {0} 個方塊。"
+    stale: "<#E8C96D>已略過 {0} 個在操作期間被變更的方塊。"
+    failed: "<#CE5F4E>{0} 個方塊位置處理失敗，請查看伺服器紀錄。"
+    not_recorded: "<#E8C96D>此操作過大，無法保留在你的復原紀錄中。"
+  brush:
+    usage: "<#C2C7D3>用法：<#D1968C>/sculpt brush [size <n>|shape <sphere|cube>|mode <sculpt|smooth|paint>|material <方塊|hand>]"
+    settings: "<#478FC6>筆刷<#C2C7D3>：半徑 <white>{0}<#C2C7D3>、形狀 <white>{1}<#C2C7D3>、模式 <white>{2}<#C2C7D3>、材質 <white>{3}"
+    invalid_size: "<#CE5F4E>筆刷半徑必須介於 0 到 {0} 格之間。"
+    picked: "<#5FBA6B>筆刷材質：<white>{0}"
+    protected: "<#CE5F4E>有 {0} 個方塊受到保護。"
+  undo:
+    usage: "<#C2C7D3>用法：<#D1968C>/sculpt undo [步數]"
+    invalid_steps: "<#CE5F4E>步數必須介於 1 到 {0} 之間。"
+    nothing: "<#C2C7D3>沒有可以復原的動作。"
+    completed: "<#5FBA6B>已復原 <white>{0}<#5FBA6B> 個動作，還原了 <white>{1}<#5FBA6B> 個方塊。可用 <white>/sculpt redo<#5FBA6B> 重做。"
+  redo:
+    usage: "<#C2C7D3>用法：<#D1968C>/sculpt redo [步數]"
+    nothing: "<#C2C7D3>沒有可以重做的動作。"
+    completed: "<#5FBA6B>已重做 <white>{0}<#5FBA6B> 個動作，變更了 <white>{1}<#5FBA6B> 個方塊。"

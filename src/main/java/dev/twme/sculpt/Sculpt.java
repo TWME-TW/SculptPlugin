@@ -44,6 +44,9 @@ import dev.twme.sculpt.assets.fetch.McAssetClient;
 import dev.twme.sculpt.assets.shape.BlockVisualShapeCache;
 import dev.twme.sculpt.assets.shape.BlockVisualShapeResolver;
 import dev.twme.sculpt.blueprint.BlueprintManager;
+import dev.twme.sculpt.building.BuildCommand;
+import dev.twme.sculpt.building.BuildToolListener;
+import dev.twme.sculpt.building.BuildToolkit;
 import dev.twme.sculpt.core.CellMaterial;
 import dev.twme.sculpt.core.ChunkHead;
 import dev.twme.sculpt.core.HeadResolver;
@@ -171,6 +174,10 @@ public final class Sculpt extends JavaPlugin {
 
     // ---- blueprint system ------------------------------------------------
     private BlueprintManager blueprintManager;
+
+    // ---- building toolkit ------------------------------------------------
+    private BuildToolkit buildToolkit;
+    private BuildToolListener buildToolListener;
 
     // ---- observable startup state ----------------------------------------
     private volatile RuntimeHealth runtimeHealth = RuntimeHealth.loading(2);
@@ -325,6 +332,13 @@ public final class Sculpt extends JavaPlugin {
                         + e.getMessage());
             }
         }
+
+        // ---- 6b. Building toolkit (planes, surfaces, brush, undo) ----------
+        this.buildToolkit = new BuildToolkit(this);
+        this.buildToolListener = new BuildToolListener(
+            buildToolkit, new BuildCommand(buildToolkit));
+        getServer().getPluginManager().registerEvents(buildToolListener, this);
+        buildToolListener.start();
 
         // ---- 7. Commands (registered now; access registries lazily) -------
         this.blueprintManager = new BlueprintManager(this);
@@ -599,6 +613,14 @@ public final class Sculpt extends JavaPlugin {
             controlsListener = null;
         }
 
+        if (buildToolListener != null) {
+            buildToolListener.shutdown();
+            buildToolListener = null;
+        }
+        if (buildToolkit != null) {
+            buildToolkit.engine().history().clearAll();
+        }
+
         // Cancel the async registry load if still running
         if (registryLoadFuture != null) {
             registryLoadFuture.cancel(true);
@@ -773,6 +795,9 @@ public final class Sculpt extends JavaPlugin {
         schedulePdcFlush();
         if (blueprintManager != null) {
             blueprintManager.reloadConfig();
+        }
+        if (buildToolkit != null) {
+            buildToolkit.reload();
         }
         getLogger().log(Level.INFO, "[Sculpt] config reloaded (defaultGridSize={0})",
                 config.chunkGridSize());
@@ -1078,6 +1103,10 @@ public final class Sculpt extends JavaPlugin {
 
     public BlueprintManager getBlueprintManager() {
         return blueprintManager;
+    }
+
+    public BuildToolkit getBuildToolkit() {
+        return buildToolkit;
     }
 
     public WandListener getWandListener() {

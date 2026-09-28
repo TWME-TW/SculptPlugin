@@ -21,6 +21,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.StringUtil;
 
 import dev.twme.sculpt.Sculpt;
+import dev.twme.sculpt.building.BrushCommand;
+import dev.twme.sculpt.building.BuildCommand;
+import dev.twme.sculpt.building.BuildToolkit;
+import dev.twme.sculpt.building.HistoryCommand;
 import dev.twme.sculpt.core.BlockKey;
 import dev.twme.sculpt.core.FillMode;
 import dev.twme.sculpt.core.SculptBlock;
@@ -36,8 +40,8 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> PRIMARY_SUBCOMMANDS = List.of(
             "help", "resolution", "preview", "mode", "fill", "display",
-            "convert", "replace", "relight", "tool",
-            "blueprint", "heads", "admin");
+            "convert", "replace", "relight", "build", "brush", "undo", "redo",
+            "tool", "blueprint", "heads", "admin");
     private static final List<String> ADMIN_SUBCOMMANDS = List.of(
             "list", "teleport", "reload", "status");
 
@@ -50,6 +54,9 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
     private final SculptHeadsCommand headsCommand;
     private final SculptReplaceCommand replaceCommand;
     private final SculptRelightCommand relightCommand;
+    private final BuildCommand buildCommand;
+    private final BrushCommand brushCommand;
+    private final HistoryCommand historyCommand;
 
     public SculptCommand(Sculpt plugin, SculptModeCommand modeCommand,
                          SculptFillCommand fillCommand,
@@ -66,6 +73,10 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
         this.headsCommand = headsCommand;
         this.replaceCommand = new SculptReplaceCommand(plugin);
         this.relightCommand = new SculptRelightCommand(plugin);
+        final BuildToolkit toolkit = plugin.getBuildToolkit();
+        this.buildCommand = new BuildCommand(toolkit);
+        this.brushCommand = new BrushCommand(toolkit);
+        this.historyCommand = new HistoryCommand(toolkit);
     }
 
     @Override
@@ -87,6 +98,10 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
             case "convert" -> handleConvert(sender, args);
             case "replace" -> replaceCommand.execute(sender, tail(args));
             case "relight" -> relightCommand.execute(sender, tail(args));
+            case "build" -> buildCommand.execute(sender, tail(args));
+            case "brush" -> brushCommand.execute(sender, tail(args));
+            case "undo" -> historyCommand.execute(sender, false, tail(args));
+            case "redo" -> historyCommand.execute(sender, true, tail(args));
             case "tool" -> toolCommand.onCommand(sender, cmd, label, tail(args));
             case "blueprint" -> blueprintCommand.onCommand(sender, cmd, label, tail(args));
             case "heads" -> headsCommand.onCommand(sender, cmd, label, tail(args));
@@ -143,6 +158,17 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
                 MessageUtil.sendTranslated(sender, "command.sculpt.help.replace");
             if (canUsePrimary(sender::hasPermission, "relight"))
                 MessageUtil.sendTranslated(sender, "command.sculpt.help.relight");
+        }
+        if (canUsePrimary(sender::hasPermission, "build")
+                || canUsePrimary(sender::hasPermission, "brush")
+                || canUsePrimary(sender::hasPermission, "undo")) {
+            MessageUtil.sendTranslated(sender, "command.sculpt.help.building_header");
+            if (canUsePrimary(sender::hasPermission, "build"))
+                MessageUtil.sendTranslated(sender, "command.sculpt.help.build");
+            if (canUsePrimary(sender::hasPermission, "brush"))
+                MessageUtil.sendTranslated(sender, "command.sculpt.help.brush");
+            if (canUsePrimary(sender::hasPermission, "undo"))
+                MessageUtil.sendTranslated(sender, "command.sculpt.help.undo");
         }
         if (canUsePrimary(sender::hasPermission, "tool")
                 || canUsePrimary(sender::hasPermission, "blueprint")
@@ -625,6 +651,11 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
         if (root.equals("convert")) return completeSubcommand(sender, args);
         if (root.equals("replace")) return replaceCommand.complete(sender, tail(args));
         if (root.equals("relight")) return List.of();
+        if (root.equals("build")) return buildCommand.complete(sender, tail(args));
+        if (root.equals("brush")) return brushCommand.complete(sender, tail(args));
+        if (root.equals("undo") || root.equals("redo")) {
+            return historyCommand.complete(sender, tail(args));
+        }
         if (root.equals("mode")) return modeCommand.onTabComplete(sender, cmd, label, tail(args));
         if (root.equals("fill")) return fillCommand.onTabComplete(sender, cmd, label, tail(args));
         if (root.equals("display")) return displayCommand.onTabComplete(sender, cmd, label, tail(args));
@@ -770,6 +801,9 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
             case "convert" -> permissionChecker.test(SculptPermissions.CONVERT);
             case "replace" -> permissionChecker.test(SculptPermissions.REPLACE);
             case "relight" -> permissionChecker.test(SculptPermissions.RELIGHT);
+            case "build" -> permissionChecker.test(SculptPermissions.BUILD);
+            case "brush" -> permissionChecker.test(SculptPermissions.BRUSH);
+            case "undo", "redo" -> permissionChecker.test(SculptPermissions.UNDO);
             case "mode" -> hasAny(permissionChecker,
                     SculptPermissions.MODE_ON, SculptPermissions.MODE_OFF);
             case "fill" -> hasAny(permissionChecker,
@@ -780,7 +814,8 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
                     SculptPermissions.DISPLAY_TEXTDISPLAY,
                     SculptPermissions.DISPLAY_AUTO);
             case "tool" -> hasAny(permissionChecker,
-                    SculptPermissions.TOOL_SELECTOR, SculptPermissions.TOOL_BLUEPRINT);
+                    SculptPermissions.TOOL_SELECTOR, SculptPermissions.TOOL_BLUEPRINT,
+                    SculptPermissions.TOOL_BUILDER, SculptPermissions.TOOL_BRUSH);
             case "blueprint" -> SculptPermissions.BLUEPRINT_PERMISSIONS.stream()
                     .anyMatch(permissionChecker);
             case "heads" -> permissionChecker.test(SculptPermissions.HEADS);

@@ -38,6 +38,8 @@ import dev.twme.sculpt.blueprint.BlueprintData;
 import dev.twme.sculpt.blueprint.BlueprintManager;
 import dev.twme.sculpt.blueprint.BlueprintSelectorItem;
 import dev.twme.sculpt.blueprint.PasteSettings;
+import dev.twme.sculpt.building.BuildEngine;
+import dev.twme.sculpt.building.BuildTools;
 import dev.twme.sculpt.core.CellMaterial;
 import dev.twme.sculpt.core.ChunkCoord;
 import dev.twme.sculpt.core.FillMode;
@@ -183,7 +185,8 @@ public final class SculptEditListener implements Listener {
     private static boolean isExplicitContentControl(final ItemStack item) {
         return dev.twme.sculpt.util.WandTool.isWandTool(item)
             || BlueprintSelectorItem.isSelectorTool(item)
-            || BlueprintSelectorItem.isBoundItem(item);
+            || BlueprintSelectorItem.isBoundItem(item)
+            || BuildTools.isTool(item);
     }
 
     private boolean canUseSculptControls(final Player player) {
@@ -253,6 +256,8 @@ public final class SculptEditListener implements Listener {
         final ItemStack handItem = mainHandItem(player);
         // Wand tool → let WandListener handle it
         if (dev.twme.sculpt.util.WandTool.isWandTool(handItem)) return;
+        // Building tools → let BuildToolListener handle it
+        if (BuildTools.isTool(handItem)) return;
         final boolean selectorItem = BlueprintSelectorItem.isSelectorTool(
             handItem);
         final BlueprintManager blueprintManager = selectorItem
@@ -295,6 +300,7 @@ public final class SculptEditListener implements Listener {
         // Wand tool → let WandListener handle it
         if (isWandTool(player)) return;
         final ItemStack handItem = mainHandItem(player);
+        if (BuildTools.isTool(handItem)) return;
         final boolean selectorItem = BlueprintSelectorItem.isSelectorTool(handItem);
         final boolean boundItem = BlueprintSelectorItem.isBoundItem(handItem);
         final BlueprintManager blueprintManager = (selectorItem || boundItem)
@@ -354,13 +360,7 @@ public final class SculptEditListener implements Listener {
         final BlockEditContext context = new BlockEditContext(
             player, session, hit, session.getHoveredSculpt(),
             registry.isSculptModeActive(player));
-        if (handleNonBakeableBlock(context, leftClick)) return;
-
-        if (leftClick) {
-            handleLeftClick(context);
-        } else {
-            handleRightClick(context);
-        }
+        handleRecordedClick(context, leftClick);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -399,12 +399,30 @@ public final class SculptEditListener implements Listener {
 
         final BlockEditContext context = new BlockEditContext(
             player, session, hit, sculpt, sculptMode);
-        if (handleNonBakeableBlock(context, leftClick)) return;
+        handleRecordedClick(context, leftClick);
+    }
 
-        if (leftClick) {
-            handleLeftClick(context);
-        } else {
-            handleRightClick(context);
+    /**
+     * Run a Sculpt mode click and record every block it changed as one
+     * undoable action for {@code /sculpt undo}.
+     */
+    private void handleRecordedClick(
+            final BlockEditContext context,
+            final boolean leftClick) {
+        final BuildEngine.ClickRecording recording =
+            plugin instanceof Sculpt sculptPlugin && sculptPlugin.getBuildToolkit() != null
+                ? sculptPlugin.getBuildToolkit().engine().beginClick(
+                    context.player(), context.session().editCandidates())
+                : null;
+        try {
+            if (handleNonBakeableBlock(context, leftClick)) return;
+            if (leftClick) {
+                handleLeftClick(context);
+            } else {
+                handleRightClick(context);
+            }
+        } finally {
+            if (recording != null) recording.finish();
         }
     }
 

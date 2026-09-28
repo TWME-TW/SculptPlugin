@@ -7,7 +7,7 @@ import dev.twme.sculpt.util.YamlMigrationSupport;
 /** Applies versioned language-key migrations and persists newly bundled messages. */
 public final class LanguageFileMigrator {
 
-    public static final int CURRENT_VERSION = 3;
+    public static final int CURRENT_VERSION = 4;
     public static final String VERSION_PATH = "languageVersion";
 
     private LanguageFileMigrator() {}
@@ -54,6 +54,18 @@ public final class LanguageFileMigrator {
             changed |= remove(current, "sculptcontrols.resumed");
             changed |= remove(current, "sculptcontrols.paused_reminder");
             current.set(VERSION_PATH, 3);
+            changed = true;
+            migrated = true;
+        }
+
+        if (sourceVersion < 4) {
+            // The building toolkit added commands and tools. Refresh bundled
+            // messages that enumerate subcommands or tool choices.
+            changed |= remove(current, "command.sculpt.usage");
+            changed |= remove(current, "command.sculpt.help.tool");
+            changed |= remove(current, "sculptwand.usage");
+            changed |= remove(current, "sculptwand.unknown");
+            current.set(VERSION_PATH, 4);
             changed = true;
             migrated = true;
         }

@@ -14,6 +14,9 @@ public final class SculptPermissions {
     public static final String CONVERT = "sculpt.command.convert";
     public static final String REPLACE = "sculpt.command.replace";
     public static final String RELIGHT = "sculpt.command.relight";
+    public static final String BUILD = "sculpt.command.build";
+    public static final String BRUSH = "sculpt.command.brush";
+    public static final String UNDO = "sculpt.command.undo";
 
     public static final String MODE_PREFIX = "sculpt.command.mode.";
     public static final String MODE_ALL = MODE_PREFIX + "*";
@@ -36,6 +39,8 @@ public final class SculptPermissions {
     public static final String TOOL_ALL = TOOL_PREFIX + "*";
     public static final String TOOL_SELECTOR = TOOL_PREFIX + "selector";
     public static final String TOOL_BLUEPRINT = TOOL_PREFIX + "blueprint";
+    public static final String TOOL_BUILDER = TOOL_PREFIX + "builder";
+    public static final String TOOL_BRUSH = TOOL_PREFIX + "brush";
 
     public static final String BLUEPRINT_PREFIX = "sculpt.command.blueprint.";
     public static final String BLUEPRINT_ALL = BLUEPRINT_PREFIX + "*";
