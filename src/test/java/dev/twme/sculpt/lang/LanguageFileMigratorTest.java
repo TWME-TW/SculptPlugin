@@ -150,13 +150,35 @@ class LanguageFileMigratorTest {
             LanguageFileMigrator.migrateAndMerge(current, defaults);
 
         assertTrue(result.migrated());
-        assertEquals(4, current.getInt("languageVersion"));
+        assertEquals(LanguageFileMigrator.CURRENT_VERSION, current.getInt("languageVersion"));
         assertEquals("new usage", current.getString("command.sculpt.usage"));
         assertEquals("new tool help", current.getString("command.sculpt.help.tool"));
         assertEquals("new tool usage", current.getString("sculptwand.usage"));
         assertEquals("new tool choices", current.getString("sculptwand.unknown"));
         assertEquals("custom selector message",
             current.getString("sculptwand.selector.self"));
+    }
+
+    @Test
+    void versionFiveRewritesUsageAndHelp() {
+        YamlConfiguration current = new YamlConfiguration();
+        current.set("languageVersion", 4);
+        current.set("command.sculpt.usage", "old usage");
+        current.set("command.sculpt.help.mode", "old mode help");
+        current.set("command.sculpt.replace.started", "custom replace message");
+        YamlConfiguration defaults = defaults();
+        defaults.set("command.sculpt.usage", "editor usage");
+        defaults.set("command.sculpt.help.edit", "editor help");
+
+        LanguageFileMigrator.MigrationResult result =
+            LanguageFileMigrator.migrateAndMerge(current, defaults);
+
+        assertTrue(result.migrated());
+        assertEquals(5, current.getInt("languageVersion"));
+        assertEquals("editor usage", current.getString("command.sculpt.usage"));
+        assertNull(current.getString("command.sculpt.help.mode"));
+        assertEquals("editor help", current.getString("command.sculpt.help.edit"));
+        assertEquals("custom replace message", current.getString("command.sculpt.replace.started"));
     }
 
     @Test
@@ -181,13 +203,13 @@ class LanguageFileMigratorTest {
     void legacyDottedCustomValueIsNotShadowedByBundledDefault() throws Exception {
         YamlConfiguration current = new YamlConfiguration();
         current.loadFromString("""
-            languageVersion: 4
+            languageVersion: 5
             command.sculpt.blueprint:
               existing: custom translation
             """);
         YamlConfiguration defaults = new YamlConfiguration();
         defaults.loadFromString("""
-            languageVersion: 4
+            languageVersion: 5
             command.sculpt.blueprint:
               existing: bundled translation
               added: newly bundled translation

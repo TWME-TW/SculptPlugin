@@ -49,15 +49,30 @@ regionOperations:
     # Full outputs remain vanilla blocks and do not consume this budget.
     maxGeneratedLeaves: 131072
 
-# Building toolkit: /sculpt build, the Sculpt Brush, and /sculpt undo.
+# The editor (/sculpt edit). Requires the PacketEvents plugin.
 # These settings support /sculpt admin reload.
+editor:
+  # Cursor reach in blocks.
+  reach: 6.0
+  # Packet-only preview entities allowed per editing player.
+  previewBudget: 1024
+  # Animate previews, results, and undo. Players can turn this off in the editor settings.
+  animations: true
+  # Ticks between action-bar HUD refreshes.
+  hudIntervalTicks: 5
+  # Operations touching at least this many blocks show a progress bar.
+  progressBarThreshold: 64
+
+# Limits for editor operations and undo history. These settings support /sculpt admin reload.
 building:
   # Maximum world blocks one build or brush operation may touch.
   maxBlocks: 4096
   # Maximum cells one operation may generate at the player's resolution.
   maxCells: 262144
-  # Largest accepted --thickness for planes, surfaces, curves, and shells.
+  # Largest thickness for planes, surfaces, curves, and shells, in cells.
   maxThickness: 16
+  # Largest selection, in voxels (1/16 block), that one move or copy may process.
+  maxTransformVoxels: 2097152
   brush:
     # Largest brush radius, in cells at the player's resolution.
     maxRadius: 8

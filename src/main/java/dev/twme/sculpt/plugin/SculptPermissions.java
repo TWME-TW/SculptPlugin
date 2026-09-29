@@ -7,21 +7,14 @@ public final class SculptPermissions {
 
     public static final String COMMAND_ALL = "sculpt.command.*";
 
-    public static final String RESOLUTION = "sculpt.command.resolution";
-    public static final String RESOLUTION_PREFIX = RESOLUTION + ".";
+    public static final String EDIT = "sculpt.command.edit";
+
+    public static final String RESOLUTION_PREFIX = "sculpt.command.resolution.";
     public static final String RESOLUTION_ALL = RESOLUTION_PREFIX + "*";
-    public static final String PREVIEW = "sculpt.command.preview";
     public static final String CONVERT = "sculpt.command.convert";
     public static final String REPLACE = "sculpt.command.replace";
     public static final String RELIGHT = "sculpt.command.relight";
-    public static final String BUILD = "sculpt.command.build";
-    public static final String BRUSH = "sculpt.command.brush";
     public static final String UNDO = "sculpt.command.undo";
-
-    public static final String MODE_PREFIX = "sculpt.command.mode.";
-    public static final String MODE_ALL = MODE_PREFIX + "*";
-    public static final String MODE_ON = MODE_PREFIX + "on";
-    public static final String MODE_OFF = MODE_PREFIX + "off";
 
     public static final String FILL_PREFIX = "sculpt.command.fill.";
     public static final String FILL_ALL = FILL_PREFIX + "*";
@@ -35,12 +28,21 @@ public final class SculptPermissions {
     public static final String DISPLAY_TEXTDISPLAY = DISPLAY_PREFIX + "textdisplay";
     public static final String DISPLAY_AUTO = DISPLAY_PREFIX + "auto";
 
-    public static final String TOOL_PREFIX = "sculpt.command.tool.";
-    public static final String TOOL_ALL = TOOL_PREFIX + "*";
-    public static final String TOOL_SELECTOR = TOOL_PREFIX + "selector";
-    public static final String TOOL_BLUEPRINT = TOOL_PREFIX + "blueprint";
-    public static final String TOOL_BUILDER = TOOL_PREFIX + "builder";
-    public static final String TOOL_BRUSH = TOOL_PREFIX + "brush";
+    /** Editor tools; see {@link dev.twme.sculpt.editor.ToolId}. */
+    public static final String EDITOR_PREFIX = "sculpt.editor.";
+    public static final String EDITOR_ALL = EDITOR_PREFIX + "*";
+    public static final String EDITOR_SCULPT = EDITOR_PREFIX + "sculpt";
+    public static final String EDITOR_BRUSH = EDITOR_PREFIX + "brush";
+    public static final String EDITOR_SMOOTH = EDITOR_PREFIX + "smooth";
+    public static final String EDITOR_PAINT = EDITOR_PREFIX + "paint";
+    public static final String EDITOR_SELECT = EDITOR_PREFIX + "select";
+    public static final String EDITOR_TRANSFORM = EDITOR_PREFIX + "transform";
+    public static final String EDITOR_SHAPE = EDITOR_PREFIX + "shape";
+    public static final String EDITOR_BLUEPRINT = EDITOR_PREFIX + "blueprint";
+    public static final List<String> EDITOR_TOOLS = List.of(
+        EDITOR_SCULPT, EDITOR_BRUSH, EDITOR_SMOOTH, EDITOR_PAINT, EDITOR_SELECT,
+        EDITOR_TRANSFORM, EDITOR_SHAPE, EDITOR_BLUEPRINT
+    );
 
     public static final String BLUEPRINT_PREFIX = "sculpt.command.blueprint.";
     public static final String BLUEPRINT_ALL = BLUEPRINT_PREFIX + "*";
@@ -73,10 +75,6 @@ public final class SculptPermissions {
     public static final String ADMIN_RELOAD = ADMIN_PREFIX + "reload";
     public static final String ADMIN_STATUS = ADMIN_PREFIX + "status";
 
-    public static final String USE_SELECTOR = "sculpt.use.selector";
-    public static final String USE_PREVIEW_AUTO = "sculpt.use.preview.auto";
-    public static final String USE_ALL = "sculpt.use.*";
-
     public static final String BYPASS_REGION_PROTECTION =
             "sculpt.bypass.region-protection";
 
@@ -87,10 +85,6 @@ public final class SculptPermissions {
         return RESOLUTION_PREFIX + size;
     }
 
-    public static String mode(final String mode) {
-        return MODE_PREFIX + mode;
-    }
-
     public static String fill(final String fill) {
         return FILL_PREFIX + fill;
     }
@@ -99,8 +93,8 @@ public final class SculptPermissions {
         return DISPLAY_PREFIX + display;
     }
 
-    public static String tool(final String tool) {
-        return TOOL_PREFIX + tool;
+    public static String editorTool(final String tool) {
+        return EDITOR_PREFIX + tool;
     }
 
     public static String blueprint(final String operation) {

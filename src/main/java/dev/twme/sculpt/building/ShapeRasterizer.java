@@ -458,6 +458,37 @@ public final class ShapeRasterizer {
             a.z() + abz * v + acz * w);
     }
 
+    /**
+     * A point on the Bézier surface of a row-major control net, in the
+     * net's own coordinates.
+     */
+    public static Vector3d bezierPoint(
+            final List<? extends Vector3dc> net,
+            final int rows,
+            final double u,
+            final double v) {
+        final List<Vector3d> copy = new ArrayList<>(net.size());
+        for (final Vector3dc point : net) copy.add(new Vector3d(point));
+        return evaluateBezierSurface(copy, rows, net.size() / rows, u, v);
+    }
+
+    /** Points along the curve {@link #curve} rasterizes, in world coordinates. */
+    public static List<Vector3d> curvePoints(final List<? extends Vector3dc> points, final int stepsPerSegment) {
+        final List<Vector3d> samples = new ArrayList<>();
+        if (points.isEmpty()) return samples;
+        samples.add(new Vector3d(points.getFirst()));
+        for (int index = 0; index + 1 < points.size(); index++) {
+            final Vector3dc p0 = points.get(Math.max(0, index - 1));
+            final Vector3dc p1 = points.get(index);
+            final Vector3dc p2 = points.get(index + 1);
+            final Vector3dc p3 = points.get(Math.min(points.size() - 1, index + 2));
+            for (int step = 1; step <= stepsPerSegment; step++) {
+                samples.add(catmullRom(p0, p1, p2, p3, (double) step / stepsPerSegment));
+            }
+        }
+        return samples;
+    }
+
     static Vector3d evaluateBezierSurface(
             final List<Vector3d> net,
             final int rows,

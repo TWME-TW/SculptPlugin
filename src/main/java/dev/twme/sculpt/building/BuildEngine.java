@@ -3,7 +3,6 @@ package dev.twme.sculpt.building;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,15 +20,17 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import dev.twme.sculpt.Sculpt;
+import dev.twme.sculpt.core.OctreeNode;
+import dev.twme.sculpt.core.PlayerHeadTexture;
 import dev.twme.sculpt.core.SculptBlock;
 import dev.twme.sculpt.util.BlockEditSounds;
 import dev.twme.sculpt.util.FoliaScheduler;
-import dev.twme.sculpt.util.MessageUtil;
 
 /**
- * Runs building, brush, undo, and redo operations. Each player has at most
- * one operation in flight; world access happens on the owning region threads
- * through {@link RegionWorkQueue}.
+ * Applies cell edits, undo, and redo. Each player has at most one operation
+ * in flight; world access happens on the owning region threads through
+ * {@link RegionWorkQueue}, and results are reported to an
+ * {@link EditObserver} on the player's thread.
  */
 public final class BuildEngine {
 
@@ -81,35 +82,10 @@ public final class BuildEngine {
     //  Cell edits
     // =====================================================================
 
-    /** Outcome counters of one operation. */
-    public static final class Report {
-        public int changed;
-        public int unchanged;
-        public int protectedBlocks;
-        public int obstructed;
-        public int locked;
-        public int limitReached;
-        public int stale;
-        public int failed;
-        public boolean historyRecorded = true;
-
-        void count(final BuildWorldWriter.Status status) {
-            switch (status) {
-                case CHANGED -> changed++;
-                case UNCHANGED -> unchanged++;
-                case PROTECTED -> protectedBlocks++;
-                case OBSTRUCTED -> obstructed++;
-                case LOCKED -> locked++;
-                case LIMIT -> limitReached++;
-                case STALE -> stale++;
-            }
-        }
-    }
-
     /**
      * Apply per-block edits and record one undoable history entry. The
      * caller must hold the player's slot from {@link #tryBegin}; it is
-     * released before {@code onDone} runs on the player's thread.
+     * released before the observer's {@code onFinish} runs.
      */
     public void applyEdits(
             final Player player,
@@ -117,8 +93,8 @@ public final class BuildEngine {
             final String label,
             final Map<BlockPos, BlockCellEdit> edits,
             final BuildWorldWriter.Strategies strategies,
-            final boolean announce) {
-        final Report report = new Report();
+            final EditObserver observer) {
+        final EditReport report = new EditReport();
         final List<EditHistory.BlockChange> changes = new ArrayList<>();
         final FeedbackSound sound = new FeedbackSound();
         final List<BlockPos> positions = new ArrayList<>(edits.keySet());
@@ -148,9 +124,9 @@ public final class BuildEngine {
                         new EditHistory.Entry(label, world.getUID(), changes));
                 }
                 release(player);
-                if (announce) sendReport(player, label, report);
-                else sendQuietReport(player, report);
+                finish(player, observer, report, changes);
             });
+        queue.onProgress(done -> progress(player, observer, done, positions.size()));
         queue.start();
     }
 
@@ -158,30 +134,38 @@ public final class BuildEngine {
     //  Undo / redo
     // =====================================================================
 
-    /** Undo ({@code redo == false}) or redo up to {@code steps} entries. */
-    public void revert(final Player player, final boolean redo, final int steps) {
-        final int[] totals = new int[3]; // entries, restored blocks, skipped blocks
-        revertNext(player, redo, Math.max(1, steps), totals, new Report());
+    /**
+     * Undo ({@code redo == false}) or redo up to {@code steps} entries. The
+     * caller must hold the player's slot from {@link #tryBegin}.
+     */
+    public void revert(
+            final Player player,
+            final boolean redo,
+            final int steps,
+            final EditObserver observer) {
+        revertNext(player, redo, Math.max(1, steps), new EditReport(), new ArrayList<>(), observer);
     }
 
     private void revertNext(
             final Player player,
             final boolean redo,
             final int remaining,
-            final int[] totals,
-            final Report report) {
+            final EditReport report,
+            final List<EditHistory.BlockChange> allChanged,
+            final EditObserver observer) {
         final UUID playerId = player.getUniqueId();
         final EditHistory.Entry entry = remaining <= 0 ? null
             : redo ? history.popRedo(playerId) : history.popUndo(playerId);
         if (entry == null) {
             release(player);
-            sendRevertReport(player, redo, totals, report);
+            finish(player, observer, report, allChanged);
             return;
         }
         final World world = Bukkit.getWorld(entry.worldId());
         if (world == null) {
-            totals[2] += entry.size();
-            revertNext(player, redo, remaining - 1, totals, report);
+            // The world was unloaded; its snapshots can no longer be applied.
+            report.stale += entry.size();
+            revertNext(player, redo, remaining - 1, report, allChanged, observer);
             return;
         }
 
@@ -201,17 +185,11 @@ public final class BuildEngine {
                 if (outcome.status() == BuildWorldWriter.Status.CHANGED) {
                     inverse.add(new EditHistory.BlockChange(
                         position, change.after(), outcome.after()));
-                    totals[1]++;
-                } else {
-                    totals[2]++;
                 }
                 return outcome.work();
             },
             () -> !player.isOnline() || plugin.isDisabling(),
-            (position, failure) -> {
-                recordFailure(report, world, position, failure);
-                totals[2]++;
-            },
+            (position, failure) -> recordFailure(report, world, position, failure),
             () -> {
                 if (!player.isOnline() || plugin.isDisabling()) {
                     release(player);
@@ -221,24 +199,67 @@ public final class BuildEngine {
                     new EditHistory.Entry(entry.label(), entry.worldId(), inverse);
                 if (redo) history.pushUndo(playerId, inverted);
                 else history.pushRedo(playerId, inverted);
-                totals[0]++;
-                revertNext(player, redo, remaining - 1, totals, report);
+                report.entries++;
+                allChanged.addAll(inverse);
+                revertNext(player, redo, remaining - 1, report, allChanged, observer);
             });
+        queue.onProgress(done -> progress(player, observer, done, byPosition.size()));
         queue.start();
     }
 
     // =====================================================================
-    //  Cell sampling for smoothing
+    //  External changes
     // =====================================================================
 
-    /** Read occupancy of every cell in the given blocks at {@code grid}. */
+    /**
+     * Record a synchronous change made by another system, such as a
+     * blueprint paste, as one undoable entry. {@code blocks} must all belong
+     * to the current thread's region; they are captured before and after
+     * {@code change} runs, and only positions that differ are recorded.
+     *
+     * @return the positions that changed
+     */
+    public List<BlockPos> recordChange(
+            final Player player,
+            final String label,
+            final Collection<Block> blocks,
+            final Runnable change) {
+        final Map<BlockPos, Block> byPosition = new LinkedHashMap<>();
+        for (final Block block : blocks) {
+            byPosition.putIfAbsent(new BlockPos(block.getX(), block.getY(), block.getZ()), block);
+        }
+        final Map<BlockPos, BlockSnapshot> before = new LinkedHashMap<>();
+        byPosition.forEach((position, block) -> before.put(position, writer.capture(block)));
+        change.run();
+        final List<EditHistory.BlockChange> changes = new ArrayList<>();
+        World world = null;
+        for (final Map.Entry<BlockPos, Block> entry : byPosition.entrySet()) {
+            final BlockSnapshot after = writer.capture(entry.getValue());
+            final BlockSnapshot previous = before.get(entry.getKey());
+            if (previous.sameStateAs(after)) continue;
+            changes.add(new EditHistory.BlockChange(entry.getKey(), previous, after));
+            world = entry.getValue().getWorld();
+        }
+        final List<BlockPos> changed = new ArrayList<>(changes.size());
+        for (final EditHistory.BlockChange each : changes) changed.add(each.position());
+        if (world != null) {
+            history.record(player.getUniqueId(), new EditHistory.Entry(label, world.getUID(), changes));
+        }
+        return changed;
+    }
+
+    // =====================================================================
+    //  Cell sampling
+    // =====================================================================
+
+    /** Read occupancy and materials of every cell in the given blocks at {@code grid}. */
     public void sample(
             final Player player,
             final World world,
             final Collection<BlockPos> positions,
             final int grid,
-            final Consumer<BrushSmoother.CellLookup> onDone) {
-        final Map<BlockPos, CellSample> samples = new ConcurrentHashMap<>();
+            final Consumer<CellSamples> onDone) {
+        final Map<BlockPos, CellSamples.Sample> samples = new ConcurrentHashMap<>();
         final RegionWorkQueue queue = new RegionWorkQueue(plugin, world,
             new ArrayList<>(positions),
             position -> {
@@ -247,120 +268,67 @@ public final class BuildEngine {
                 return 1;
             },
             () -> !player.isOnline() || plugin.isDisabling(),
-            (position, failure) -> recordFailure(new Report(), world, position, failure),
-            () -> onDone.accept(new SampleLookup(grid, samples)));
+            (position, failure) -> recordFailure(new EditReport(), world, position, failure),
+            () -> onDone.accept(new CellSamples(grid, samples)));
         queue.start();
     }
 
-    private record CellSample(BitSet occupied, BlockData[] materials) {}
-
-    private CellSample sampleBlock(final Block block, final int grid) {
+    private CellSamples.Sample sampleBlock(final Block block, final int grid) {
         final int volume = grid * grid * grid;
         final BitSet occupied = new BitSet(volume);
         final BlockData[] materials = new BlockData[volume];
+        final PlayerHeadTexture[] textures = new PlayerHeadTexture[volume];
         final SculptBlock sculpt = writer.activeSculpt(block);
         if (sculpt != null) {
             final int side = 16 / grid;
             final int offset = side / 2;
             for (int index = 0; index < volume; index++) {
-                final BlockData material = OctreeCellEditor.materialAt(sculpt.root,
+                final OctreeNode leaf = sculpt.root.findLeaf(
                     CellVolume.localX(grid, index) * side + offset,
                     CellVolume.localY(grid, index) * side + offset,
                     CellVolume.localZ(grid, index) * side + offset);
-                if (material == null) continue;
+                if (leaf == null || leaf.isRemoved()) continue;
                 occupied.set(index);
-                materials[index] = material;
+                materials[index] = leaf.blockData() == null
+                    ? sculpt.originalBlockData : leaf.blockData();
+                textures[index] = leaf.playerHeadTexture();
             }
         } else if (!BuildWorldWriter.isReplaceable(block)) {
             occupied.set(0, volume);
             final BlockData data = block.getBlockData();
-            for (int index = 0; index < volume; index++) materials[index] = data;
-        }
-        return new CellSample(occupied, materials);
-    }
-
-    private record SampleLookup(int grid, Map<BlockPos, CellSample> samples)
-            implements BrushSmoother.CellLookup {
-        @Override
-        public boolean occupied(final long x, final long y, final long z) {
-            final CellSample sample = sampleAt(x, y, z);
-            return sample != null && sample.occupied().get(index(x, y, z));
-        }
-
-        @Override
-        public BlockData material(final long x, final long y, final long z) {
-            final CellSample sample = sampleAt(x, y, z);
-            return sample == null ? null : sample.materials()[index(x, y, z)];
-        }
-
-        private CellSample sampleAt(final long x, final long y, final long z) {
-            return samples.get(new BlockPos(
-                (int) Math.floorDiv(x, grid),
-                (int) Math.floorDiv(y, grid),
-                (int) Math.floorDiv(z, grid)));
-        }
-
-        private int index(final long x, final long y, final long z) {
-            return CellVolume.localIndex(grid,
-                (int) Math.floorMod(x, grid),
-                (int) Math.floorMod(y, grid),
-                (int) Math.floorMod(z, grid));
-        }
-    }
-
-    // =====================================================================
-    //  Sculpt mode click recording
-    // =====================================================================
-
-    /**
-     * Start recording a synchronous Sculpt mode edit that can touch the
-     * given blocks. Call {@link ClickRecording#finish()} on the same thread
-     * after the edit to add an undo entry when anything changed.
-     */
-    public ClickRecording beginClick(final Player player, final Collection<Block> candidates) {
-        final Map<BlockPos, Block> blocks = new LinkedHashMap<>();
-        for (final Block block : candidates) {
-            if (block == null || block.getWorld() != player.getWorld()) continue;
-            blocks.putIfAbsent(new BlockPos(block.getX(), block.getY(), block.getZ()), block);
-        }
-        final Map<BlockPos, BlockSnapshot> before = new HashMap<>();
-        blocks.forEach((position, block) -> before.put(position, writer.capture(block)));
-        return new ClickRecording(player, blocks, before);
-    }
-
-    public final class ClickRecording {
-        private final Player player;
-        private final Map<BlockPos, Block> blocks;
-        private final Map<BlockPos, BlockSnapshot> before;
-
-        private ClickRecording(
-                final Player player,
-                final Map<BlockPos, Block> blocks,
-                final Map<BlockPos, BlockSnapshot> before) {
-            this.player = player;
-            this.blocks = blocks;
-            this.before = before;
-        }
-
-        public void finish() {
-            final List<EditHistory.BlockChange> changes = new ArrayList<>();
-            World world = null;
-            for (final Map.Entry<BlockPos, Block> entry : blocks.entrySet()) {
-                final BlockSnapshot after = writer.capture(entry.getValue());
-                final BlockSnapshot previous = before.get(entry.getKey());
-                if (previous.sameStateAs(after)) continue;
-                changes.add(new EditHistory.BlockChange(entry.getKey(), previous, after));
-                world = entry.getValue().getWorld();
+            final boolean editable = writer.isConvertible(block);
+            for (int index = 0; index < volume; index++) {
+                materials[index] = editable ? data : null;
             }
-            if (world == null) return;
-            history.record(player.getUniqueId(),
-                new EditHistory.Entry("sculpt", world.getUID(), changes));
         }
+        return new CellSamples.Sample(occupied, materials, textures);
     }
 
     // =====================================================================
     //  Feedback
     // =====================================================================
+
+    private void progress(
+            final Player player,
+            final EditObserver observer,
+            final int done,
+            final int total) {
+        if (observer == EditObserver.NONE || !player.isOnline()) return;
+        FoliaScheduler.runEntityTask(plugin, player, () -> observer.onProgress(done, total));
+    }
+
+    private void finish(
+            final Player player,
+            final EditObserver observer,
+            final EditReport report,
+            final List<EditHistory.BlockChange> changes) {
+        if (!player.isOnline()) return;
+        final List<BlockPos> changed = new ArrayList<>(changes.size());
+        for (final EditHistory.BlockChange change : changes) changed.add(change.position());
+        FoliaScheduler.runEntityTask(plugin, player, () -> {
+            if (player.isOnline()) observer.onFinish(report, changed);
+        });
+    }
 
     /** Plays one representative sound for a multi-block operation. */
     private static final class FeedbackSound {
@@ -380,7 +348,7 @@ public final class BuildEngine {
     }
 
     private void recordFailure(
-            final Report report,
+            final EditReport report,
             final World world,
             final BlockPos position,
             final RuntimeException failure) {
@@ -388,65 +356,5 @@ public final class BuildEngine {
         plugin.getLogger().log(Level.WARNING, "[Sculpt] building edit failed at "
             + world.getName() + "," + position.x() + "," + position.y() + ","
             + position.z(), failure);
-    }
-
-    private void sendReport(final Player player, final String label, final Report report) {
-        FoliaScheduler.runEntityTask(plugin, player, () -> {
-            if (!player.isOnline()) return;
-            if (report.changed > 0) {
-                MessageUtil.sendTranslated(player, "building.result.completed",
-                    label, report.changed);
-            } else {
-                MessageUtil.sendTranslated(player, "building.result.no_changes");
-            }
-            sendSkipCounts(player, report);
-            if (!report.historyRecorded) {
-                MessageUtil.sendTranslated(player, "building.result.not_recorded");
-            }
-        });
-    }
-
-    /** Brush strokes only surface problems, on the action bar. */
-    private void sendQuietReport(final Player player, final Report report) {
-        final String key;
-        if (report.protectedBlocks > 0) key = "building.brush.protected";
-        else if (report.limitReached > 0) key = "building.result.limit_reached";
-        else if (report.failed > 0) key = "building.result.failed";
-        else return;
-        final int count = Math.max(report.protectedBlocks,
-            Math.max(report.limitReached, report.failed));
-        FoliaScheduler.runEntityTask(plugin, player, () -> {
-            if (player.isOnline()) MessageUtil.sendTranslatedActionBar(player, key, count);
-        });
-    }
-
-    private void sendRevertReport(
-            final Player player,
-            final boolean redo,
-            final int[] totals,
-            final Report report) {
-        final String prefix = redo ? "building.redo." : "building.undo.";
-        FoliaScheduler.runEntityTask(plugin, player, () -> {
-            if (!player.isOnline()) return;
-            if (totals[0] == 0) {
-                MessageUtil.sendTranslated(player, prefix + "nothing");
-                return;
-            }
-            MessageUtil.sendTranslated(player, prefix + "completed", totals[0], totals[1]);
-            sendSkipCounts(player, report);
-        });
-    }
-
-    private static void sendSkipCounts(final Player player, final Report report) {
-        sendCount(player, "building.result.protected", report.protectedBlocks);
-        sendCount(player, "building.result.obstructed", report.obstructed);
-        sendCount(player, "building.result.locked", report.locked);
-        sendCount(player, "building.result.limit_reached", report.limitReached);
-        sendCount(player, "building.result.stale", report.stale);
-        sendCount(player, "building.result.failed", report.failed);
-    }
-
-    private static void sendCount(final Player player, final String key, final int count) {
-        if (count > 0) MessageUtil.sendTranslated(player, key, count);
     }
 }

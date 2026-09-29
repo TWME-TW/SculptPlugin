@@ -3,114 +3,151 @@ package dev.twme.sculpt.plugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.StringUtil;
 
 import dev.twme.sculpt.Sculpt;
-import dev.twme.sculpt.building.BrushCommand;
-import dev.twme.sculpt.building.BuildCommand;
-import dev.twme.sculpt.building.BuildToolkit;
-import dev.twme.sculpt.building.HistoryCommand;
-import dev.twme.sculpt.core.BlockKey;
-import dev.twme.sculpt.core.FillMode;
 import dev.twme.sculpt.core.SculptBlock;
-import dev.twme.sculpt.skin.HeadsRegistry;
 import dev.twme.sculpt.util.FoliaScheduler;
 import dev.twme.sculpt.util.MessageUtil;
+
 /**
- * Subcommand dispatcher for /sculpt. Implements both {@link CommandExecutor}
- * and {@link TabCompleter} so the Bukkit registration can use a single
- * instance for both roles.
+ * {@code /sculpt}: opens the editor menu. Day-to-day editing happens in the
+ * editor; commands remain for automation, undo, blueprint files, and
+ * administration.
  */
 public final class SculptCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> PRIMARY_SUBCOMMANDS = List.of(
-            "help", "resolution", "preview", "mode", "fill", "display",
-            "convert", "replace", "relight", "build", "brush", "undo", "redo",
-            "tool", "blueprint", "heads", "admin");
+            "help", "edit", "undo", "redo", "blueprint", "admin");
     private static final List<String> ADMIN_SUBCOMMANDS = List.of(
             "list", "teleport", "reload", "status");
+    /** Subcommands of earlier versions whose features moved into the editor. */
+    static final Set<String> MOVED_TO_EDITOR = Set.of(
+            "resolution", "preview", "mode", "fill", "display", "convert", "replace",
+            "relight", "build", "brush", "tool", "heads");
 
     private final Sculpt plugin;
-    private final SculptModeCommand modeCommand;
-    private final SculptFillCommand fillCommand;
-    private final SculptDisplayCommand displayCommand;
-    private final SculptWandCommand toolCommand;
     private final SculptBlueprintCommand blueprintCommand;
-    private final SculptHeadsCommand headsCommand;
-    private final SculptReplaceCommand replaceCommand;
-    private final SculptRelightCommand relightCommand;
-    private final BuildCommand buildCommand;
-    private final BrushCommand brushCommand;
-    private final HistoryCommand historyCommand;
 
-    public SculptCommand(Sculpt plugin, SculptModeCommand modeCommand,
-                         SculptFillCommand fillCommand,
-                         SculptDisplayCommand displayCommand,
-                         SculptWandCommand toolCommand,
-                         SculptBlueprintCommand blueprintCommand,
-                         SculptHeadsCommand headsCommand) {
+    public SculptCommand(Sculpt plugin, SculptBlueprintCommand blueprintCommand) {
         this.plugin = plugin;
-        this.modeCommand = modeCommand;
-        this.fillCommand = fillCommand;
-        this.displayCommand = displayCommand;
-        this.toolCommand = toolCommand;
         this.blueprintCommand = blueprintCommand;
-        this.headsCommand = headsCommand;
-        this.replaceCommand = new SculptReplaceCommand(plugin);
-        this.relightCommand = new SculptRelightCommand(plugin);
-        final BuildToolkit toolkit = plugin.getBuildToolkit();
-        this.buildCommand = new BuildCommand(toolkit);
-        this.brushCommand = new BrushCommand(toolkit);
-        this.historyCommand = new HistoryCommand(toolkit);
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length == 0) {
-            sendHelp(sender);
+            if (sender instanceof Player player && plugin.isEditorAvailable()) {
+                dev.twme.sculpt.editor.ui.EditorDialogs.main(player, plugin.getEditorService());
+            } else {
+                sendHelp(sender);
+            }
             return true;
         }
-        return switch (args[0].toLowerCase(Locale.ROOT)) {
+        final String root = args[0].toLowerCase(Locale.ROOT);
+        return switch (root) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
             }
-            case "resolution" -> handleResolution(sender, args);
-            case "preview" -> handlePreview(sender, args);
-            case "mode" -> modeCommand.onCommand(sender, cmd, label, tail(args));
-            case "fill" -> fillCommand.onCommand(sender, cmd, label, tail(args));
-            case "display" -> displayCommand.onCommand(sender, cmd, label, tail(args));
-            case "convert" -> handleConvert(sender, args);
-            case "replace" -> replaceCommand.execute(sender, tail(args));
-            case "relight" -> relightCommand.execute(sender, tail(args));
-            case "build" -> buildCommand.execute(sender, tail(args));
-            case "brush" -> brushCommand.execute(sender, tail(args));
-            case "undo" -> historyCommand.execute(sender, false, tail(args));
-            case "redo" -> historyCommand.execute(sender, true, tail(args));
-            case "tool" -> toolCommand.onCommand(sender, cmd, label, tail(args));
+            case "edit" -> handleEdit(sender, args);
+            case "undo" -> handleHistory(sender, false, args);
+            case "redo" -> handleHistory(sender, true, args);
             case "blueprint" -> blueprintCommand.onCommand(sender, cmd, label, tail(args));
-            case "heads" -> headsCommand.onCommand(sender, cmd, label, tail(args));
             case "admin" -> handleAdmin(sender, args);
             default -> {
-                MessageUtil.sendTranslated(sender, "command.sculpt.unknown_subcommand", args[0]);
+                if (MOVED_TO_EDITOR.contains(root)) {
+                    MessageUtil.sendTranslated(sender, "command.sculpt.moved_to_editor", root);
+                } else {
+                    MessageUtil.sendTranslated(sender, "command.sculpt.unknown_subcommand", args[0]);
+                }
                 yield true;
             }
         };
+    }
+
+    /** {@code /sculpt edit [on|off]} */
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            MessageUtil.sendTranslated(sender, "general.player_only");
+            return true;
+        }
+        if (!checkPerm(sender, SculptPermissions.EDIT)) return true;
+        if (!plugin.isEditorAvailable()) {
+            MessageUtil.sendTranslated(sender, "editor.unavailable");
+            return true;
+        }
+        final var editor = plugin.getEditorService();
+        final String mode = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "toggle";
+        switch (mode) {
+            case "on" -> editor.enter(player);
+            case "off" -> editor.exit(player, true);
+            case "toggle" -> {
+                if (editor.isEditing(player)) editor.exit(player, true);
+                else editor.enter(player);
+            }
+            default -> MessageUtil.sendTranslated(sender, "command.sculpt.edit.usage");
+        }
+        return true;
+    }
+
+    /** {@code /sculpt undo [steps]} and {@code /sculpt redo [steps]} */
+    private boolean handleHistory(CommandSender sender, boolean redo, String[] args) {
+        if (!(sender instanceof Player player)) {
+            MessageUtil.sendTranslated(sender, "general.player_only");
+            return true;
+        }
+        if (!checkPerm(sender, SculptPermissions.UNDO)) return true;
+        final int maximum = plugin.getBuildEngine().limits().historyMaxEntries();
+        int steps = 1;
+        if (args.length > 2) {
+            MessageUtil.sendTranslated(player, redo ? "building.redo.usage" : "building.undo.usage");
+            return true;
+        }
+        if (args.length == 2) {
+            try {
+                steps = Integer.parseInt(args[1]);
+            } catch (NumberFormatException invalid) {
+                steps = -1;
+            }
+            if (steps < 1 || steps > maximum) {
+                MessageUtil.sendTranslated(player, "building.undo.invalid_steps", maximum);
+                return true;
+            }
+        }
+        if (plugin.getHeadResolver() == null) {
+            MessageUtil.sendTranslated(player, "building.not_ready");
+            return true;
+        }
+        if (plugin.isEditorAvailable()) {
+            plugin.getEditorService().revert(player, redo, steps);
+            return true;
+        }
+        if (!plugin.getBuildEngine().tryBegin(player)) {
+            MessageUtil.sendTranslated(player, "building.busy");
+            return true;
+        }
+        final boolean isRedo = redo;
+        plugin.getBuildEngine().revert(player, redo, steps, new dev.twme.sculpt.building.EditObserver() {
+            @Override
+            public void onFinish(dev.twme.sculpt.building.EditReport report,
+                                 List<dev.twme.sculpt.building.BlockPos> changed) {
+                dev.twme.sculpt.building.ReportMessages.sendRevert(player, isRedo, report);
+            }
+        });
+        return true;
     }
 
     private boolean handleAdmin(CommandSender sender, String[] args) {
@@ -133,176 +170,11 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelp(CommandSender sender) {
         MessageUtil.sendTranslated(sender, "command.sculpt.help.header");
-        if (canUsePrimary(sender::hasPermission, "resolution")
-                || canUsePrimary(sender::hasPermission, "preview")
-                || canUsePrimary(sender::hasPermission, "mode")
-                || canUsePrimary(sender::hasPermission, "fill")
-                || canUsePrimary(sender::hasPermission, "display")
-                || canUsePrimary(sender::hasPermission, "convert")
-                || canUsePrimary(sender::hasPermission, "replace")
-                || canUsePrimary(sender::hasPermission, "relight")) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.help.sculpting_header");
-            if (canUsePrimary(sender::hasPermission, "resolution"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.resolution");
-            if (canUsePrimary(sender::hasPermission, "preview"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.preview");
-            if (canUsePrimary(sender::hasPermission, "mode"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.mode");
-            if (canUsePrimary(sender::hasPermission, "fill"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.fill");
-            if (canUsePrimary(sender::hasPermission, "display"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.display");
-            if (canUsePrimary(sender::hasPermission, "convert"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.convert");
-            if (canUsePrimary(sender::hasPermission, "replace"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.replace");
-            if (canUsePrimary(sender::hasPermission, "relight"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.relight");
-        }
-        if (canUsePrimary(sender::hasPermission, "build")
-                || canUsePrimary(sender::hasPermission, "brush")
-                || canUsePrimary(sender::hasPermission, "undo")) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.help.building_header");
-            if (canUsePrimary(sender::hasPermission, "build"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.build");
-            if (canUsePrimary(sender::hasPermission, "brush"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.brush");
-            if (canUsePrimary(sender::hasPermission, "undo"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.undo");
-        }
-        if (canUsePrimary(sender::hasPermission, "tool")
-                || canUsePrimary(sender::hasPermission, "blueprint")
-                || canUsePrimary(sender::hasPermission, "heads")) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.help.content_header");
-            if (canUsePrimary(sender::hasPermission, "tool"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.tool");
-            if (canUsePrimary(sender::hasPermission, "blueprint"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.blueprint");
-            if (canUsePrimary(sender::hasPermission, "heads"))
-                MessageUtil.sendTranslated(sender, "command.sculpt.help.heads");
-        }
-        if (canUsePrimary(sender::hasPermission, "admin")) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.help.admin");
+        for (String sub : allowedPrimaryCommands(sender::hasPermission)) {
+            if (sub.equals("help")) continue;
+            MessageUtil.sendTranslated(sender, "command.sculpt.help." + sub);
         }
         MessageUtil.sendTranslated(sender, "command.sculpt.help.hint");
-    }
-
-    // ---------------------------------------------------------------
-    //  Subcommand handlers
-    // ---------------------------------------------------------------
-
-    /**
-     * /sculpt resolution [gridN] — show or set the player's preferred grid size.
-     *
-     * <p>With {@code gridN} (one of 1, 2, 4, 8, 16), store the grid
-     * resolution for future sculpt operations. Does NOT modify any block.
-     * The stored size is used by auto-sculpt on left-click / block-break
-     * and by the hover preview.
-     *
-     * <p>Without arguments, reports the player's current grid resolution.
-     */
-    private boolean handleResolution(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player p)) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.grid.player_only");
-            return true;
-        }
-        if (!checkPerm(sender, SculptPermissions.RESOLUTION)) return true;
-
-        // With gridN: just store the player's preference, don't touch blocks.
-        if (args.length > 1) {
-            try {
-                int parsed = Integer.parseInt(args[1]);
-                if (!isValidGrid(parsed)) {
-                    MessageUtil.sendTranslated(sender, "command.sculpt.grid.invalid_grid");
-                    return true;
-                }
-                if (!canUseGrid(p, parsed)) {
-                    MessageUtil.sendTranslated(sender, "command.sculpt.grid.no_permission_grid", parsed);
-                    MessageUtil.sendTranslated(sender, "command.sculpt.grid.required_perm", parsed);
-                    return true;
-                }
-                plugin.setGridSizeFor(p, parsed);
-                // Show a brief full-grid overlay on the looked-at block
-                // so the player can see what this grid density looks like.
-                Block target = p.getTargetBlockExact(5);
-                if (target != null && !target.getType().isAir()) {
-                    Location loc = target.getLocation();
-                    BlockData bd = target.getBlockData().clone();
-                    BlockKey bk = BlockKey.of(bd.getMaterial().getKey().toString());
-                    HeadsRegistry reg = plugin.getHeadsRegistry(parsed);
-                    // The command runs on the player/region thread. Only use
-                    // an already-resident index here; a cold catalog read is
-                    // scheduled by the resolver and must not stall the tick.
-                    if (reg != null && reg.hasKnownBlock(bk) && !reg.hasLoaded(bk)) {
-                        reg.prefetchIndex(bk);
-                    }
-                    if (reg != null && reg.hasLoaded(bk)) {
-                        BlockVariantResolver.Result r = BlockVariantResolver.resolve(
-                                bd, bk, reg);
-                        plugin.showFullGridPreview(p, loc, parsed, r.blockRotation());
-                    } else {
-                        // Block not baked — show rotation-identity overlay
-                        // anyway so the player sees the grid pattern.
-                        plugin.showFullGridPreview(p, loc, parsed,
-                                new org.joml.Quaternionf());
-                    }
-                } else {
-                    MessageUtil.sendTranslated(p, "command.sculpt.grid.look_at_block");
-                }
-                MessageUtil.sendTranslated(p, "command.sculpt.grid.set", parsed);
-                return true;
-            } catch (NumberFormatException e) {
-                MessageUtil.sendTranslated(sender, "command.sculpt.grid.invalid_grid_arg", args[1]);
-                return true;
-            }
-        }
-
-        // No args: show current grid size (v2: holding tool = edit mode, no toggle)
-        int currentGrid = plugin.gridSizeFor(p);
-        MessageUtil.sendTranslated(p, "command.sculpt.grid.current", currentGrid);
-        return true;
-    }
-
-    /**
-     * /sculpt preview [on|off] — enable or disable the hover grid preview.
-     *
-     * <p>Without arguments, toggles the current state.  The default state is
-     * controlled by the {@code sculpt.use.preview.auto} permission.
-     */
-    private boolean handlePreview(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player p)) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.preview.player_only");
-            return true;
-        }
-        if (!checkPerm(sender, SculptPermissions.PREVIEW)) return true;
-
-        if (args.length > 1) {
-            return switch (args[1].toLowerCase(Locale.ROOT)) {
-                case "on" -> {
-                    plugin.setHoverEnabled(p, true);
-                    MessageUtil.sendTranslated(p, "command.sculpt.preview.enabled");
-                    yield true;
-                }
-                case "off" -> {
-                    plugin.setHoverEnabled(p, false);
-                    MessageUtil.sendTranslated(p, "command.sculpt.preview.disabled");
-                    yield true;
-                }
-                default -> {
-                    MessageUtil.sendTranslated(p, "command.sculpt.preview.usage");
-                    yield true;
-                }
-            };
-        }
-
-        // Toggle
-        final boolean next = plugin.toggleHover(p);
-        if (next) {
-            MessageUtil.sendTranslated(p, "command.sculpt.preview.enabled");
-        } else {
-            MessageUtil.sendTranslated(p, "command.sculpt.preview.disabled");
-        }
-        return true;
     }
 
     /**
@@ -464,142 +336,6 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * /sculpt convert <barrier|shulker|null> [region|single] — apply a fill
-     * strategy to existing SculptBlocks.
-     *
-     */
-    private boolean handleConvert(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player p)) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.convert.player_only");
-            return true;
-        }
-        if (!checkPerm(sender, SculptPermissions.CONVERT)) return true;
-
-        if (args.length < 2) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.convert.usage");
-            return true;
-        }
-
-        final FillMode targetFill = FillMode.parse(args[1], null);
-        if (targetFill == null) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.convert.usage");
-            return true;
-        }
-
-        // Determine scope: region or single (default: region if selection, else single)
-        final boolean region;
-        if (args.length > 2) {
-            region = args[2].equalsIgnoreCase("region");
-        } else {
-            // Default: region if selection exists, single otherwise
-            final dev.twme.sculpt.editor.RegionSelection sel =
-                plugin.getWandListener() != null
-                    ? plugin.getWandListener().getSelection(p)
-                    : null;
-            region = sel != null && sel.isValid();
-        }
-
-        final FillConverter converter = plugin.getFillConverter();
-        if (converter == null) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.convert.not_initialized");
-            return true;
-        }
-        final ItemStack probeItem = p.getInventory().getItemInMainHand().clone();
-
-        if (region) {
-            final dev.twme.sculpt.editor.RegionSelection sel =
-                plugin.getWandListener() != null
-                    ? plugin.getWandListener().getSelection(p)
-                    : null;
-            if (sel == null || !sel.isValid()) {
-                MessageUtil.sendTranslated(sender, "command.sculpt.convert.no_selection");
-                return true;
-            }
-
-            final List<SculptBlock> targets = plugin.getActiveBlocks().stream()
-                .filter(block -> block.pos.getWorld() == sel.world()
-                    && block.pos.getBlockX() >= sel.minX() && block.pos.getBlockX() <= sel.maxX()
-                    && block.pos.getBlockY() >= sel.minY() && block.pos.getBlockY() <= sel.maxY()
-                    && block.pos.getBlockZ() >= sel.minZ() && block.pos.getBlockZ() <= sel.maxZ())
-                .toList();
-            if (targets.isEmpty()) {
-                MessageUtil.sendTranslated(sender, "command.sculpt.convert.no_target");
-                return true;
-            }
-
-            MessageUtil.sendTranslated(sender,
-                "command.sculpt.convert.changing", targets.size(), targetFill.id());
-            scheduleConversions(p, targets, converter, targetFill, probeItem);
-        } else {
-            // Single mode — look at block
-            final Block target = p.getTargetBlockExact(5);
-            if (target == null || target.getType().isAir()) {
-                MessageUtil.sendTranslated(sender, "command.sculpt.convert.no_target");
-                return true;
-            }
-            final SculptBlock sculpt = plugin.getActiveBlock(BlockPosKey.of(target));
-            if (sculpt == null) {
-                MessageUtil.sendTranslated(sender, "command.sculpt.convert.no_target");
-                return true;
-            }
-            scheduleConversions(p, List.of(sculpt), converter, targetFill, probeItem);
-        }
-        return true;
-    }
-
-    private void scheduleConversions(final Player player, final List<SculptBlock> targets,
-                                     final FillConverter converter,
-                                     final FillMode targetFill,
-                                     final ItemStack probeItem) {
-        final AtomicInteger remaining = new AtomicInteger(targets.size());
-        final AtomicInteger changed = new AtomicInteger();
-        final AtomicInteger protectedBlocks = new AtomicInteger();
-        final AtomicInteger failed = new AtomicInteger();
-        for (final SculptBlock sculpt : targets) {
-            final ItemStack targetProbeItem = probeItem.clone();
-            FoliaScheduler.runRegionTask(plugin, sculpt.pos, () -> {
-                try {
-                    if (!plugin.canPlayerBuild(player, sculpt.pos.getBlock(), targetProbeItem)) {
-                        protectedBlocks.incrementAndGet();
-                    } else if (converter.setFill(sculpt, targetFill)) {
-                        changed.incrementAndGet();
-                    }
-                } catch (final RuntimeException error) {
-                    failed.incrementAndGet();
-                    plugin.getLogger().log(Level.WARNING,
-                        "Failed to convert SculptBlock at " + formatLoc(sculpt.pos), error);
-                } finally {
-                    if (remaining.decrementAndGet() == 0) {
-                        sendConversionResult(player, changed.get(), protectedBlocks.get(),
-                            failed.get(), targetFill);
-                    }
-                }
-            });
-        }
-    }
-
-    private void sendConversionResult(final Player player, final int changed,
-                                      final int protectedBlocks, final int failed,
-                                      final FillMode targetFill) {
-        FoliaScheduler.runEntityTask(plugin, player, () -> {
-            if (changed > 0) {
-                MessageUtil.sendTranslated(player,
-                    "command.sculpt.convert.changed", changed, targetFill.id());
-            } else if (protectedBlocks == 0 && failed == 0) {
-                MessageUtil.sendTranslated(player,
-                    "command.sculpt.convert.already", targetFill.id());
-            }
-            if (protectedBlocks > 0) {
-                MessageUtil.sendTranslated(player, "command.sculpt.convert.protected",
-                    protectedBlocks);
-            }
-            if (failed > 0) {
-                MessageUtil.sendTranslated(player, "command.sculpt.convert.failed", failed);
-            }
-        });
-    }
-
-    /**
      * /sculpt admin reload — reload config.yml.
      */
     private boolean handleReload(CommandSender sender) {
@@ -643,60 +379,26 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
                     allowedPrimaryCommands(sender::hasPermission), new ArrayList<>());
         }
         final String root = args[0].toLowerCase(Locale.ROOT);
-        if (root.equals("help")) {
-            return List.of();
-        }
-        if (root.equals("resolution")) return completeSubcommand(sender, args);
-        if (root.equals("preview")) return completeSubcommand(sender, args);
-        if (root.equals("convert")) return completeSubcommand(sender, args);
-        if (root.equals("replace")) return replaceCommand.complete(sender, tail(args));
-        if (root.equals("relight")) return List.of();
-        if (root.equals("build")) return buildCommand.complete(sender, tail(args));
-        if (root.equals("brush")) return brushCommand.complete(sender, tail(args));
-        if (root.equals("undo") || root.equals("redo")) {
-            return historyCommand.complete(sender, tail(args));
-        }
-        if (root.equals("mode")) return modeCommand.onTabComplete(sender, cmd, label, tail(args));
-        if (root.equals("fill")) return fillCommand.onTabComplete(sender, cmd, label, tail(args));
-        if (root.equals("display")) return displayCommand.onTabComplete(sender, cmd, label, tail(args));
-        if (root.equals("tool")) return toolCommand.onTabComplete(sender, cmd, label, tail(args));
-        if (root.equals("blueprint")) return blueprintCommand.onTabComplete(sender, cmd, label, tail(args));
-        if (root.equals("heads")) return headsCommand.onTabComplete(sender, cmd, label, tail(args));
-        if (root.equals("admin")) return completeAdmin(sender, args);
-        return List.of();
+        if (!canUsePrimary(sender::hasPermission, root)) return List.of();
+        return switch (root) {
+            case "edit" -> args.length == 2
+                ? StringUtil.copyPartialMatches(args[1], List.of("on", "off"), new ArrayList<>())
+                : List.of();
+            case "undo", "redo" -> args.length == 2
+                ? StringUtil.copyPartialMatches(args[1], List.of("1", "5", "10"), new ArrayList<>())
+                : List.of();
+            case "blueprint" -> blueprintCommand.onTabComplete(sender, cmd, label, tail(args));
+            case "admin" -> completeAdmin(sender, args);
+            default -> List.of();
+        };
     }
 
     private List<String> completeAdmin(CommandSender sender, String[] args) {
         if (args.length == 2) {
             return StringUtil.copyPartialMatches(args[1], allowedAdminSubcommands(sender), new ArrayList<>());
         }
-        final String[] coreArgs = tail(args);
-        if (!coreArgs[0].equalsIgnoreCase("list")) return List.of();
-        return completeSubcommand(sender, coreArgs);
-    }
-
-    private List<String> completeSubcommand(CommandSender sender, String[] args) {
-        if (args.length == 2 && args[0].equalsIgnoreCase("resolution")) {
-            // Suggest grid sizes the player is allowed to use.
-            Player p = (sender instanceof Player) ? (Player) sender : null;
-            return StringUtil.copyPartialMatches(
-                    args[1], allowedGridSizes(p), new ArrayList<>());
-        }
-        if (args.length == 2 && args[0].equalsIgnoreCase("preview")) {
-            return StringUtil.copyPartialMatches(args[1],
-                    List.of("on", "off"), new ArrayList<>());
-        }
-        if (args.length == 2 && args[0].equalsIgnoreCase("convert")) {
-            return StringUtil.copyPartialMatches(args[1],
-                    List.of("barrier", "shulker", "null"), new ArrayList<>());
-        }
-        if (args.length == 3 && args[0].equalsIgnoreCase("convert")) {
-            return StringUtil.copyPartialMatches(args[2],
-                    List.of("region", "single"), new ArrayList<>());
-        }
-        if (args.length == 2 && args[0].equalsIgnoreCase("list")) {
-            return StringUtil.copyPartialMatches(args[1],
-                    List.of("--page"), new ArrayList<>());
+        if (args.length == 3 && args[1].equalsIgnoreCase("list")) {
+            return StringUtil.copyPartialMatches(args[2], List.of("--page"), new ArrayList<>());
         }
         return List.of();
     }
@@ -783,9 +485,7 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Filter the global {@link #SUBCOMMANDS} list to only those the sender
-     * has permission to use.  Used by tab completion so players only see
-     * commands they are actually allowed to run.
+     * The primary subcommands the sender may use, for help and completion.
      */
     static List<String> allowedPrimaryCommands(Predicate<String> permissionChecker) {
         return PRIMARY_SUBCOMMANDS.stream()
@@ -794,31 +494,12 @@ public final class SculptCommand implements CommandExecutor, TabCompleter {
     }
 
     private static boolean canUsePrimary(Predicate<String> permissionChecker, String sub) {
-        if (sub.equals("help")) return true;
         return switch (sub) {
-            case "resolution" -> permissionChecker.test(SculptPermissions.RESOLUTION);
-            case "preview" -> permissionChecker.test(SculptPermissions.PREVIEW);
-            case "convert" -> permissionChecker.test(SculptPermissions.CONVERT);
-            case "replace" -> permissionChecker.test(SculptPermissions.REPLACE);
-            case "relight" -> permissionChecker.test(SculptPermissions.RELIGHT);
-            case "build" -> permissionChecker.test(SculptPermissions.BUILD);
-            case "brush" -> permissionChecker.test(SculptPermissions.BRUSH);
+            case "help" -> true;
+            case "edit" -> permissionChecker.test(SculptPermissions.EDIT);
             case "undo", "redo" -> permissionChecker.test(SculptPermissions.UNDO);
-            case "mode" -> hasAny(permissionChecker,
-                    SculptPermissions.MODE_ON, SculptPermissions.MODE_OFF);
-            case "fill" -> hasAny(permissionChecker,
-                    SculptPermissions.FILL_BARRIER, SculptPermissions.FILL_SHULKER,
-                    SculptPermissions.FILL_NULL);
-            case "display" -> hasAny(permissionChecker,
-                    SculptPermissions.DISPLAY_HEAD,
-                    SculptPermissions.DISPLAY_TEXTDISPLAY,
-                    SculptPermissions.DISPLAY_AUTO);
-            case "tool" -> hasAny(permissionChecker,
-                    SculptPermissions.TOOL_SELECTOR, SculptPermissions.TOOL_BLUEPRINT,
-                    SculptPermissions.TOOL_BUILDER, SculptPermissions.TOOL_BRUSH);
             case "blueprint" -> SculptPermissions.BLUEPRINT_PERMISSIONS.stream()
                     .anyMatch(permissionChecker);
-            case "heads" -> permissionChecker.test(SculptPermissions.HEADS);
             case "admin" -> hasAny(permissionChecker,
                     SculptPermissions.ADMIN_LIST, SculptPermissions.ADMIN_TELEPORT,
                     SculptPermissions.ADMIN_RELOAD, SculptPermissions.ADMIN_STATUS);

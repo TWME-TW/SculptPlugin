@@ -169,65 +169,42 @@ class SculptCommandPermissionTest {
     @Test
     void primaryCommands_groupCanonicalPermissionsByUserTask() {
         Predicate<String> player = checker(
-                "sculpt.command.resolution",
-                "sculpt.command.preview",
-                "sculpt.command.mode.on",
-                "sculpt.command.fill.barrier",
-                "sculpt.command.display.head",
-                "sculpt.command.convert",
-                "sculpt.command.replace",
-                "sculpt.command.relight",
-                "sculpt.command.tool.selector",
-                "sculpt.command.blueprint.save",
-                "sculpt.command.heads");
+                SculptPermissions.EDIT,
+                SculptPermissions.UNDO,
+                SculptPermissions.BLUEPRINT_LIST);
 
-        assertEquals(List.of("help", "resolution", "preview", "mode", "fill",
-                        "display", "convert", "replace", "relight", "tool",
-                        "blueprint", "heads"),
+        assertEquals(List.of("help", "edit", "undo", "redo", "blueprint"),
                 SculptCommand.allowedPrimaryCommands(player));
     }
 
     @Test
     void primaryCommands_rejectRemovedPermissionNodes() {
         Predicate<String> removed = checker(
-                "sculptmode.disable",
-                "sculptwand.selector",
-                "sculptblueprint.command",
-                "sculptheads.command");
+                "sculpt.command.mode.on",
+                "sculpt.command.preview",
+                "sculpt.command.tool.selector",
+                "sculpt.command.build",
+                "sculpt.command.brush",
+                "sculptwand.selector");
 
         assertEquals(List.of("help"),
                 SculptCommand.allowedPrimaryCommands(removed));
     }
 
     @Test
-    void primaryCommands_exposeConvertOutsideAdmin() {
-        assertEquals(List.of("help", "convert"),
-                SculptCommand.allowedPrimaryCommands(checker(SculptPermissions.CONVERT)));
+    void selectionActionPermissionsDoNotExposeCommands() {
+        assertEquals(List.of("help"), SculptCommand.allowedPrimaryCommands(checker(
+                SculptPermissions.CONVERT, SculptPermissions.REPLACE, SculptPermissions.RELIGHT,
+                SculptPermissions.HEADS)));
     }
 
     @Test
-    void primaryCommands_exposeReplaceOutsideAdmin() {
-        assertEquals(List.of("help", "replace"),
-                SculptCommand.allowedPrimaryCommands(checker(SculptPermissions.REPLACE)));
-    }
-
-    @Test
-    void primaryCommands_exposeRelightOutsideAdmin() {
-        assertEquals(List.of("help", "relight"),
-                SculptCommand.allowedPrimaryCommands(
-                    checker(SculptPermissions.RELIGHT)));
-    }
-
-    @Test
-    void primaryCommands_exposeBuildingToolkit() {
-        assertEquals(List.of("help", "build", "brush", "undo", "redo", "tool"),
-                SculptCommand.allowedPrimaryCommands(checker(
-                    SculptPermissions.BUILD, SculptPermissions.BRUSH,
-                    SculptPermissions.UNDO, SculptPermissions.TOOL_BUILDER)));
-        assertEquals(List.of("help", "undo", "redo"),
-                SculptCommand.allowedPrimaryCommands(checker(SculptPermissions.UNDO)));
-        assertEquals(List.of("help", "tool"),
-                SculptCommand.allowedPrimaryCommands(checker(SculptPermissions.TOOL_BRUSH)));
+    void removedSubcommandsPointToTheEditor() {
+        for (String moved : List.of("resolution", "mode", "fill", "display", "replace",
+                "convert", "relight", "build", "brush", "tool", "heads", "preview")) {
+            org.junit.jupiter.api.Assertions.assertTrue(
+                SculptCommand.MOVED_TO_EDITOR.contains(moved), moved);
+        }
     }
 
     @Test

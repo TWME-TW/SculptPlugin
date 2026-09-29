@@ -1,6 +1,6 @@
 # English (US) translations for Sculpt
 # Messages use MiniMessage format — see https://docs.advntr.dev/minimessage/format.html
-languageVersion: 4
+languageVersion: 5
 
 general:
   prefix: "<#478FC6>[Sculpt]</#478FC6>"
@@ -12,49 +12,20 @@ general:
 
 command:
   sculpt:
-    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|build|brush|undo|redo|tool|blueprint|heads|admin>"
-    unknown_subcommand: "<#CE5F4E>Unknown subcommand: <white>{0}"
-
+    usage: "<#C2C7D3>/sculpt [help|edit|undo|redo|blueprint|admin]"
+    moved_to_editor: "<#E8C96D>/sculpt {0} moved into the editor. Run <white>/sculpt</white> or <white>/sculpt edit</white>."
+    edit:
+      usage: "<#C2C7D3>Usage: <#D1968C>/sculpt edit [on|off]"
     help:
-      header: "<#478FC6><bold>Sculpt commands</bold> <dark_gray>— one entry point, grouped by task"
-      sculpting_header: "<#7A8B9C>Sculpting"
-      resolution: "<click:suggest_command:/sculpt resolution ><#C2C7D3>  /sculpt <white>resolution <dark_gray>— grid density</click>"
-      preview: "<click:suggest_command:/sculpt preview ><#C2C7D3>  /sculpt <white>preview <dark_gray>— hover overlay</click>"
-      mode: "<click:suggest_command:/sculpt mode ><#C2C7D3>  /sculpt <white>mode <dark_gray>— turn SculptMode on or off</click>"
-      fill: "<click:suggest_command:/sculpt fill ><#C2C7D3>  /sculpt <white>fill <dark_gray>— barrier, shulker, or no fill</click>"
-      display: "<click:suggest_command:/sculpt display ><#C2C7D3>  /sculpt <white>display <dark_gray>— head, TextDisplay, or automatic rendering</click>"
-      convert: "<click:suggest_command:/sculpt convert ><#C2C7D3>  /sculpt <white>convert <dark_gray>— change existing block fill</click>"
-      replace: "<click:suggest_command:/sculpt replace ><#C2C7D3>  /sculpt <white>replace <dark_gray>— replace selected block materials</click>"
-      relight: "<click:run_command:/sculpt relight><#C2C7D3>  /sculpt <white>relight <dark_gray>— restore automatic TextDisplay lighting</click>"
-      building_header: "<#7A8B9C>Building"
-      build: "<click:suggest_command:/sculpt build ><#C2C7D3>  /sculpt <white>build <dark_gray>— planes, curved surfaces, curves, and solids from points</click>"
-      brush: "<click:suggest_command:/sculpt brush ><#C2C7D3>  /sculpt <white>brush <dark_gray>— sculpt, smooth, or paint with the brush</click>"
-      undo: "<click:suggest_command:/sculpt undo><#C2C7D3>  /sculpt <white>undo <dark_gray>/ <white>redo <dark_gray>— step through your recent edits</click>"
-      content_header: "<#7A8B9C>Tools and content"
-      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— get a selector, builder, or brush</click>"
-      blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— save and share builds</click>"
-      heads: "<click:suggest_command:/sculpt heads ><#C2C7D3>  /sculpt <white>heads <dark_gray>— browse baked heads</click>"
-      admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  Administration: <white>admin</click>"
+      header: "<#478FC6><bold>Sculpt</bold> <dark_gray>— run <white>/sculpt</white> for the menu"
+      edit: "<click:run_command:/sculpt edit><#C2C7D3>  /sculpt <white>edit <dark_gray>— enter or leave the editor</click>"
+      undo: "<click:run_command:/sculpt undo><#C2C7D3>  /sculpt <white>undo</white> [steps] <dark_gray>— undo your recent edits</click>"
+      redo: "<click:run_command:/sculpt redo><#C2C7D3>  /sculpt <white>redo</white> [steps] <dark_gray>— redo undone edits</click>"
+      blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— manage, share, and download blueprints</click>"
+      admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  /sculpt <white>admin <dark_gray>— list, teleport, reload, status</click>"
       admin_usage: "<#C2C7D3>/sculpt admin <list|teleport|reload|status>"
-      hint: "<#7A8B9C>Use tab completion or <white>/sculpt help<#7A8B9C> to explore commands available to you."
-
-    grid:
-      player_only: "<#CE5F4E>/sculpt resolution must be run by a player."
-      invalid_grid: "<#CE5F4E>gridN must be one of: 1, 2, 4, 8, 16"
-      no_permission_grid: "<#CE5F4E>You don't have permission to use grid size <white>{0}<#CE5F4E>."
-      required_perm: "<#C2C7D3>Required: <white>sculpt.command.resolution.{0}"
-      look_at_block: "<#C2C7D3>Look at a block to see the grid preview."
-      set: "<#C2C7D3>Grid size set to <white>{0}<#C2C7D3>."
-      invalid_grid_arg: "<#CE5F4E>Invalid gridN: <white>{0}"
-      current: "<#C2C7D3>Current grid size: <white>{0}<#C2C7D3>. Turn on Sculpt mode to edit."
-
-
-
-    preview:
-      player_only: "<#CE5F4E>/sculpt preview must be run by a player."
-      enabled: "<#5FBA6B>Hover preview: <white>ON"
-      disabled: "<#E8C96D>Hover preview: <white>OFF"
-      usage: "<#CE5F4E>Usage: <#D1968C>/sculpt preview [on|off]"
+      hint: "<#7A8B9C>In the editor, scroll to choose a tool and press <white>Shift+right-click</white> for its settings."
+    unknown_subcommand: "<#CE5F4E>Unknown subcommand: <white>{0}"
 
     replace:
       player_only: "<#CE5F4E>/sculpt replace must be run by a player."
@@ -117,27 +88,6 @@ command:
       failed: "<#CE5F4E>Teleport failed: <white>{0}"
 
 
-  sculpt_edit:
-    non_bakeable_block: "<#CE5F4E>This block cannot be sculpted into smaller cells."
-    display_incompatible: "<#CE5F4E>Your selected display cannot render <white>{0}<#CE5F4E>; choose a compatible display first."
-    player_head_grid_required: "<#CE5F4E>Player-head cells require a resolution above 1x1x1."
-    player_head_without_texture: "<#CE5F4E>This player head has no texture to place."
-    limit_reached: "<#CE5F4E>The active SculptBlock limit has been reached."
-    protected_region: "<#CE5F4E>You cannot edit blocks in this protected area."
-
-  grid_cycle:
-    no_others: "<#C2C7D3>Grid size: <white>{0}<#C2C7D3> (no other sizes available)"
-    cycled: "<#C2C7D3>Grid size cycled: <white>{0} <#C2C7D3>→ <white>{1}"
-
-  sculptheads:
-    usage: "<#C2C7D3>Usage: <#D1968C>/sculpt heads [search <search> [grid]]"
-    search:
-      usage: "<#CE5F4E>Usage: <#D1968C>/sculpt heads search <search> [grid]"
-      invalid_grid: "<#CE5F4E>Invalid grid: <white>{0}<#CE5F4E>. Must be 2, 4, 8, or 16."
-
-wand_tool:
-  name: "<#E8C96D>Selection <white>Wand</#E8C96D>"
-
 command.sculpt.convert:
   usage: "<#C2C7D3>Usage: <#D1968C>/sculpt convert <barrier|shulker|null> [region|single]"
   player_only: "<#CE5F4E>/sculpt convert must be run by a player."
@@ -152,12 +102,6 @@ command.sculpt.convert:
   not_initialized: "<#CE5F4E>Fill converter not initialized."
 
 # Wand tool selection messages (used by WandListener)
-wandtool:
-  pos1: "<#C2C7D3>Position 1 set to <white>{0}, {1}, {2}"
-  pos2: "<#C2C7D3>Position 2 set to <white>{0}, {1}, {2}"
-  cleared: "<#C2C7D3>Selection cleared"
-  volume: "<#C2C7D3>Region: <white>{0} × {1} × {2} = {3} blocks"
-
 command.sculpt.blueprint:
   player_only: "<#CE5F4E>This command must be run by a player."
   admin_only: "<#CE5F4E>This command is admin-only."
@@ -355,74 +299,9 @@ head_browser:
   head_received: "<green>Received head: {0}"
   head_dropped: "<red>Inventory full — head dropped at your feet"
 
-sculptmode:
-  usage: "<#C2C7D3>/sculpt mode <on|off> [player]"
-  player_only: "<#CE5F4E>/sculpt mode must be run by a player."
-  no_player: "<#CE5F4E>Player not found: <white>{0}"
-  unknown: "<#CE5F4E>Unknown sculpt mode: <white>{0}<#CE5F4E>. Use <white>on<#CE5F4E> or <white>off<#CE5F4E>."
-  enabled: "<#5FBA6B>Sculpt: <white>ON <dark_gray>· <#C2C7D3>F grid <dark_gray>· <#C2C7D3>Q fill / Q×2 display <dark_gray>· <#C2C7D3>Shift+Q pause"
-  disabled: "<#E8C96D>SculptMode: <white>OFF"
-  other_enabled: "<#5FBA6B>Enabled Sculpt mode for <white>{0}<#5FBA6B>."
-  other_disabled: "<#E8C96D>Disabled Sculpt mode for <white>{0}<#E8C96D>."
-
-sculptcontrols:
-  paused: "<#E8C96D>Sculpt paused <dark_gray>· <#C2C7D3>vanilla interaction restored <dark_gray>· <white>Shift+Q <#C2C7D3>resume"
-  resumed: "<#5FBA6B>Sculpt resumed <dark_gray>· <#C2C7D3>F grid <dark_gray>· <#C2C7D3>Q fill / Q×2 display <dark_gray>· <#C2C7D3>Shift+Q pause"
-
-sculptfill:
-  player_only: "<#CE5F4E>/sculpt fill must be run by a player."
-  unknown: "<#CE5F4E>Unknown fill: <white>{0}<#CE5F4E>. Use <white>barrier<#CE5F4E>, <white>shulker<#CE5F4E>, or <white>null<#CE5F4E>."
-  barrier: "<#5FBA6B>Sculpt fill: <white>BARRIER"
-  shulker: "<#5FBA6B>Sculpt fill: <white>SHULKER"
-  null: "<#5FBA6B>Sculpt fill: <white>NONE"
-
-sculptdisplay:
-  player_only: "<#CE5F4E>/sculpt display must be run by a player."
-  unknown: "<#CE5F4E>Unknown display: <white>{0}<#CE5F4E>. Use <white>head<#CE5F4E>, <white>textdisplay<#CE5F4E>, or <white>auto<#CE5F4E>."
-  head: "<#5FBA6B>Sculpt display: <white>HEAD"
-  textdisplay: "<#5FBA6B>Sculpt display: <white>TextDisplay"
-  auto: "<#5FBA6B>Sculpt display: <white>AUTO"
-
-sculptwand:
-  usage: "<#C2C7D3>/sculpt tool <selector|blueprint|builder|brush> [player]"
-  player_only: "<#CE5F4E>/sculpt tool must be run by a player."
-  unknown: "<#CE5F4E>Unknown tool: <white>{0}<#CE5F4E>. Use <white>selector<#CE5F4E>, <white>blueprint<#CE5F4E>, <white>builder<#CE5F4E>, or <white>brush<#CE5F4E>."
-  no_player: "<#CE5F4E>Player not found: <white>{0}"
-  selector:
-    self: "<#5FBA6B>You received the selection wand."
-    other: "<#5FBA6B>Gave selection wand to <white>{0}<#5FBA6B>."
-    given: "<#5FBA6B>You received a selection wand."
-  blueprint:
-    self: "<#5FBA6B>You received a Blueprint Selector tool."
-    other: "<#5FBA6B>Gave Blueprint Selector to <white>{0}<#5FBA6B>."
-    given: "<#5FBA6B>You received a Blueprint Selector tool."
-  builder:
-    self: "<#5FBA6B>You received the Builder. Right-click to place points, then run <white>/sculpt build<#5FBA6B>."
-    other: "<#5FBA6B>Gave the Builder to <white>{0}<#5FBA6B>."
-    given: "<#5FBA6B>You received the Builder."
-  brush:
-    self: "<#5FBA6B>You received the Sculpt Brush. Configure it with <white>/sculpt brush<#5FBA6B>."
-    other: "<#5FBA6B>Gave the Sculpt Brush to <white>{0}<#5FBA6B>."
-    given: "<#5FBA6B>You received the Sculpt Brush."
-
 building:
-  player_only: "<#CE5F4E>Building commands must be run by a player."
   not_ready: "<#E8C96D>Sculpt textures are still loading; try again shortly."
   busy: "<#E8C96D>Your previous building operation is still running."
-  usage: "<#C2C7D3>Usage: <#D1968C>/sculpt build <plane|surface|curve|sphere|cylinder> [--thickness <n>] [--hollow] [--carve] [--material <block>] [--rows <n>]<#C2C7D3> or <#D1968C>/sculpt build <point [surface]|undo-point|points|clear>"
-  tool:
-    builder:
-      name: "<!italic><#E8C96D>Builder"
-      lore1: "<!italic><gray>Right-click: add a point in front of the face"
-      lore2: "<!italic><gray>Shift + right-click: add a point on the surface"
-      lore3: "<!italic><gray>Left-click: remove the last point · Shift: clear all"
-      lore4: "<!italic><gray>Then run <white>/sculpt build <shape>"
-    brush:
-      name: "<!italic><#7AB8E8>Sculpt Brush"
-      lore1: "<!italic><gray>Sculpt: left-click carves, right-click adds"
-      lore2: "<!italic><gray>Smooth: any click rounds spikes and fills pits"
-      lore3: "<!italic><gray>Paint: right-click paints, left-click picks a material"
-      lore4: "<!italic><gray>Material: brush setting, off hand, then main hand"
   points:
     added: "<#5FBA6B>Point <white>#{0}<#5FBA6B> at <white>{1}, {2}, {3}"
     removed: "<#E8C96D>Removed the last point; <white>{0}<#E8C96D> left."
@@ -444,11 +323,6 @@ building:
       points: "<#CE5F4E>A sphere needs exactly 2 points: the center and a point on the surface (you have {0})."
     cylinder:
       points: "<#CE5F4E>A cylinder needs exactly 3 points: both ends of the axis and a point on the side (you have {0})."
-  options:
-    unknown: "<#CE5F4E>Unknown option: <white>{0}"
-    missing_value: "<#CE5F4E>Option <white>{0}<#CE5F4E> needs a value."
-    invalid_number: "<#CE5F4E>Invalid number: <white>{0}"
-    thickness_limit: "<#CE5F4E>Thickness cannot exceed {0} cells."
   material:
     missing: "<#CE5F4E>Hold a block in your off hand or main hand, or use <white>--material <block><#CE5F4E>."
     invalid: "<#CE5F4E>Invalid block material or block data: <white>{0}"
@@ -467,12 +341,6 @@ building:
     stale: "<#E8C96D>Skipped {0} block(s) that changed during the operation."
     failed: "<#CE5F4E>{0} block position(s) failed; see the server log."
     not_recorded: "<#E8C96D>This operation was too large to keep in your undo history."
-  brush:
-    usage: "<#C2C7D3>Usage: <#D1968C>/sculpt brush [size <n>|shape <sphere|cube>|mode <sculpt|smooth|paint>|material <block|hand>]"
-    settings: "<#478FC6>Brush<#C2C7D3>: radius <white>{0}<#C2C7D3>, shape <white>{1}<#C2C7D3>, mode <white>{2}<#C2C7D3>, material <white>{3}"
-    invalid_size: "<#CE5F4E>Brush radius must be between 0 and {0} cells."
-    picked: "<#5FBA6B>Brush material: <white>{0}"
-    protected: "<#CE5F4E>{0} block(s) are protected."
   undo:
     usage: "<#C2C7D3>Usage: <#D1968C>/sculpt undo [steps]"
     invalid_steps: "<#CE5F4E>Steps must be between 1 and {0}."
@@ -482,3 +350,184 @@ building:
     usage: "<#C2C7D3>Usage: <#D1968C>/sculpt redo [steps]"
     nothing: "<#C2C7D3>Nothing to redo."
     completed: "<#5FBA6B>Redid <white>{0}<#5FBA6B> action(s), changing <white>{1}<#5FBA6B> block(s)."
+
+editor:
+  unavailable: "<#CE5F4E>The editor needs the PacketEvents plugin. Ask an administrator to install PacketEvents 2.14.0 or newer."
+  entered: "<#5FBA6B>Editor on. <gray>Scroll to pick a tool · <white>F</white> resolution · <white>Q</white> cancel · <white>Shift+Q</white> undo · <white>Shift+F</white> exit · <white>Shift+right-click</white> tool settings"
+  exited: "<#E8C96D>Editor off. Your hotbar is back."
+  progress: "<#E8C96D>Applying changes…"
+  hud: "<#E8C96D>{0}</#E8C96D> <dark_gray>·</dark_gray> <gray>resolution <white>{1}</white>{2} <dark_gray>·</dark_gray> <white>{3}"
+  nothing_to_cancel: "<gray>Nothing to cancel."
+  resolution:
+    changed: "<#5FBA6B>Resolution <white>{0}"
+    locked: "<#E8C96D>No other resolution is available to you (current: <white>{0}</white>)."
+  material:
+    picked: "<#5FBA6B>Material: <white>{0}"
+    missing: "<#CE5F4E>Choose a material first (middle click or the palette)."
+    unsupported: "<#CE5F4E>This material cannot be used for cells: <white>{0}"
+    head_texture: "<#CE5F4E>This player head has no texture."
+    head_grid: "<#CE5F4E>Player heads need resolution 2 or finer."
+  knife:
+    name: "<!italic><#E8C96D>Sculpt Knife"
+    lore: "<!italic><gray>Right-click to open the Sculpt editor"
+    given: "<#5FBA6B>You received the Sculpt Knife."
+  tool:
+    no_permission: "<#CE5F4E>You cannot use this tool."
+    common: "<!italic><dark_gray>Shift+scroll size · Q cancel · Shift+right-click settings"
+    sculpt:
+      name: "Sculpt"
+      left: "<!italic><gray>Left-click: remove the cell"
+      right: "<!italic><gray>Right-click: place a cell in front"
+    brush:
+      name: "Brush"
+      left: "<!italic><gray>Left-click: carve a sphere or cube"
+      right: "<!italic><gray>Right-click: add material"
+    smooth:
+      name: "Smooth"
+      left: "<!italic><gray>Click: round off spikes and fill pits"
+      right: "<!italic><gray>Shift+scroll: brush size"
+    paint:
+      name: "Paint"
+      left: "<!italic><gray>Left-click: pick the material"
+      right: "<!italic><gray>Right-click: repaint cells"
+    select:
+      name: "Select"
+      left: "<!italic><gray>Left-click twice: select a box of cells"
+      right: "<!italic><gray>Right-click: selection actions"
+    transform:
+      name: "Transform"
+      left: "<!italic><gray>Left-click: grab or drop the selection"
+      right: "<!italic><gray>Right-click: apply · Shift+scroll: rotate"
+    shape:
+      name: "Shape"
+      left: "<!italic><gray>Left-click: add a point, or grab one"
+      right: "<!italic><gray>Right-click: build the shape"
+    blueprint:
+      name: "Blueprint"
+      left: "<!italic><gray>Left-click: choose a blueprint"
+      right: "<!italic><gray>Right-click: preview, then paste"
+    settings:
+      name: "Settings"
+      left: "<!italic><gray>Left-click: material palette"
+      right: "<!italic><gray>Right-click: editor settings"
+  status:
+    brush: "<gray>radius <white>{0}</white> {1}"
+    selection: "<gray>selection <white>{0}×{1}×{2}"
+    move: "<gray>move <white>{0}, {1}, {2}</white> · <white>{3}°"
+    copy: "<gray>copy to <white>{0}, {1}, {2}</white> · <white>{3}°"
+    shape: "<gray>{0} · <white>{1}</white> points · thickness <white>{2}"
+    no_blueprint: "<gray>no blueprint chosen"
+  brush_shape:
+    sphere: "sphere"
+    cube: "cube"
+  shape_type:
+    plane: "plane"
+    surface: "curved surface"
+    curve: "curve"
+    sphere: "sphere"
+    cylinder: "cylinder"
+  fill:
+    barrier: "Barrier"
+    shulker: "Shulker"
+    "null": "No collision"
+  display:
+    head: "Heads"
+    textdisplay: "TextDisplay"
+    auto: "Automatic"
+  select:
+    first: "<#E8C96D>First corner set; left-click the opposite corner."
+    done: "<#5FBA6B>Selected <white>{0}×{1}×{2}</white> blocks. Right-click for actions."
+    none: "<#CE5F4E>Select cells first with the Select tool."
+    cleared: "<#E8C96D>Selection cleared."
+    blueprint_failed: "<#CE5F4E>Could not use the selection for a blueprint."
+  transform:
+    grabbed: "<#B08CE8>Moving; left-click to drop, right-click to apply."
+    dropped: "<#B08CE8>Dropped. Right-click to apply or Q to reset."
+    reset: "<#E8C96D>Transform reset."
+    unchanged: "<gray>Move, rotate, or mirror the selection first."
+    title: "Transform selection"
+    body: "Copy keeps the original. Rotation turns clockwise around the vertical axis."
+    copy: "Copy instead of move"
+    mirror_x: "Mirror east–west"
+    mirror_z: "Mirror north–south"
+    rotation: "Rotation"
+    apply: "Apply now"
+    reset: "Reset"
+  shape:
+    point_added: "<#5FBA6B>Point <white>#{0}"
+    point_removed: "<#E8C96D>Point removed; <white>{0}</white> left."
+    title: "Shape"
+    body: "Points are joined in order. Surfaces read points row by row."
+    type: "Shape"
+    thickness: "Thickness (cells)"
+    hollow: "Hollow sphere or cylinder"
+    carve: "Carve instead of add"
+    rows: "Surface rows (0 = automatic)"
+    clear: "Clear points"
+  brush:
+    title: "Brush"
+    radius: "Radius (cells)"
+    shape: "Shape"
+  blueprint:
+    title: "Blueprints"
+    body: "Choose a blueprint to place. ☁ marks public blueprints."
+    none: "<#E8C96D>You have no blueprints yet. Select cells and save them from the selection actions."
+    chosen: "<#5FBA6B>Blueprint <white>{0}</white>. Right-click to preview."
+    confirm: "<#E8C96D>Right-click the same spot again to paste, or Q to cancel."
+    cleared: "<#E8C96D>Blueprint cleared."
+    disabled: "<#CE5F4E>Blueprints are disabled on this server."
+  actions:
+    title: "Selection"
+    delete: "Delete"
+    fill: "Fill with material"
+    paint: "Repaint"
+    transform: "Move / copy…"
+    replace_input: "Replacement block (keeps stairs and slabs)"
+    replace: "Replace blocks"
+    convert_input: "Fill strategy"
+    convert: "Convert fill"
+    relight: "Reset lighting"
+    blueprint_name: "Blueprint name"
+    blueprint_public: "Public"
+    save: "Save blueprint"
+    clear: "Clear selection"
+  palette:
+    title: "Materials"
+    body: "Current material: <white>{0}"
+    input: "Block (for example stone or oak_log[axis=x])"
+    typed: "Use typed block"
+    off_hand: "Use off-hand item"
+    off_hand_empty: "<#CE5F4E>Hold a block or player head in your off hand."
+  settings:
+    title: "Editor settings"
+    resolution: "Resolution"
+    fill: "Fill strategy for new SculptBlocks"
+    display: "Rendering"
+    animations: "Animations"
+    applied: "<#5FBA6B>Settings applied."
+  dialog:
+    apply: "Apply"
+    save: "Save"
+    close: "Close"
+  menu:
+    title: "Sculpt"
+    body: "Sculpt turns blocks into editable voxel sculptures. Enter the editor to start."
+    enter: "Enter the editor"
+    exit: "Leave the editor"
+    knife: "Get the Sculpt Knife"
+    help: "Controls"
+    undo: "Undo"
+    redo: "Redo"
+    settings: "Settings"
+    palette: "Materials"
+    heads: "Browse head textures"
+  help:
+    title: "Editor controls"
+    line1: "<white>Scroll</white> or <white>1–9</white>: choose a tool. The hotbar shows the tools while you edit."
+    line2: "<white>Left click</white>: the tool's main action. <white>Right click</white>: its second action."
+    line3: "<white>Shift + scroll</white>: brush radius, shape thickness, selection size, or rotation."
+    line4: "<white>F</white>: change resolution. <white>Shift + F</white>: leave the editor."
+    line5: "<white>Q</white>: cancel what the tool is doing. <white>Shift + Q</white>: undo."
+    line6: "<white>Middle click</white>: use the material under the cursor."
+    line7: "<white>Shift + right click</white>: the tool's settings."
+    line8: "Previews are only visible to you and change nothing until you confirm."

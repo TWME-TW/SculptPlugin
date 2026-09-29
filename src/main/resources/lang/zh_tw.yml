@@ -1,6 +1,6 @@
 # 繁體中文（台灣）翻譯 — Sculpt
 # 訊息使用 MiniMessage 格式
-languageVersion: 4
+languageVersion: 5
 
 general:
   prefix: "<#478FC6>[Sculpt]</#478FC6>"
@@ -12,47 +12,20 @@ general:
 
 command:
   sculpt:
-    usage: "<#C2C7D3>/sculpt <help|resolution|preview|mode|fill|display|convert|replace|relight|build|brush|undo|redo|tool|blueprint|heads|admin>"
-    unknown_subcommand: "<#CE5F4E>未知的子指令：<white>{0}"
-
+    usage: "<#C2C7D3>/sculpt [help|edit|undo|redo|blueprint|admin]"
+    moved_to_editor: "<#E8C96D>/sculpt {0} 已移到編輯器中。請執行 <white>/sculpt</white> 或 <white>/sculpt edit</white>。"
+    edit:
+      usage: "<#C2C7D3>用法：<#D1968C>/sculpt edit [on|off]"
     help:
-      header: "<#478FC6><bold>Sculpt 指令</bold> <dark_gray>— 單一入口，依工作分類"
-      sculpting_header: "<#7A8B9C>雕刻設定"
-      resolution: "<click:suggest_command:/sculpt resolution ><#C2C7D3>  /sculpt <white>resolution <dark_gray>— 網格解析度</click>"
-      preview: "<click:suggest_command:/sculpt preview ><#C2C7D3>  /sculpt <white>preview <dark_gray>— 懸浮預覽</click>"
-      mode: "<click:suggest_command:/sculpt mode ><#C2C7D3>  /sculpt <white>mode <dark_gray>— 開啟或關閉雕刻模式</click>"
-      fill: "<click:suggest_command:/sculpt fill ><#C2C7D3>  /sculpt <white>fill <dark_gray>— 屏障、界伏蚌或不填充</click>"
-      display: "<click:suggest_command:/sculpt display ><#C2C7D3>  /sculpt <white>display <dark_gray>— 頭顱、TextDisplay 或自動顯示</click>"
-      convert: "<click:suggest_command:/sculpt convert ><#C2C7D3>  /sculpt <white>convert <dark_gray>— 轉換既有方塊填充</click>"
-      replace: "<click:suggest_command:/sculpt replace ><#C2C7D3>  /sculpt <white>replace <dark_gray>— 替換選取區域材質</click>"
-      relight: "<click:run_command:/sculpt relight><#C2C7D3>  /sculpt <white>relight <dark_gray>— 恢復 TextDisplay 自動環境光</click>"
-      building_header: "<#7A8B9C>建築工具"
-      build: "<click:suggest_command:/sculpt build ><#C2C7D3>  /sculpt <white>build <dark_gray>— 以控制點建立平面、曲面、曲線與立體</click>"
-      brush: "<click:suggest_command:/sculpt brush ><#C2C7D3>  /sculpt <white>brush <dark_gray>— 以筆刷雕刻、平滑或上色</click>"
-      undo: "<click:suggest_command:/sculpt undo><#C2C7D3>  /sculpt <white>undo <dark_gray>/ <white>redo <dark_gray>— 復原或重做最近的編輯</click>"
-      content_header: "<#7A8B9C>工具與內容"
-      tool: "<click:suggest_command:/sculpt tool ><#C2C7D3>  /sculpt <white>tool <dark_gray>— 取得選取器、建築工具或筆刷</click>"
-      blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— 儲存與分享作品</click>"
-      heads: "<click:suggest_command:/sculpt heads ><#C2C7D3>  /sculpt <white>heads <dark_gray>— 瀏覽烘焙頭顱</click>"
-      admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  伺服器維運：<white>admin</click>"
+      header: "<#478FC6><bold>Sculpt</bold> <dark_gray>— 執行 <white>/sculpt</white> 開啟選單"
+      edit: "<click:run_command:/sculpt edit><#C2C7D3>  /sculpt <white>edit <dark_gray>— 進入或離開編輯器</click>"
+      undo: "<click:run_command:/sculpt undo><#C2C7D3>  /sculpt <white>undo</white> [步數] <dark_gray>— 復原最近的編輯</click>"
+      redo: "<click:run_command:/sculpt redo><#C2C7D3>  /sculpt <white>redo</white> [步數] <dark_gray>— 重做已復原的編輯</click>"
+      blueprint: "<click:suggest_command:/sculpt blueprint ><#C2C7D3>  /sculpt <white>blueprint <dark_gray>— 管理、分享與下載藍圖</click>"
+      admin: "<click:suggest_command:/sculpt admin ><#C2C7D3>  /sculpt <white>admin <dark_gray>— 列表、傳送、重新載入、狀態</click>"
       admin_usage: "<#C2C7D3>/sculpt admin <list|teleport|reload|status>"
-      hint: "<#7A8B9C>使用 Tab 補全或 <white>/sculpt help<#7A8B9C> 探索你可使用的指令。"
-
-    grid:
-      player_only: "<#CE5F4E>/sculpt resolution 必須由玩家執行。"
-      invalid_grid: "<#CE5F4E>gridN 必須為：1、2、4、8、16 其中之一"
-      no_permission_grid: "<#CE5F4E>你沒有使用 grid size <white>{0}<#CE5F4E> 的權限。"
-      required_perm: "<#C2C7D3>需求權限：<white>sculpt.command.resolution.{0}"
-      look_at_block: "<#C2C7D3>請看著一個方塊以預覽網格。"
-      set: "<#C2C7D3>Grid size 已設為 <white>{0}<#C2C7D3>。"
-      invalid_grid_arg: "<#CE5F4E>無效的 gridN：<white>{0}"
-      current: "<#C2C7D3>目前 grid size：<white>{0}<#C2C7D3>。請開啟 Sculpt mode 進行編輯。"
-
-    preview:
-      player_only: "<#CE5F4E>/sculpt preview 必須由玩家執行。"
-      enabled: "<#5FBA6B>懸浮預覽：<white>開啟"
-      disabled: "<#E8C96D>懸浮預覽：<white>關閉"
-      usage: "<#CE5F4E>用法：<#D1968C>/sculpt preview [on|off]"
+      hint: "<#7A8B9C>在編輯器中用滾輪選擇工具，按 <white>Shift+右鍵</white> 開啟工具設定。"
+    unknown_subcommand: "<#CE5F4E>未知的子指令：<white>{0}"
 
     replace:
       player_only: "<#CE5F4E>/sculpt replace 必須由玩家執行。"
@@ -128,31 +101,7 @@ command:
       not_initialized: "<#CE5F4E>填充轉換器尚未初始化。"
 
 
-  sculpt_edit:
-    non_bakeable_block: "<#CE5F4E>此方塊無法雕刻成小方塊"
-    display_incompatible: "<#CE5F4E>目前選擇的顯示方式無法呈現 <white>{0}<#CE5F4E>；請先切換相容的顯示方式。"
-    player_head_grid_required: "<#CE5F4E>頭顱 cell 僅能在高於 1x1x1 的解析度放置。"
-    player_head_without_texture: "<#CE5F4E>此玩家頭顱沒有可放置的紋理。"
-    limit_reached: "<#CE5F4E>作用中的 SculptBlock 已達數量上限。"
-    protected_region: "<#CE5F4E>你無法在此受保護區域編輯方塊。"
-
-  grid_cycle:
-    no_others: "<#C2C7D3>Grid size：<white>{0}<#C2C7D3>（無其他可用大小）"
-    cycled: "<#C2C7D3>Grid size 已切換：<white>{0} <#C2C7D3>→ <white>{1}"
-
-  sculptheads:
-    usage: "<#C2C7D3>用法：<#D1968C>/sculpt heads [search <search> [grid]]"
-    search:
-      usage: "<#CE5F4E>用法：<#D1968C>/sculpt heads search <search> [grid]"
-      invalid_grid: "<#CE5F4E>無效的 grid：<white>{0}<#CE5F4E>。必須為 2、4、8 或 16。"
-
 # Wand tool selection messages (used by WandListener)
-wandtool:
-  pos1: "<#C2C7D3>位置 1 已設為 <white>{0}, {1}, {2}"
-  pos2: "<#C2C7D3>位置 2 已設為 <white>{0}, {1}, {2}"
-  cleared: "<#C2C7D3>已清除選取範圍"
-  volume: "<#C2C7D3>區域：<white>{0} × {1} × {2} = {3} 個方塊"
-
 command.sculpt.blueprint:
   player_only: "<#CE5F4E>此指令必須由玩家執行。"
   admin_only: "<#CE5F4E>此指令僅限管理員使用。"
@@ -350,78 +299,9 @@ head_browser:
   head_received: "<green>已獲得頭顱：{0}"
   head_dropped: "<red>背包已滿 — 頭顱掉落在腳邊"
 
-wand_tool:
-  name: "<#E8C96D>區域選取<white>棒</#E8C96D>"
-
-
-sculptmode:
-  usage: "<#C2C7D3>/sculpt mode <on|off> [玩家名稱]"
-  player_only: "<#CE5F4E>/sculpt mode 必須由玩家執行。"
-  no_player: "<#CE5F4E>找不到該玩家：<white>{0}"
-  unknown: "<#CE5F4E>未知的雕刻模式：<white>{0}<#CE5F4E>。請使用 <white>on<#CE5F4E> 或 <white>off<#CE5F4E>。"
-  enabled: "<#5FBA6B>Sculpt：<white>開啟 <dark_gray>· <#C2C7D3>F 解析度 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示 <dark_gray>· <#C2C7D3>Shift+Q 暫停"
-  disabled: "<#E8C96D>雕刻模式：<white>關閉"
-  other_enabled: "<#5FBA6B>已為 <white>{0}<#5FBA6B> 開啟雕刻模式。"
-  other_disabled: "<#E8C96D>已為 <white>{0}<#E8C96D> 關閉雕刻模式。"
-
-sculptcontrols:
-  paused: "<#E8C96D>Sculpt 已暫停 <dark_gray>· <#C2C7D3>已恢復原版互動 <dark_gray>· <white>Shift+Q <#C2C7D3>繼續"
-  resumed: "<#5FBA6B>Sculpt 已繼續 <dark_gray>· <#C2C7D3>F 解析度 <dark_gray>· <#C2C7D3>Q 填充／Q×2 顯示 <dark_gray>· <#C2C7D3>Shift+Q 暫停"
-
-sculptfill:
-  player_only: "<#CE5F4E>/sculpt fill 必須由玩家執行。"
-  unknown: "<#CE5F4E>未知的填充方式：<white>{0}<#CE5F4E>。請使用 <white>barrier<#CE5F4E>、<white>shulker<#CE5F4E> 或 <white>null<#CE5F4E>。"
-  barrier: "<#5FBA6B>雕刻填充：<white>屏障"
-  shulker: "<#5FBA6B>雕刻填充：<white>界伏蚌"
-  null: "<#5FBA6B>雕刻填充：<white>不填充"
-
-sculptdisplay:
-  player_only: "<#CE5F4E>/sculpt display 必須由玩家執行。"
-  unknown: "<#CE5F4E>未知的顯示方式：<white>{0}<#CE5F4E>。請使用 <white>head<#CE5F4E>、<white>textdisplay<#CE5F4E> 或 <white>auto<#CE5F4E>。"
-  head: "<#5FBA6B>雕刻顯示：<white>頭顱"
-  textdisplay: "<#5FBA6B>雕刻顯示：<white>TextDisplay"
-  auto: "<#5FBA6B>雕刻顯示：<white>自動"
-
-sculptwand:
-  usage: "<#C2C7D3>/sculpt tool <selector|blueprint|builder|brush> [player]"
-  player_only: "<#CE5F4E>/sculpt tool 必須由玩家執行。"
-  unknown: "<#CE5F4E>未知的工具：<white>{0}<#CE5F4E>。請使用 <white>selector<#CE5F4E>、<white>blueprint<#CE5F4E>、<white>builder<#CE5F4E> 或 <white>brush<#CE5F4E>。"
-  no_player: "<#CE5F4E>找不到該玩家：<white>{0}"
-  selector:
-    self: "<#5FBA6B>你已取得選取魔杖。"
-    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>選取魔杖。"
-    given: "<#5FBA6B>你已收到選取魔杖。"
-  blueprint:
-    self: "<#5FBA6B>你已取得藍圖選取工具。"
-    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>藍圖選取工具。"
-    given: "<#5FBA6B>你已收到藍圖選取工具。"
-  builder:
-    self: "<#5FBA6B>你已取得建築工具。右鍵放置控制點，再執行 <white>/sculpt build<#5FBA6B>。"
-    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>建築工具。"
-    given: "<#5FBA6B>你已收到建築工具。"
-  brush:
-    self: "<#5FBA6B>你已取得雕刻筆刷。使用 <white>/sculpt brush<#5FBA6B> 調整設定。"
-    other: "<#5FBA6B>已給予 <white>{0} <#5FBA6B>雕刻筆刷。"
-    given: "<#5FBA6B>你已收到雕刻筆刷。"
-
 building:
-  player_only: "<#CE5F4E>建築指令必須由玩家執行。"
   not_ready: "<#E8C96D>Sculpt 材質仍在載入中，請稍後再試。"
   busy: "<#E8C96D>你上一個建築操作仍在進行中。"
-  usage: "<#C2C7D3>用法：<#D1968C>/sculpt build <plane|surface|curve|sphere|cylinder> [--thickness <n>] [--hollow] [--carve] [--material <方塊>] [--rows <n>]<#C2C7D3> 或 <#D1968C>/sculpt build <point [surface]|undo-point|points|clear>"
-  tool:
-    builder:
-      name: "<!italic><#E8C96D>建築工具"
-      lore1: "<!italic><gray>右鍵：在目標面前方新增控制點"
-      lore2: "<!italic><gray>Shift + 右鍵：在表面上新增控制點"
-      lore3: "<!italic><gray>左鍵：移除最後一點 · Shift：清除全部"
-      lore4: "<!italic><gray>接著執行 <white>/sculpt build <形狀>"
-    brush:
-      name: "<!italic><#7AB8E8>雕刻筆刷"
-      lore1: "<!italic><gray>雕刻：左鍵挖除、右鍵堆加"
-      lore2: "<!italic><gray>平滑：任一鍵削去尖角、填平凹洞"
-      lore3: "<!italic><gray>上色：右鍵上色、左鍵吸取材質"
-      lore4: "<!italic><gray>材質：筆刷設定 → 副手 → 主手"
   points:
     added: "<#5FBA6B>控制點 <white>#{0}<#5FBA6B>：<white>{1}, {2}, {3}"
     removed: "<#E8C96D>已移除最後一個控制點，剩餘 <white>{0}<#E8C96D> 個。"
@@ -443,11 +323,6 @@ building:
       points: "<#CE5F4E>球體需要剛好 2 個控制點：球心與球面上一點（目前 {0} 個）。"
     cylinder:
       points: "<#CE5F4E>圓柱需要剛好 3 個控制點：軸線兩端與側面上一點（目前 {0} 個）。"
-  options:
-    unknown: "<#CE5F4E>未知的選項：<white>{0}"
-    missing_value: "<#CE5F4E>選項 <white>{0}<#CE5F4E> 需要一個值。"
-    invalid_number: "<#CE5F4E>無效的數字：<white>{0}"
-    thickness_limit: "<#CE5F4E>厚度不可超過 {0} 格。"
   material:
     missing: "<#CE5F4E>請在副手或主手拿著方塊，或使用 <white>--material <方塊><#CE5F4E>。"
     invalid: "<#CE5F4E>無效的方塊材質或方塊資料：<white>{0}"
@@ -466,12 +341,6 @@ building:
     stale: "<#E8C96D>已略過 {0} 個在操作期間被變更的方塊。"
     failed: "<#CE5F4E>{0} 個方塊位置處理失敗，請查看伺服器紀錄。"
     not_recorded: "<#E8C96D>此操作過大，無法保留在你的復原紀錄中。"
-  brush:
-    usage: "<#C2C7D3>用法：<#D1968C>/sculpt brush [size <n>|shape <sphere|cube>|mode <sculpt|smooth|paint>|material <方塊|hand>]"
-    settings: "<#478FC6>筆刷<#C2C7D3>：半徑 <white>{0}<#C2C7D3>、形狀 <white>{1}<#C2C7D3>、模式 <white>{2}<#C2C7D3>、材質 <white>{3}"
-    invalid_size: "<#CE5F4E>筆刷半徑必須介於 0 到 {0} 格之間。"
-    picked: "<#5FBA6B>筆刷材質：<white>{0}"
-    protected: "<#CE5F4E>有 {0} 個方塊受到保護。"
   undo:
     usage: "<#C2C7D3>用法：<#D1968C>/sculpt undo [步數]"
     invalid_steps: "<#CE5F4E>步數必須介於 1 到 {0} 之間。"
@@ -481,3 +350,184 @@ building:
     usage: "<#C2C7D3>用法：<#D1968C>/sculpt redo [步數]"
     nothing: "<#C2C7D3>沒有可以重做的動作。"
     completed: "<#5FBA6B>已重做 <white>{0}<#5FBA6B> 個動作，變更了 <white>{1}<#5FBA6B> 個方塊。"
+
+editor:
+  unavailable: "<#CE5F4E>編輯器需要 PacketEvents 外掛。請管理員安裝 PacketEvents 2.14.0 以上版本。"
+  entered: "<#5FBA6B>已進入編輯器。<gray>滾輪選工具 · <white>F</white> 解析度 · <white>Q</white> 取消 · <white>Shift+Q</white> 復原 · <white>Shift+F</white> 離開 · <white>Shift+右鍵</white> 工具設定"
+  exited: "<#E8C96D>已離開編輯器，快捷列已還原。"
+  progress: "<#E8C96D>正在套用變更……"
+  hud: "<#E8C96D>{0}</#E8C96D> <dark_gray>·</dark_gray> <gray>解析度 <white>{1}</white>{2} <dark_gray>·</dark_gray> <white>{3}"
+  nothing_to_cancel: "<gray>沒有可以取消的動作。"
+  resolution:
+    changed: "<#5FBA6B>解析度 <white>{0}"
+    locked: "<#E8C96D>你沒有其他可用的解析度（目前：<white>{0}</white>）。"
+  material:
+    picked: "<#5FBA6B>材質：<white>{0}"
+    missing: "<#CE5F4E>請先選擇材質（滑鼠中鍵或材質面板）。"
+    unsupported: "<#CE5F4E>此材質無法用於格子：<white>{0}"
+    head_texture: "<#CE5F4E>這個玩家頭顱沒有材質。"
+    head_grid: "<#CE5F4E>玩家頭顱需要解析度 2 或更細。"
+  knife:
+    name: "<!italic><#E8C96D>雕刻刀"
+    lore: "<!italic><gray>右鍵開啟 Sculpt 編輯器"
+    given: "<#5FBA6B>你已取得雕刻刀。"
+  tool:
+    no_permission: "<#CE5F4E>你無法使用這個工具。"
+    common: "<!italic><dark_gray>Shift+滾輪 大小 · Q 取消 · Shift+右鍵 設定"
+    sculpt:
+      name: "雕刻"
+      left: "<!italic><gray>左鍵：移除格子"
+      right: "<!italic><gray>右鍵：在前方放置格子"
+    brush:
+      name: "筆刷"
+      left: "<!italic><gray>左鍵：挖除球體或立方體"
+      right: "<!italic><gray>右鍵：堆加材質"
+    smooth:
+      name: "平滑"
+      left: "<!italic><gray>點擊：削去尖角、填平凹洞"
+      right: "<!italic><gray>Shift+滾輪：筆刷大小"
+    paint:
+      name: "上色"
+      left: "<!italic><gray>左鍵：吸取材質"
+      right: "<!italic><gray>右鍵：重新上色"
+    select:
+      name: "選取"
+      left: "<!italic><gray>左鍵兩次：選取格子方框"
+      right: "<!italic><gray>右鍵：選取動作"
+    transform:
+      name: "變形"
+      left: "<!italic><gray>左鍵：抓起或放下選取"
+      right: "<!italic><gray>右鍵：套用 · Shift+滾輪：旋轉"
+    shape:
+      name: "形狀"
+      left: "<!italic><gray>左鍵：新增控制點，或抓起控制點"
+      right: "<!italic><gray>右鍵：建立形狀"
+    blueprint:
+      name: "藍圖"
+      left: "<!italic><gray>左鍵：選擇藍圖"
+      right: "<!italic><gray>右鍵：預覽，再次右鍵貼上"
+    settings:
+      name: "設定"
+      left: "<!italic><gray>左鍵：材質面板"
+      right: "<!italic><gray>右鍵：編輯器設定"
+  status:
+    brush: "<gray>半徑 <white>{0}</white> {1}"
+    selection: "<gray>選取 <white>{0}×{1}×{2}"
+    move: "<gray>移動 <white>{0}, {1}, {2}</white> · <white>{3}°"
+    copy: "<gray>複製到 <white>{0}, {1}, {2}</white> · <white>{3}°"
+    shape: "<gray>{0} · <white>{1}</white> 點 · 厚度 <white>{2}"
+    no_blueprint: "<gray>尚未選擇藍圖"
+  brush_shape:
+    sphere: "球體"
+    cube: "立方體"
+  shape_type:
+    plane: "平面"
+    surface: "曲面"
+    curve: "曲線"
+    sphere: "球體"
+    cylinder: "圓柱"
+  fill:
+    barrier: "屏障"
+    shulker: "界伏蚌"
+    "null": "無碰撞"
+  display:
+    head: "頭顱"
+    textdisplay: "TextDisplay"
+    auto: "自動"
+  select:
+    first: "<#E8C96D>已設定第一個角落，左鍵點擊對角。"
+    done: "<#5FBA6B>已選取 <white>{0}×{1}×{2}</white> 方塊。右鍵開啟動作。"
+    none: "<#CE5F4E>請先用選取工具選取格子。"
+    cleared: "<#E8C96D>已清除選取。"
+    blueprint_failed: "<#CE5F4E>無法將此選取存成藍圖。"
+  transform:
+    grabbed: "<#B08CE8>移動中；左鍵放下，右鍵套用。"
+    dropped: "<#B08CE8>已放下。右鍵套用，或按 Q 重設。"
+    reset: "<#E8C96D>已重設變形。"
+    unchanged: "<gray>請先移動、旋轉或鏡射選取。"
+    title: "變形選取"
+    body: "複製會保留原本的內容。旋轉以垂直軸順時針轉動。"
+    copy: "複製而不是移動"
+    mirror_x: "東西鏡射"
+    mirror_z: "南北鏡射"
+    rotation: "旋轉"
+    apply: "立即套用"
+    reset: "重設"
+  shape:
+    point_added: "<#5FBA6B>控制點 <white>#{0}"
+    point_removed: "<#E8C96D>已移除控制點，剩餘 <white>{0}</white> 個。"
+    title: "形狀"
+    body: "控制點依序連接。曲面會逐列讀取控制點。"
+    type: "形狀"
+    thickness: "厚度（格）"
+    hollow: "空心球體或圓柱"
+    carve: "挖除而不是堆加"
+    rows: "曲面列數（0 = 自動）"
+    clear: "清除控制點"
+  brush:
+    title: "筆刷"
+    radius: "半徑（格）"
+    shape: "形狀"
+  blueprint:
+    title: "藍圖"
+    body: "選擇要放置的藍圖。☁ 表示公開藍圖。"
+    none: "<#E8C96D>你還沒有藍圖。選取格子後可從選取動作儲存。"
+    chosen: "<#5FBA6B>藍圖 <white>{0}</white>。右鍵預覽。"
+    confirm: "<#E8C96D>再次右鍵點擊同一位置貼上，或按 Q 取消。"
+    cleared: "<#E8C96D>已取消選擇藍圖。"
+    disabled: "<#CE5F4E>此伺服器已停用藍圖。"
+  actions:
+    title: "選取"
+    delete: "刪除"
+    fill: "以材質填滿"
+    paint: "重新上色"
+    transform: "移動／複製……"
+    replace_input: "替換方塊（保留樓梯與半磚形狀）"
+    replace: "替換方塊"
+    convert_input: "填充策略"
+    convert: "轉換填充"
+    relight: "重設光照"
+    blueprint_name: "藍圖名稱"
+    blueprint_public: "公開"
+    save: "儲存藍圖"
+    clear: "清除選取"
+  palette:
+    title: "材質"
+    body: "目前材質：<white>{0}"
+    input: "方塊（例如 stone 或 oak_log[axis=x]）"
+    typed: "使用輸入的方塊"
+    off_hand: "使用副手物品"
+    off_hand_empty: "<#CE5F4E>請在副手拿著方塊或玩家頭顱。"
+  settings:
+    title: "編輯器設定"
+    resolution: "解析度"
+    fill: "新 SculptBlock 的填充策略"
+    display: "顯示方式"
+    animations: "動畫"
+    applied: "<#5FBA6B>已套用設定。"
+  dialog:
+    apply: "套用"
+    save: "儲存"
+    close: "關閉"
+  menu:
+    title: "Sculpt"
+    body: "Sculpt 能把方塊變成可編輯的體素雕塑。進入編輯器即可開始。"
+    enter: "進入編輯器"
+    exit: "離開編輯器"
+    knife: "取得雕刻刀"
+    help: "操作說明"
+    undo: "復原"
+    redo: "重做"
+    settings: "設定"
+    palette: "材質"
+    heads: "瀏覽頭顱材質"
+  help:
+    title: "編輯器操作"
+    line1: "<white>滾輪</white>或<white>數字鍵 1–9</white>：選擇工具。編輯時快捷列會顯示工具。"
+    line2: "<white>左鍵</white>：工具的主要動作。<white>右鍵</white>：次要動作。"
+    line3: "<white>Shift + 滾輪</white>：筆刷半徑、形狀厚度、選取大小或旋轉。"
+    line4: "<white>F</white>：切換解析度。<white>Shift + F</white>：離開編輯器。"
+    line5: "<white>Q</white>：取消工具目前的動作。<white>Shift + Q</white>：復原。"
+    line6: "<white>滑鼠中鍵</white>：使用游標下的材質。"
+    line7: "<white>Shift + 右鍵</white>：工具設定。"
+    line8: "預覽只有你看得到，在確認之前不會改變任何東西。"

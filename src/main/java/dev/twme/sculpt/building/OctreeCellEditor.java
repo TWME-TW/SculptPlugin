@@ -10,6 +10,7 @@ import java.util.Objects;
 import org.bukkit.block.data.BlockData;
 
 import dev.twme.sculpt.core.OctreeNode;
+import dev.twme.sculpt.core.PlayerHeadTexture;
 
 /**
  * Data-only editing of detached Sculpt octrees.
@@ -101,7 +102,8 @@ public final class OctreeCellEditor {
                     CellVolume.localX(grid, index) * side,
                     CellVolume.localY(grid, index) * side,
                     CellVolume.localZ(grid, index) * side,
-                    layer.operation(), layer.material());
+                    layer.operation(), layer.material(),
+                    depth == 0 ? null : layer.headTexture());
                 if (status == CellStatus.CHANGED) changed = true;
                 else if (status == CellStatus.LOCKED) locked++;
             }
@@ -118,11 +120,12 @@ public final class OctreeCellEditor {
             final int gy,
             final int gz,
             final BlockCellEdit.Operation operation,
-            final BlockData material) {
+            final BlockData material,
+            final PlayerHeadTexture texture) {
         OctreeNode node = root;
         while (node.depth() < targetDepth) {
             if (node.isLeaf()) {
-                if (!needsChange(node, operation, material)) {
+                if (!needsChange(node, operation, material, texture)) {
                     return CellStatus.UNCHANGED;
                 }
                 if (!refine(node)) return CellStatus.LOCKED;
@@ -131,11 +134,15 @@ public final class OctreeCellEditor {
         }
 
         if (node.isBranch()) {
-            if (operation == BlockCellEdit.Operation.PAINT) {
+            if (operation == BlockCellEdit.Operation.PAINT && texture == null) {
                 return paintLeaves(node, material)
                     ? CellStatus.CHANGED : CellStatus.UNCHANGED;
             }
-            if (!anyLeafNeedsChange(node, operation, material)) {
+            if (operation == BlockCellEdit.Operation.PAINT
+                    && !anyLeafOccupied(node)) {
+                return CellStatus.UNCHANGED;
+            }
+            if (!anyLeafNeedsChange(node, operation, material, texture)) {
                 return CellStatus.UNCHANGED;
             }
             node.coarsen();
@@ -145,12 +152,12 @@ public final class OctreeCellEditor {
             node.setBlockData(material != null ? material.clone()
                 : firstLeafMaterial(node));
             node.restore();
-            applyToLeaf(node, operation, material);
+            applyToLeaf(node, operation, material, texture);
             return CellStatus.CHANGED;
         }
 
-        if (!needsChange(node, operation, material)) return CellStatus.UNCHANGED;
-        applyToLeaf(node, operation, material);
+        if (!needsChange(node, operation, material, texture)) return CellStatus.UNCHANGED;
+        applyToLeaf(node, operation, material, texture);
         return CellStatus.CHANGED;
     }
 
@@ -187,27 +194,40 @@ public final class OctreeCellEditor {
     private static boolean needsChange(
             final OctreeNode leaf,
             final BlockCellEdit.Operation operation,
-            final BlockData material) {
+            final BlockData material,
+            final PlayerHeadTexture texture) {
         return switch (operation) {
-            case ADD -> leaf.isRemoved() || !materialMatches(leaf, material);
+            case ADD -> leaf.isRemoved() || !materialMatches(leaf, material, texture);
             case CARVE -> !leaf.isRemoved();
-            case PAINT -> !leaf.isRemoved() && !materialMatches(leaf, material);
+            case PAINT -> !leaf.isRemoved() && !materialMatches(leaf, material, texture);
         };
     }
 
-    private static boolean materialMatches(final OctreeNode leaf, final BlockData material) {
+    private static boolean materialMatches(
+            final OctreeNode leaf,
+            final BlockData material,
+            final PlayerHeadTexture texture) {
         return Objects.equals(leaf.blockData(), material)
-            && leaf.playerHeadTexture() == null
+            && Objects.equals(leaf.playerHeadTexture(), texture)
             && leaf.textureCoord() == null;
+    }
+
+    private static boolean anyLeafOccupied(final OctreeNode node) {
+        if (node.isLeaf()) return !node.isRemoved();
+        for (final OctreeNode child : node.children()) {
+            if (anyLeafOccupied(child)) return true;
+        }
+        return false;
     }
 
     private static boolean anyLeafNeedsChange(
             final OctreeNode node,
             final BlockCellEdit.Operation operation,
-            final BlockData material) {
-        if (node.isLeaf()) return needsChange(node, operation, material);
+            final BlockData material,
+            final PlayerHeadTexture texture) {
+        if (node.isLeaf()) return needsChange(node, operation, material, texture);
         for (final OctreeNode child : node.children()) {
-            if (anyLeafNeedsChange(child, operation, material)) return true;
+            if (anyLeafNeedsChange(child, operation, material, texture)) return true;
         }
         return false;
     }
@@ -215,11 +235,13 @@ public final class OctreeCellEditor {
     private static void applyToLeaf(
             final OctreeNode leaf,
             final BlockCellEdit.Operation operation,
-            final BlockData material) {
+            final BlockData material,
+            final PlayerHeadTexture texture) {
         switch (operation) {
             case ADD -> {
                 clearTexture(leaf);
                 leaf.setBlockData(material.clone());
+                if (texture != null && leaf.depth() > 0) leaf.setPlayerHeadTexture(texture);
                 leaf.restore();
             }
             case CARVE -> leaf.remove();
@@ -227,14 +249,15 @@ public final class OctreeCellEditor {
                 if (leaf.isRemoved()) return;
                 clearTexture(leaf);
                 leaf.setBlockData(material.clone());
+                if (texture != null && leaf.depth() > 0) leaf.setPlayerHeadTexture(texture);
             }
         }
     }
 
     private static boolean paintLeaves(final OctreeNode node, final BlockData material) {
         if (node.isLeaf()) {
-            if (!needsChange(node, BlockCellEdit.Operation.PAINT, material)) return false;
-            applyToLeaf(node, BlockCellEdit.Operation.PAINT, material);
+            if (!needsChange(node, BlockCellEdit.Operation.PAINT, material, null)) return false;
+            applyToLeaf(node, BlockCellEdit.Operation.PAINT, material, null);
             return true;
         }
         boolean changed = false;

@@ -11,162 +11,111 @@ This README is split into a [player guide](#for-players) and an [administrator g
 
 ### Quick start
 
-1. Run `/sculpt mode on` to enable sculpting.
-2. Press `F` to cycle through the resolutions you are allowed to use.
-3. Press `Q` to cycle through your permitted fill modes.
-4. Quickly press `Q` twice to change the display mode; press `Shift` + `Q` whenever you need to pause or resume sculpting without changing your preferences.
-5. Left-click a supported block to turn it into a SculptBlock and remove the targeted cell.
-6. Right-click a SculptBlock to place a cell using the block in your main hand.
-7. Optionally run `/sculpt preview on` to show the cell currently under your cursor.
+1. Run `/sculpt` to open the Sculpt menu, then choose **Enter editor**. You can also run `/sculpt edit`, or take the **Sculpt Knife** from the menu and right-click it.
+2. Your hotbar turns into a tool palette. Your real items are safe; they come back when you leave.
+3. Scroll or press `1`–`9` to choose a tool. Look at a block: a preview shows exactly what the tool will change.
+4. Left-click for the tool's main action and right-click for its second action.
+5. Press `Shift` + `Q` to undo, and `Shift` + `F` to leave the editor.
 
-If a normal block does not convert, automatic conversion may be disabled, its material may not be supported, or the server's region protection may deny building there.
+Previews are only sent to you and change nothing. The world only changes when you confirm with a click, and every change can be undone.
 
 ### Controls
 
+The same keys work for every tool:
+
 | Input | Result |
 | --- | --- |
-| Left-click a SculptBlock | Remove the targeted cell. |
-| Left-click a normal block | Convert it to a SculptBlock and remove the targeted cell. |
-| Right-click a SculptBlock | Place the targeted cell using the block in your main hand. |
-| Right-click an exposed edge | Extend the sculpture into the adjacent block position. |
-| `F` | Cycle forward through permitted resolutions. |
-| `Q` | Cycle through permitted fill modes without dropping the item. |
-| Quickly press `Q` twice | Cycle through permitted display modes. |
-| `Shift` + `Q` | Temporarily pause or resume Sculpt mode. Vanilla controls are restored while paused. |
+| Scroll or `1`–`9` | Choose a tool. |
+| Left-click | The tool's main action. |
+| Right-click | The tool's second action or confirmation. |
+| `Shift` + scroll | Adjust the tool: brush radius, shape thickness, or rotation. |
+| `Shift` + right-click | Open the tool's settings. |
+| `F` | Cycle through your permitted resolutions. |
+| `Shift` + `F` | Leave the editor. |
+| `Q` | Cancel what the tool is doing, such as a selection or unfinished shape. |
+| `Shift` + `Q` | Undo your last edit. |
+| Middle click | Use the material under the cursor. |
 
-You can target cells behind holes in a sculpture. At `1×1×1`, Sculpt does not create subdivided cells: left-clicking a SculptBlock removes the whole block and right-clicking restores its original block. Normal blocks retain vanilla interaction at this resolution.
+The action bar shows the current tool, resolution, and material. A boss bar shows the progress of large edits.
 
-`F` and `Q` become Sculpt controls only while Sculpt mode is active. `F` changes resolution immediately. A single `Q` press, and a single `F` press with the Blueprint Selector, waits for the configured double-tap window so a double press does not also trigger its single-press action. The window defaults to 300 ms and every cycle skips choices the player does not have permission to use.
+You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are edited instead of cells.
 
-Pausing is a temporary safety state. It keeps the selected resolution, fill, and display settings, but clears when the player disconnects or the server restarts. Whether Sculpt mode itself is enabled remains associated with the player's UUID for the lifetime of the current server process.
+### Tools
 
-### Mode, fill, and display
+| Slot | Tool | Left-click | Right-click |
+| --- | --- | --- | --- |
+| 1 | Sculpt | Remove the targeted cell. | Place a cell in front of the targeted face. |
+| 2 | Brush | Carve a sphere or cube of cells. | Add material in a sphere or cube. |
+| 3 | Smooth | Round off spikes and corners and fill pits. | Same as left-click. |
+| 4 | Paint | Pick the targeted material. | Repaint cells without changing the shape. |
+| 5 | Select | Set the two corners of a box of cells. | Open the selection actions. |
+| 6 | Transform | Grab the selection, then left-click again to drop it. | Move or copy the selection to the preview position. |
+| 7 | Shape | Add a control point, or grab and drag an existing one. | Build the previewed shape. |
+| 8 | Blueprint | Choose a blueprint. | Preview the paste; right-click the same spot again to paste. |
+| 9 | Settings | Open the material palette. | Open the editor settings. |
 
-These settings are independent:
+**Materials.** The editor keeps a palette of nine materials. Middle-click a block or cell to use its material, choose one in the palette (Settings tool, left-click), or pick one with the Paint tool. The material is shown in the action bar.
+
+**Selection actions.** With a selection, right-click with the Select tool to delete, fill, or repaint it, replace its material while keeping the visible shape, restore automatic lighting, change its fill mode, or save it as a blueprint.
+
+**Transform.** Grab the selection and move the cursor; a ghost box follows it. Use `Shift` + scroll to rotate in 90° steps. `Shift` + right-click sets mirroring and chooses between moving and copying. `Q` resets the transform.
+
+**Shapes.** Choose a shape type in the Shape tool settings (`Shift` + right-click). You can also set the thickness, the number of rows in a surface grid, hollow spheres and cylinders, and carving instead of adding. The preview updates live while you add or drag points.
+
+| Shape | Points | Result |
+| --- | --- | --- |
+| Plane | 3 or more | A multi-angle plane joined as a fan from the first point. Three points form a triangle at any angle; four points form a quad, which may be folded. |
+| Surface | a grid of 2×2 to 4×4 | A curved Bézier surface. The surface touches the corner points and is pulled towards the others. |
+| Curve | 2 or more | A beam or smooth curve passing through every point. |
+| Sphere | 2 | A sphere around the first point, passing through the second. |
+| Cylinder | 3 | A cylinder whose axis runs from the first to the second point, with the third point on its side. |
+
+Points snap to cell centers in front of the targeted face. A shape uses at most 16 points. Building replaces air, grass, fluids, and other replaceable blocks, joins existing SculptBlocks, and can carve or extend plain full blocks. Partial blocks such as stairs and blocks with contents such as chests are left untouched.
+
+### Settings
+
+Open the editor settings with the Settings tool (right-click) or from the `/sculpt` menu:
 
 | Setting | Purpose |
 | --- | --- |
-| Sculpt mode | Controls whether ordinary clicks perform sculpting. |
-| Fill mode | Controls the physical collision inside a SculptBlock. |
-| Display mode | Controls how visible cells are rendered. |
+| Resolution | Cell size: `1`, `2`, `4`, `8`, or `16` cells per block edge. `F` cycles it too. |
+| Fill mode | Physical collision inside a SculptBlock: `barrier` (one full barrier), `shulker` (collision follows the shape), or `null` (no collision). |
+| Display mode | How cells are rendered: `head` (player-head textures, fewer entities, no transparency), `textdisplay` (texture pixels, including transparency), or `auto` (TextDisplay for transparent materials and heads that are not ready yet). |
+| Animations | Turn preview animations on or off. |
 
-Use `/sculpt mode on` to enable sculpting. Right-clicking with a block in your main hand uses that block as the material for a new cell. Press `Shift` + `Q` for a temporary pause, or use `/sculpt mode off` to disable sculpting completely.
+Only the choices you have permission to use are listed. Player-head cells are always rendered as a complete texture unit and cannot be split into smaller cells.
 
-Choose a fill mode with `/sculpt fill <mode>`:
+Your settings remain associated with your UUID when you leave and rejoin during the same server process. A server restart returns them to the defaults in `config.yml`.
 
-| Mode | Collision behavior |
-| --- | --- |
-| `barrier` | The whole SculptBlock is backed by one full barrier block. |
-| `shulker` | A full sculpture uses one barrier; partially carved shapes use shulker-based collision that follows the shape. |
-| `null` | No physical collision is created; only interaction remains. |
+### Undo and redo
 
-Choose a display mode with `/sculpt display <mode>`:
-
-| Mode | Rendering behavior |
-| --- | --- |
-| `head` | Uses pre-baked or MineSkin player-head textures. It uses fewer entities but cannot render transparent materials. |
-| `textdisplay` | Renders cached vanilla textures as pixel planes, including transparency. Complex shapes can use more entities. |
-| `auto` | Uses TextDisplay for transparent materials and while a non-transparent head texture is being prepared, then switches ready cells to heads. |
-
-Player-head cells are always rendered as a complete texture unit and cannot be split into smaller cells.
-
-Mode, fill, and display choices remain associated with the player's UUID when they leave and rejoin during the same server process. A server restart returns them to the defaults in `config.yml`.
+`Shift` + `Q` in the editor, `/sculpt undo [steps]`, and `/sculpt redo [steps]` revert and reapply your edits from every tool, blueprint pastes included. A block that someone else changed after your edit is skipped instead of being overwritten, and region protection is checked again. History is kept per player until they leave the server. Replacing a selection's material is not recorded in the history.
 
 ### Player commands
 
 | Command | Description |
 | --- | --- |
-| `/sculpt` or `/sculpt help` | Show the commands available to you. |
-| `/sculpt resolution [1\|2\|4\|8\|16]` | Show or change your editing resolution. |
-| `/sculpt preview [on\|off]` | Toggle the targeted-cell preview. |
-| `/sculpt mode [on\|off]` | Show, enable, or disable persistent Sculpt mode. |
-| `/sculpt fill [barrier\|shulker\|null]` | Show or choose a fill mode. |
-| `/sculpt display [head\|textdisplay\|auto]` | Show or choose a display mode. |
-| `/sculpt convert <fill> [single\|region]` | Change the fill mode of a looked-at SculptBlock or selected region. |
-| `/sculpt replace <block data>` | Replace the material of blocks and SculptBlocks in a selected region while preserving their visible shape. |
-| `/sculpt relight` | Remove legacy TextDisplay brightness overrides in the selected region and restore automatic environment lighting. |
-| `/sculpt build <shape> [options]` | Build planes, curved surfaces, curves, spheres, or cylinders from control points. |
-| `/sculpt brush [setting] [value]` | Show or change the Sculpt Brush settings. |
-| `/sculpt undo [steps]` / `/sculpt redo [steps]` | Undo or redo your recent building, brush, and Sculpt mode edits. |
-| `/sculpt tool <selector\|blueprint\|builder\|brush>` | Receive a region selector, blueprint selector, Builder, or Sculpt Brush. |
-| `/sculpt heads [search <query> [resolution]]` | Browse or search available head textures. |
+| `/sculpt` | Open the Sculpt menu. |
+| `/sculpt help` | Show the commands available to you. |
+| `/sculpt edit [on\|off]` | Enter or leave the editor. |
+| `/sculpt undo [steps]` / `/sculpt redo [steps]` | Undo or redo your recent edits. |
+| `/sculpt blueprint ...` | Manage, share, and download blueprints. |
 
-### Region selection and replacement
-
-Use `/sculpt tool selector` to receive a region selector. Left-click to set the first corner, right-click to set the second, and press `F` while holding the selector to clear the selection.
-
-The same selection is used by `/sculpt convert` and `/sculpt replace`. `replace` accepts a bakeable full-block material, such as:
-
-```text
-/sculpt replace stone
-/sculpt replace minecraft:oak_log[axis=x]
-```
-
-Regular full blocks remain vanilla blocks. Slabs, fences, walls, doors, panes, and other supported partial shapes are represented with Sculpt cells so their visual model is preserved. Decorative blocks without a collision shape, such as grass and flowers, are left unchanged.
-
-### Building toolkit
-
-The building toolkit creates shapes out of Sculpt cells at your current resolution, so walls, ramps, roofs, and curves can run at any angle instead of following the block grid.
-
-**Control points.** Run `/sculpt tool builder` to receive the Builder:
-
-| Input with the Builder | Result |
-| --- | --- |
-| Right-click | Add a point in the empty cell in front of the targeted face, like placing a block. |
-| `Shift` + right-click | Add a point on the targeted cell itself. |
-| Left-click | Remove the last point. |
-| `Shift` + left-click | Clear all points. |
-
-Points snap to cell centers at your resolution and are shown with particles while you hold the Builder, joined in order. The same actions are available as `/sculpt build point [surface]`, `/sculpt build undo-point`, `/sculpt build clear`, and `/sculpt build points`. A shape uses at most 16 points, and changing worlds clears them.
-
-**Shapes.** Run `/sculpt build <shape>` once the points are placed:
-
-| Shape | Points | Result |
-| --- | --- | --- |
-| `plane` | 3 or more | A multi-angle plane: the points are joined in order as a fan from the first point. Three points form a triangle at any angle; four points form a quad, which may be folded. |
-| `surface` | a grid of 2×2 to 4×4 | A curved Bézier surface. Points are read row by row; 4, 9, or 16 points form square control grids, and `--rows <n>` selects other layouts. The surface touches the corner points and is pulled towards the others. |
-| `curve` | 2 or more | A beam or smooth curve passing through every point. |
-| `sphere` | 2 | A sphere around the first point, passing through the second. |
-| `cylinder` | 3 | A cylinder whose axis runs from the first to the second point, with the third point on its side. |
-
-| Option | Effect |
-| --- | --- |
-| `--thickness <n>` | Thickness in cells (default 1). One-cell surfaces stay watertight at every angle. |
-| `--hollow` | Make a sphere or cylinder a shell of the given thickness instead of a solid. |
-| `--carve` | Remove cells instead of adding them, for example to cut a curved opening. |
-| `--material <block>` | Build with this block. Without it, the block in your off hand is used, then the block in your main hand. |
-| `--rows <n>` | Number of rows in a `surface` control grid. |
-
-For example, with three points on the ground and a fourth on top of a wall, `/sculpt build plane --material stone` builds a ramp; nine points and `/sculpt build surface --thickness 2 --material oak_planks` build a curved roof. Building replaces air, grass, fluids, and other replaceable blocks, joins existing SculptBlocks, and can carve or extend plain full blocks. Partial blocks such as stairs and blocks with contents such as chests are left untouched.
-
-**Sculpt Brush.** Run `/sculpt tool brush` to receive the brush, and `/sculpt brush` to configure it:
-
-| Mode | Left-click | Right-click |
-| --- | --- | --- |
-| `sculpt` | Carve cells around the targeted cell. | Add material around the cell in front of the targeted face. |
-| `smooth` | Round off spikes and corners and fill pits. | Same as left-click. |
-| `paint` | Pick the targeted material as the brush material. | Repaint occupied cells without changing the shape. |
-
-Use `/sculpt brush size <0-8>` for the radius in cells, `/sculpt brush shape <sphere|cube>`, `/sculpt brush mode <sculpt|smooth|paint>`, and `/sculpt brush material <block|hand>`. With `hand`, the brush uses the block in your off hand. Particles preview the brush size at the cursor.
-
-**Undo and redo.** `/sculpt undo [steps]` reverts your most recent building commands, brush strokes, and Sculpt mode clicks; `/sculpt redo [steps]` reapplies them. A block that someone else changed after your edit is skipped instead of being overwritten, and region protection is checked again. History is kept per player until they leave the server.
+The old commands `mode`, `resolution`, `preview`, `fill`, `display`, `convert`, `replace`, `relight`, `build`, `brush`, `tool`, and `heads` were replaced by the editor. Running one of them explains where the feature moved.
 
 ### Blueprints
 
 Blueprints can store one SculptBlock or a cuboid selection containing SculptBlocks, regular non-air blocks, their `BlockData`, relative positions, and empty space. Container contents and block-entity data are not stored.
 
-1. Run `/sculpt tool blueprint` to receive the Blueprint Selector.
-2. For a single SculptBlock, left-click it with the selector. Right-click pastes the current selection.
-3. Quickly press `F` twice to switch to cuboid selection mode. Left-click the first point and right-click the second point; quickly press `F` twice again to return to single-block/paste mode.
-4. Press `F` once to cancel the current single-block, cuboid, or unfinished first-corner selection.
-5. Run `/sculpt blueprint save <name>`.
+1. In the editor, use the Select tool to select a box, right-click, and choose **Save as blueprint**.
+2. Use the Blueprint tool to choose a blueprint, preview it in the world, and paste it with two right-clicks on the same spot.
 
 Common blueprint commands:
 
 | Command | Description |
 | --- | --- |
 | `/sculpt blueprint list [--public] [--page <n>]` | List your blueprints. |
-| `/sculpt blueprint save <name> [--public]` | Save the current selector result. |
+| `/sculpt blueprint save <name> [--public]` | Save the current selection. |
 | `/sculpt blueprint rename <old> <new>` | Rename a blueprint. |
 | `/sculpt blueprint delete <name>` | Delete a blueprint. |
 | `/sculpt blueprint give <name>` | Receive a blueprint item that can be right-clicked to paste. |
@@ -178,7 +127,7 @@ Common blueprint commands:
 | `/sculpt blueprint download <url>` | Download from an administrator-approved SculptWeb domain. |
 | `/sculpt blueprint export <name>` / `import <file>` | Export or import a server-side blueprint file. |
 
-Blueprint paste options can control air, overwriting, adhesion, rotation, and mirroring. Use tab completion to see the options allowed for the command and your permissions.
+Blueprint paste options can control air, overwriting, adhesion, rotation, and mirroring. Pastes from blueprint items can be undone as well.
 
 ## For Administrators
 
@@ -186,15 +135,16 @@ Blueprint paste options can control air, overwriting, adhesion, rotation, and mi
 
 - Paper 1.21.11 or a compatible fork
 - Java 21 or newer
+- [PacketEvents](https://github.com/retrooper/packetevents) 2.14.0 or newer, for the editor
 - Optional: WorldEdit or FastAsyncWorldEdit (FAWE)
 - Optional for `head` rendering: matching pre-baked head packs or a MineSkin API key
 
-Sculpt supports Folia. WorldEdit and FAWE are optional soft dependencies; basic sculpting works without either plugin.
+Sculpt supports Folia. PacketEvents, WorldEdit, and FAWE are soft dependencies. Without PacketEvents, Sculpt logs a warning and the editor is unavailable; undo, redo, blueprint, and administrative commands, and existing SculptBlocks, keep working.
 
 ### Installation
 
 1. Download the latest `Sculpt-*.jar` from the [Releases page](https://github.com/TWME-TW/SculptPlugin/releases).
-2. Put the JAR in the server's `plugins/` directory.
+2. Put the JAR and PacketEvents in the server's `plugins/` directory.
 3. Start the server once to create `plugins/Sculpt/`.
 4. Install head packs or configure runtime baking if you want `head` rendering or want `auto` to switch opaque cells to heads.
 5. Restart the server and run `/sculpt admin status` to confirm that Sculpt is ready.
@@ -246,26 +196,19 @@ Keep existing entries. FAWE checks the full class name, not the plugin name; use
 
 ### Permissions
 
-Permissions default conservatively. Grant only the nodes appropriate for each group; do not grant `sculpt.command.*` or `sculpt.use.*` to ordinary players unless you intend to grant their full scope.
+Permissions default conservatively. Grant only the nodes appropriate for each group; do not grant `sculpt.command.*` or `sculpt.editor.*` to ordinary players unless you intend to grant their full scope.
 
 | Need | Permission nodes |
 | --- | --- |
-| Choose resolutions | `sculpt.command.resolution` and `sculpt.command.resolution.<1\|2\|4\|8\|16>` |
-| Toggle preview | `sculpt.command.preview` |
-| Persistent Sculpt mode | `sculpt.command.mode.on`, `sculpt.command.mode.off` |
-| Barrier or shulker fill | `sculpt.command.fill.barrier`, `sculpt.command.fill.shulker` |
-| No-collision fill | `sculpt.command.fill.null` |
-| Choose display mode | `sculpt.command.display.head`, `sculpt.command.display.textdisplay`, `sculpt.command.display.auto` |
-| Use the region selector | `sculpt.command.tool.selector`, `sculpt.use.selector` |
-| Receive the blueprint selector | `sculpt.command.tool.blueprint` |
-| Convert fill modes | `sculpt.command.convert` |
-| Replace a selected region's material | `sculpt.command.replace` |
-| Build shapes with `/sculpt build` and the Builder | `sculpt.command.build` |
-| Configure and use the Sculpt Brush | `sculpt.command.brush` |
+| Enter the editor (default: everyone) | `sculpt.command.edit` |
 | Undo and redo your own edits (default: everyone) | `sculpt.command.undo` |
-| Receive the Builder or Sculpt Brush | `sculpt.command.tool.builder`, `sculpt.command.tool.brush` |
-| Restore automatic TextDisplay lighting | `sculpt.command.relight` |
-| Use blueprints | Grant the required `sculpt.command.blueprint.<operation>` nodes |
+| Editor tools | `sculpt.editor.<sculpt\|brush\|smooth\|paint\|select\|transform\|shape\|blueprint>`; Sculpt and Paint default to everyone, the others to operators. The Settings tool needs no permission. |
+| Resolutions | `sculpt.command.resolution.<1\|2\|4\|8\|16>` |
+| Fill modes | `sculpt.command.fill.<barrier\|shulker\|null>` |
+| Display modes | `sculpt.command.display.<head\|textdisplay\|auto>` |
+| Selection actions: change fill, replace material, restore lighting | `sculpt.command.convert`, `sculpt.command.replace`, `sculpt.command.relight` |
+| Blueprints | Grant the required `sculpt.command.blueprint.<operation>` nodes |
+| Browse head textures from the menu | `sculpt.command.heads` |
 | Bypass region-protection build checks | `sculpt.bypass.region-protection` |
 | Administrative commands | `sculpt.command.admin.*` |
 
@@ -275,7 +218,7 @@ Permissions default conservatively. Grant only the nodes appropriate for each gr
 
 The main configuration file is `plugins/Sculpt/config.yml`.
 
-The current configuration schema is `configVersion: 6`, and bundled language files use `languageVersion: 4`. These values are migration markers and should not be edited manually.
+The current configuration schema is `configVersion: 6`, and bundled language files use `languageVersion: 5`. These values are migration markers and should not be edited manually.
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
@@ -283,15 +226,20 @@ The current configuration schema is `configVersion: 6`, and bundled language fil
 | `sculpt.defaultFillMode` | `shulker` | Default collision strategy. |
 | `sculpt.defaultDisplayMode` | `auto` | Default cell-rendering strategy. |
 | `sculpt.maxActiveBlocks` | `-1` | Server-wide SculptBlock limit; `-1` is unlimited. |
-| `sculpt.convertNormalBlocks` | `true` | Let Sculpt mode convert supported normal blocks into SculptBlocks. |
-| `controls.doubleTapWindowMs` | `300` | Maximum interval for `Q` double-tap display switching and Blueprint Selector `F` double taps; accepts 50–2000 ms. |
+| `sculpt.convertNormalBlocks` | `true` | Let editor tools convert supported normal blocks into SculptBlocks. |
 | `storage.autoSaveIntervalSeconds` | `300` | Interval for saving dirty SculptBlock data. |
 | `rendering.textDisplay.maxEntitiesPerBlock` | `4096` | Safety limit for TextDisplay entities per SculptBlock. |
 | `regionOperations.replace.maxVolume` | `32768` | Maximum world-block volume for `/sculpt replace`. |
 | `regionOperations.replace.maxGeneratedLeaves` | `131072` | Safety budget for partial-shape replacement output. |
-| `building.maxBlocks` | `4096` | Maximum world blocks one build or brush operation may touch. |
-| `building.maxCells` | `262144` | Maximum cells one build or brush operation may generate. |
-| `building.maxThickness` | `16` | Largest accepted `--thickness`. |
+| `editor.reach` | `6.0` | How far, in blocks, editor tools reach. |
+| `editor.previewBudget` | `1024` | Maximum preview entities per player; larger previews are simplified. |
+| `editor.animations` | `true` | Default for preview animations. |
+| `editor.hudIntervalTicks` | `5` | How often the action bar is refreshed. |
+| `editor.progressBarThreshold` | `64` | Edits touching at least this many blocks show a progress bar. |
+| `building.maxBlocks` | `4096` | Maximum world blocks one edit may touch. |
+| `building.maxCells` | `262144` | Maximum cells one edit may generate. |
+| `building.maxThickness` | `16` | Largest shape thickness. |
+| `building.maxTransformVoxels` | `2097152` | Largest selection, in 1/16-block voxels, that can be moved or copied. |
 | `building.brush.maxRadius` | `8` | Largest brush radius in cells. |
 | `building.history.maxEntries` | `30` | Undo steps kept per player. |
 | `building.history.maxBlocks` | `32768` | Block snapshots kept per player; the oldest steps are dropped first. |
@@ -308,7 +256,7 @@ Run `/sculpt admin reload` after changing reloadable settings. Restart the serve
 
 ### Region protection and backups
 
-Before Sculpt changes a world location, it performs the same build check used for block placement. This covers sculpting, extension, restoration, fill conversion, replacement, building, brush, undo, redo, and blueprint paste operations. Region-protection plugins such as WorldGuard can therefore keep enforcing their normal rules.
+Before Sculpt changes a world location, it performs the same build check used for block placement. This covers every editor tool, selection actions, undo, redo, and blueprint paste operations. Region-protection plugins such as WorldGuard can therefore keep enforcing their normal rules.
 
 Back up the complete `plugins/Sculpt/` directory and the relevant world data. SculptBlock data is stored in entity PDC data in the world; deleting the plugin directory does not remove Sculpt entities from existing worlds.
 

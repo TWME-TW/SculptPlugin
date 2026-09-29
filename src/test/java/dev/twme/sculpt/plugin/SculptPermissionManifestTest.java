@@ -45,25 +45,16 @@ class SculptPermissionManifestTest {
 
     @Test
     void manifestDeclaresOnlyCanonicalPermissionTree() throws IOException {
-        assertEquals(Set.of(
+        final Set<String> expected = new java.util.HashSet<>(Set.of(
             SculptPermissions.COMMAND_ALL,
-            SculptPermissions.RESOLUTION,
+            SculptPermissions.EDIT,
+            SculptPermissions.UNDO,
             SculptPermissions.resolution(1),
             SculptPermissions.resolution(2),
             SculptPermissions.resolution(4),
             SculptPermissions.resolution(8),
             SculptPermissions.resolution(16),
             SculptPermissions.RESOLUTION_ALL,
-            SculptPermissions.PREVIEW,
-            SculptPermissions.CONVERT,
-            SculptPermissions.REPLACE,
-            SculptPermissions.RELIGHT,
-            SculptPermissions.BUILD,
-            SculptPermissions.BRUSH,
-            SculptPermissions.UNDO,
-            SculptPermissions.MODE_ON,
-            SculptPermissions.MODE_OFF,
-            SculptPermissions.MODE_ALL,
             SculptPermissions.FILL_BARRIER,
             SculptPermissions.FILL_SHULKER,
             SculptPermissions.FILL_NULL,
@@ -72,24 +63,9 @@ class SculptPermissionManifestTest {
             SculptPermissions.DISPLAY_TEXTDISPLAY,
             SculptPermissions.DISPLAY_AUTO,
             SculptPermissions.DISPLAY_ALL,
-            SculptPermissions.TOOL_SELECTOR,
-            SculptPermissions.TOOL_BLUEPRINT,
-            SculptPermissions.TOOL_BUILDER,
-            SculptPermissions.TOOL_BRUSH,
-            SculptPermissions.TOOL_ALL,
-            SculptPermissions.BLUEPRINT_SAVE,
-            SculptPermissions.BLUEPRINT_LIST,
-            SculptPermissions.BLUEPRINT_DELETE,
-            SculptPermissions.BLUEPRINT_RENAME,
-            SculptPermissions.BLUEPRINT_DOWNLOAD,
-            SculptPermissions.BLUEPRINT_BIND,
-            SculptPermissions.BLUEPRINT_UNBIND,
-            SculptPermissions.BLUEPRINT_GIVE,
-            SculptPermissions.BLUEPRINT_SETTINGS,
-            SculptPermissions.BLUEPRINT_PUBLISH,
-            SculptPermissions.BLUEPRINT_UNPUBLISH,
-            SculptPermissions.BLUEPRINT_EXPORT,
-            SculptPermissions.BLUEPRINT_IMPORT,
+            SculptPermissions.CONVERT,
+            SculptPermissions.REPLACE,
+            SculptPermissions.RELIGHT,
             SculptPermissions.BLUEPRINT_ALL,
             SculptPermissions.HEADS,
             SculptPermissions.ADMIN_LIST,
@@ -97,11 +73,11 @@ class SculptPermissionManifestTest {
             SculptPermissions.ADMIN_RELOAD,
             SculptPermissions.ADMIN_STATUS,
             SculptPermissions.ADMIN_ALL,
-            SculptPermissions.USE_SELECTOR,
-            SculptPermissions.USE_PREVIEW_AUTO,
-            SculptPermissions.USE_ALL,
-            SculptPermissions.BYPASS_REGION_PROTECTION
-        ), permissions().keySet());
+            SculptPermissions.EDITOR_ALL,
+            SculptPermissions.BYPASS_REGION_PROTECTION));
+        expected.addAll(SculptPermissions.BLUEPRINT_PERMISSIONS);
+        expected.addAll(SculptPermissions.EDITOR_TOOLS);
+        assertEquals(expected, permissions().keySet());
     }
 
     @Test
@@ -109,34 +85,26 @@ class SculptPermissionManifestTest {
         final Map<String, Map<String, Object>> permissions = permissions();
 
         assertEquals(Set.of(
+            SculptPermissions.EDIT,
+            SculptPermissions.UNDO,
             SculptPermissions.RESOLUTION_ALL,
-            SculptPermissions.PREVIEW,
+            SculptPermissions.FILL_ALL,
+            SculptPermissions.DISPLAY_ALL,
             SculptPermissions.CONVERT,
             SculptPermissions.REPLACE,
             SculptPermissions.RELIGHT,
-            SculptPermissions.BUILD,
-            SculptPermissions.BRUSH,
-            SculptPermissions.UNDO,
-            SculptPermissions.MODE_ALL,
-            SculptPermissions.FILL_ALL,
-            SculptPermissions.DISPLAY_ALL,
-            SculptPermissions.TOOL_ALL,
             SculptPermissions.BLUEPRINT_ALL,
             SculptPermissions.HEADS,
-            SculptPermissions.ADMIN_ALL
+            SculptPermissions.ADMIN_ALL,
+            SculptPermissions.EDITOR_ALL
         ), children(permissions, SculptPermissions.COMMAND_ALL));
         assertEquals(Set.of(
-            SculptPermissions.RESOLUTION,
             SculptPermissions.resolution(1),
             SculptPermissions.resolution(2),
             SculptPermissions.resolution(4),
             SculptPermissions.resolution(8),
             SculptPermissions.resolution(16)
         ), children(permissions, SculptPermissions.RESOLUTION_ALL));
-        assertEquals(Set.of(
-            SculptPermissions.MODE_ON,
-            SculptPermissions.MODE_OFF
-        ), children(permissions, SculptPermissions.MODE_ALL));
         assertEquals(Set.of(
             SculptPermissions.FILL_BARRIER,
             SculptPermissions.FILL_SHULKER,
@@ -147,47 +115,31 @@ class SculptPermissionManifestTest {
             SculptPermissions.DISPLAY_TEXTDISPLAY,
             SculptPermissions.DISPLAY_AUTO
         ), children(permissions, SculptPermissions.DISPLAY_ALL));
-        assertEquals(Set.of(
-            SculptPermissions.TOOL_SELECTOR,
-            SculptPermissions.TOOL_BLUEPRINT,
-            SculptPermissions.TOOL_BUILDER,
-            SculptPermissions.TOOL_BRUSH
-        ), children(permissions, SculptPermissions.TOOL_ALL));
-        assertEquals(Set.of(
-            SculptPermissions.BLUEPRINT_SAVE,
-            SculptPermissions.BLUEPRINT_LIST,
-            SculptPermissions.BLUEPRINT_DELETE,
-            SculptPermissions.BLUEPRINT_RENAME,
-            SculptPermissions.BLUEPRINT_DOWNLOAD,
-            SculptPermissions.BLUEPRINT_BIND,
-            SculptPermissions.BLUEPRINT_UNBIND,
-            SculptPermissions.BLUEPRINT_GIVE,
-            SculptPermissions.BLUEPRINT_SETTINGS,
-            SculptPermissions.BLUEPRINT_PUBLISH,
-            SculptPermissions.BLUEPRINT_UNPUBLISH,
-            SculptPermissions.BLUEPRINT_EXPORT,
-            SculptPermissions.BLUEPRINT_IMPORT
-        ), children(permissions, SculptPermissions.BLUEPRINT_ALL));
+        assertEquals(Set.copyOf(SculptPermissions.BLUEPRINT_PERMISSIONS),
+            children(permissions, SculptPermissions.BLUEPRINT_ALL));
         assertEquals(Set.of(
             SculptPermissions.ADMIN_LIST,
             SculptPermissions.ADMIN_TELEPORT,
             SculptPermissions.ADMIN_RELOAD,
             SculptPermissions.ADMIN_STATUS
         ), children(permissions, SculptPermissions.ADMIN_ALL));
-        assertEquals(Set.of(
-            SculptPermissions.USE_SELECTOR,
-            SculptPermissions.USE_PREVIEW_AUTO
-        ), children(permissions, SculptPermissions.USE_ALL));
+        assertEquals(Set.copyOf(SculptPermissions.EDITOR_TOOLS),
+            children(permissions, SculptPermissions.EDITOR_ALL));
     }
 
     @Test
     void playerDefaultsRemainIntentional() throws IOException {
         final Map<String, Map<String, Object>> permissions = permissions();
 
-        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.RESOLUTION).get("default"));
-        assertEquals(Boolean.FALSE, permissions.get(SculptPermissions.PREVIEW).get("default"));
-        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.MODE_ON).get("default"));
-        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.MODE_OFF).get("default"));
+        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.EDIT).get("default"));
+        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.UNDO).get("default"));
+        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.EDITOR_SCULPT).get("default"));
+        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.EDITOR_PAINT).get("default"));
+        for (String tool : List.of(SculptPermissions.EDITOR_BRUSH, SculptPermissions.EDITOR_SMOOTH,
+                SculptPermissions.EDITOR_SELECT, SculptPermissions.EDITOR_TRANSFORM,
+                SculptPermissions.EDITOR_SHAPE, SculptPermissions.EDITOR_BLUEPRINT)) {
+            assertEquals("op", permissions.get(tool).get("default"), tool);
+        }
         assertEquals(Boolean.TRUE,
             permissions.get(SculptPermissions.FILL_BARRIER).get("default"));
         assertEquals(Boolean.TRUE,
@@ -196,30 +148,19 @@ class SculptPermissionManifestTest {
             permissions.get(SculptPermissions.DISPLAY_HEAD).get("default"));
         assertEquals("op",
             permissions.get(SculptPermissions.DISPLAY_AUTO).get("default"));
-        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.USE_SELECTOR).get("default"));
-        assertEquals(Boolean.FALSE,
-            permissions.get(SculptPermissions.USE_PREVIEW_AUTO).get("default"));
-    }
-
-    @Test
-    void buildingToolkitDefaults() throws IOException {
-        final Map<String, Map<String, Object>> permissions = permissions();
-        assertEquals("op", permissions.get(SculptPermissions.BUILD).get("default"));
-        assertEquals("op", permissions.get(SculptPermissions.BRUSH).get("default"));
-        assertEquals(Boolean.TRUE, permissions.get(SculptPermissions.UNDO).get("default"));
-        assertEquals("op", permissions.get(SculptPermissions.TOOL_BUILDER).get("default"));
-        assertEquals("op", permissions.get(SculptPermissions.TOOL_BRUSH).get("default"));
-    }
-
-    @Test
-    void convertPreservesItsOperatorDefault() throws IOException {
-        assertEquals("op", permissions().get(SculptPermissions.CONVERT).get("default"));
-    }
-
-    @Test
-    void regionProtectionBypassDefaultsToOperators() throws IOException {
-        assertEquals("op", permissions().get(
+        assertEquals("op", permissions.get(SculptPermissions.CONVERT).get("default"));
+        assertEquals("op", permissions.get(
                 SculptPermissions.BYPASS_REGION_PROTECTION).get("default"));
+    }
+
+    @Test
+    void everyEditorToolHasAPermission() {
+        for (dev.twme.sculpt.editor.ToolId tool : dev.twme.sculpt.editor.ToolId.values()) {
+            if (tool.permission() != null) {
+                org.junit.jupiter.api.Assertions.assertTrue(
+                    SculptPermissions.EDITOR_TOOLS.contains(tool.permission()), tool.name());
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
