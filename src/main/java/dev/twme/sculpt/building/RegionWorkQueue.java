@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
+import java.util.function.IntConsumer;
 import java.util.function.ToIntFunction;
 
 import org.bukkit.Location;
@@ -30,6 +31,9 @@ final class RegionWorkQueue {
     private final BooleanSupplier cancelled;
     private final Runnable onFinish;
     private final BiConsumer<BlockPos, RuntimeException> onFailure;
+    private final int total;
+    private IntConsumer onProgress = ignored -> {};
+    private int processed;
     private int chunkIndex;
     private int positionIndex;
 
@@ -54,6 +58,17 @@ final class RegionWorkQueue {
         this.onFailure = onFailure;
         this.onFinish = onFinish;
         this.chunks = groupByChunk(positions);
+        this.total = positions.size();
+    }
+
+    /** Receives the number of processed positions after every slice, on the region thread. */
+    RegionWorkQueue onProgress(final IntConsumer listener) {
+        this.onProgress = listener;
+        return this;
+    }
+
+    int total() {
+        return total;
     }
 
     static List<List<BlockPos>> groupByChunk(final List<BlockPos> positions) {
@@ -110,6 +125,7 @@ final class RegionWorkQueue {
                 onFailure.accept(position, failure);
             }
             budget -= work;
+            processed++;
             positionIndex++;
             if (positionIndex >= chunk.size()) {
                 chunkIndex++;
@@ -118,6 +134,7 @@ final class RegionWorkQueue {
                 if (FoliaScheduler.isFolia()) break;
             }
         }
+        onProgress.accept(processed);
         scheduleNext();
     }
 }

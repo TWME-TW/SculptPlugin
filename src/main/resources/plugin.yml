@@ -5,7 +5,7 @@ main: dev.twme.sculpt.Sculpt
 api-version: '1.21.11'
 load: POSTWORLD
 folia-supported: true
-softdepend: [ WorldEdit, FastAsyncWorldEdit ]
+softdepend: [ WorldEdit, FastAsyncWorldEdit, packetevents ]
 libraries:
   - org.xerial:sqlite-jdbc:${sqlite.version}
 
@@ -13,111 +13,70 @@ authors: [ TWME-TW ]
 
 commands:
   sculpt:
-    description: Main entry point for Sculpt
-    usage: /<command> <help|resolution|preview|mode|fill|display|convert|replace|relight|build|brush|undo|redo|tool|blueprint|heads|admin>
+    description: Open the Sculpt editor menu
+    usage: /<command> [help|edit|undo|redo|blueprint|admin]
 
 permissions:
   sculpt.command.*:
-    description: Allow every /sculpt command
+    description: Allow every /sculpt command and editor option
     default: op
     children:
+      sculpt.command.edit: true
+      sculpt.command.undo: true
       sculpt.command.resolution.*: true
-      sculpt.command.preview: true
-      sculpt.command.mode.*: true
       sculpt.command.fill.*: true
       sculpt.command.display.*: true
       sculpt.command.convert: true
       sculpt.command.replace: true
       sculpt.command.relight: true
-      sculpt.command.build: true
-      sculpt.command.brush: true
-      sculpt.command.undo: true
-      sculpt.command.tool.*: true
       sculpt.command.blueprint.*: true
       sculpt.command.heads: true
       sculpt.command.admin.*: true
+      sculpt.editor.*: true
 
-  sculpt.command.resolution:
-    description: Allow using /sculpt resolution
+  sculpt.command.edit:
+    description: Allow entering the Sculpt editor
     default: true
+  sculpt.command.undo:
+    description: Allow undoing and redoing your own Sculpt edits
+    default: true
+
   sculpt.command.resolution.1:
-    description: Allow selecting resolution 1
+    description: Allow editing at resolution 1
     default: op
   sculpt.command.resolution.2:
-    description: Allow selecting resolution 2
+    description: Allow editing at resolution 2
     default: op
   sculpt.command.resolution.4:
-    description: Allow selecting resolution 4
+    description: Allow editing at resolution 4
     default: op
   sculpt.command.resolution.8:
-    description: Allow selecting resolution 8
+    description: Allow editing at resolution 8
     default: op
   sculpt.command.resolution.16:
-    description: Allow selecting resolution 16
+    description: Allow editing at resolution 16
     default: op
   sculpt.command.resolution.*:
-    description: Allow selecting every resolution
+    description: Allow every resolution
     default: op
     children:
-      sculpt.command.resolution: true
       sculpt.command.resolution.1: true
       sculpt.command.resolution.2: true
       sculpt.command.resolution.4: true
       sculpt.command.resolution.8: true
       sculpt.command.resolution.16: true
 
-  sculpt.command.preview:
-    description: Allow using /sculpt preview
-    default: false
-
-  sculpt.command.convert:
-    description: Allow using /sculpt convert
-    default: op
-
-  sculpt.command.replace:
-    description: Allow replacing regular and SculptBlock materials in a selected region
-    default: op
-
-  sculpt.command.relight:
-    description: Allow restoring automatic TextDisplay lighting in a selected region
-    default: op
-
-  sculpt.command.build:
-    description: Allow building planes, surfaces, curves, and solids with /sculpt build and the Builder tool
-    default: op
-
-  sculpt.command.brush:
-    description: Allow configuring and using the sculpting brush
-    default: op
-
-  sculpt.command.undo:
-    description: Allow undoing and redoing your own Sculpt edits with /sculpt undo and /sculpt redo
-    default: true
-
-  sculpt.command.mode.on:
-    description: Allow using /sculpt mode on
-    default: true
-  sculpt.command.mode.off:
-    description: Allow using /sculpt mode off
-    default: true
-  sculpt.command.mode.*:
-    description: Allow using all /sculpt mode choices
-    default: op
-    children:
-      sculpt.command.mode.on: true
-      sculpt.command.mode.off: true
-
   sculpt.command.fill.barrier:
-    description: Allow using /sculpt fill barrier
+    description: Allow the barrier fill strategy
     default: true
   sculpt.command.fill.shulker:
-    description: Allow using /sculpt fill shulker
+    description: Allow the shulker fill strategy
     default: true
   sculpt.command.fill.null:
-    description: Allow using /sculpt fill null
+    description: Allow SculptBlocks without collision
     default: op
   sculpt.command.fill.*:
-    description: Allow using every Sculpt fill strategy
+    description: Allow every fill strategy
     default: op
     children:
       sculpt.command.fill.barrier: true
@@ -125,42 +84,31 @@ permissions:
       sculpt.command.fill.null: true
 
   sculpt.command.display.head:
-    description: Allow using /sculpt display head
+    description: Allow head rendering
     default: true
   sculpt.command.display.textdisplay:
-    description: Allow using /sculpt display textdisplay
+    description: Allow TextDisplay rendering
     default: op
   sculpt.command.display.auto:
-    description: Allow using /sculpt display auto
+    description: Allow automatic rendering
     default: op
   sculpt.command.display.*:
-    description: Allow using every Sculpt display backend
+    description: Allow every display backend
     default: op
     children:
       sculpt.command.display.head: true
       sculpt.command.display.textdisplay: true
       sculpt.command.display.auto: true
 
-  sculpt.command.tool.selector:
-    description: Allow using /sculpt tool selector
+  sculpt.command.convert:
+    description: Allow converting the fill strategy of a selection
     default: op
-  sculpt.command.tool.blueprint:
-    description: Allow using /sculpt tool blueprint
+  sculpt.command.replace:
+    description: Allow replacing block materials of a selection while keeping partial shapes
     default: op
-  sculpt.command.tool.builder:
-    description: Allow using /sculpt tool builder
+  sculpt.command.relight:
+    description: Allow restoring automatic TextDisplay lighting in a selection
     default: op
-  sculpt.command.tool.brush:
-    description: Allow using /sculpt tool brush
-    default: op
-  sculpt.command.tool.*:
-    description: Allow using all /sculpt tool choices
-    default: op
-    children:
-      sculpt.command.tool.selector: true
-      sculpt.command.tool.blueprint: true
-      sculpt.command.tool.builder: true
-      sculpt.command.tool.brush: true
 
   sculpt.command.blueprint.save:
     description: Allow using /sculpt blueprint save
@@ -220,7 +168,7 @@ permissions:
       sculpt.command.blueprint.import: true
 
   sculpt.command.heads:
-    description: Allow using /sculpt heads
+    description: Allow browsing baked head textures
     default: op
 
   sculpt.command.admin.list:
@@ -244,18 +192,42 @@ permissions:
       sculpt.command.admin.reload: true
       sculpt.command.admin.status: true
 
-  sculpt.use.selector:
-    description: Allow using the region selection tool
+  sculpt.editor.sculpt:
+    description: Allow the editor's single-cell sculpt tool
     default: true
-  sculpt.use.preview.auto:
-    description: Enable hover preview by default
-    default: false
-  sculpt.use.*:
-    description: Allow every non-command player capability
-    default: false
+  sculpt.editor.paint:
+    description: Allow the editor's paint tool
+    default: true
+  sculpt.editor.brush:
+    description: Allow the editor's brush tool
+    default: op
+  sculpt.editor.smooth:
+    description: Allow the editor's smoothing tool
+    default: op
+  sculpt.editor.select:
+    description: Allow the editor's selection tool and its actions
+    default: op
+  sculpt.editor.transform:
+    description: Allow moving, copying, rotating, and mirroring selections
+    default: op
+  sculpt.editor.shape:
+    description: Allow building planes, surfaces, curves, and solids
+    default: op
+  sculpt.editor.blueprint:
+    description: Allow placing blueprints from the editor
+    default: op
+  sculpt.editor.*:
+    description: Allow every editor tool
+    default: op
     children:
-      sculpt.use.selector: true
-      sculpt.use.preview.auto: true
+      sculpt.editor.sculpt: true
+      sculpt.editor.paint: true
+      sculpt.editor.brush: true
+      sculpt.editor.smooth: true
+      sculpt.editor.select: true
+      sculpt.editor.transform: true
+      sculpt.editor.shape: true
+      sculpt.editor.blueprint: true
 
   sculpt.bypass.region-protection:
     description: Bypass region protection checks for all Sculpt edits

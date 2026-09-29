@@ -54,6 +54,12 @@ class SculptConfigSchemaTest {
         "building.brush.maxRadius",
         "building.history.maxEntries",
         "building.history.maxBlocks",
+        "building.maxTransformVoxels",
+        "editor.reach",
+        "editor.previewBudget",
+        "editor.animations",
+        "editor.hudIntervalTicks",
+        "editor.progressBarThreshold",
         "debug.textureMarkers"
     );
 

@@ -27,7 +27,8 @@ class LanguageManagerTest {
         "command.sculpt.replace.out_of_bounds",
         "command.sculpt.replace.too_many_leaves",
         "command.sculpt.relight.completed",
-        "command.sculpt.preview.enabled",
+        "command.sculpt.moved_to_editor",
+        "editor.hud",
         "command.sculpt.blueprint.save.usage",
         "command.sculpt.blueprint.select.success",
         "command.sculpt.blueprint.select.not_sculpt",
@@ -35,7 +36,7 @@ class LanguageManagerTest {
         "command.sculpt.blueprint.publish.network_error",
         "command.sculpt.blueprint.publish.key_saved",
         "command.sculpt.blueprint.unpublish.success",
-        "wand_tool.name"
+        "editor.fill.null"
     );
 
     @Test

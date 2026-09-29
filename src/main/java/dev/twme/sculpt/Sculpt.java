@@ -44,9 +44,9 @@ import dev.twme.sculpt.assets.fetch.McAssetClient;
 import dev.twme.sculpt.assets.shape.BlockVisualShapeCache;
 import dev.twme.sculpt.assets.shape.BlockVisualShapeResolver;
 import dev.twme.sculpt.blueprint.BlueprintManager;
-import dev.twme.sculpt.building.BuildCommand;
-import dev.twme.sculpt.building.BuildToolListener;
-import dev.twme.sculpt.building.BuildToolkit;
+import dev.twme.sculpt.building.BuildEngine;
+import dev.twme.sculpt.building.BuildLimits;
+import dev.twme.sculpt.editor.BlueprintItemListener;
 import dev.twme.sculpt.core.CellMaterial;
 import dev.twme.sculpt.core.ChunkHead;
 import dev.twme.sculpt.core.HeadResolver;
@@ -57,9 +57,6 @@ import dev.twme.sculpt.core.PlayerHeadTexture;
 import dev.twme.sculpt.core.PlayerHeadTextureCodec;
 import dev.twme.sculpt.core.SculptBlock;
 import dev.twme.sculpt.editor.BlockPlaceBuildChecker;
-import dev.twme.sculpt.editor.SculptControlsListener;
-import dev.twme.sculpt.editor.SculptEditListener;
-import dev.twme.sculpt.editor.WandListener;
 import dev.twme.sculpt.gui.HeadBrowserListener;
 import dev.twme.sculpt.integration.SculptPasteHandler;
 import dev.twme.sculpt.lang.LanguageManager;
@@ -70,12 +67,9 @@ import dev.twme.sculpt.plugin.SculptBlueprintCommand;
 import dev.twme.sculpt.plugin.SculptCommand;
 import dev.twme.sculpt.plugin.SculptConfig;
 import dev.twme.sculpt.plugin.SculptConfigMigrator;
-import dev.twme.sculpt.plugin.SculptHeadsCommand;
-import dev.twme.sculpt.plugin.SculptFillCommand;
-import dev.twme.sculpt.plugin.SculptDisplayCommand;
-import dev.twme.sculpt.plugin.SculptModeCommand;
 import dev.twme.sculpt.plugin.SculptPermissions;
-import dev.twme.sculpt.plugin.SculptWandCommand;
+import dev.twme.sculpt.plugin.SculptRelightCommand;
+import dev.twme.sculpt.plugin.SculptReplaceCommand;
 import dev.twme.sculpt.plugin.FillConverter;
 import dev.twme.sculpt.plugin.RuntimeHealth;
 import dev.twme.sculpt.render.TextBlockRenderer;
@@ -103,7 +97,7 @@ import dev.twme.sculpt.util.YamlMigrationSupport;
  * <p>Lifecycle is driven entirely by PDC-persisted entities — there are
  * no external .sculpt files. The plugin scans ItemDisplay entities on
  * ChunkLoad, reconstructs SculptBlock + OctreeNode trees from their
- * PDC data, and manages editing via {@link SculptEditListener}.
+ * PDC data, and manages editing through {@link dev.twme.sculpt.editor.EditorService}.
  *
  * <p>Per ReDesign.md §1.7 (實體即資料庫): entities = database.
  * Every SculptBlock state is stored in the root entity's PersistentDataContainer.
@@ -160,13 +154,10 @@ public final class Sculpt extends JavaPlugin {
 
     // ---- editor ----------------------------------------------------------
     private BlockPlaceBuildChecker buildChecker;
-    private SculptEditListener editListener;
-    private SculptControlsListener controlsListener;
     private SculptChunkListener chunkListener;
     private HeadResolver headResolver;
 
     // ---- wand selection tool ---------------------------------------------
-    private WandListener wandListener;
     private SculptPasteHandler pasteHandler;
 
     // ---- fill converter --------------------------------------------------
@@ -176,8 +167,11 @@ public final class Sculpt extends JavaPlugin {
     private BlueprintManager blueprintManager;
 
     // ---- building toolkit ------------------------------------------------
-    private BuildToolkit buildToolkit;
-    private BuildToolListener buildToolListener;
+    private BuildEngine buildEngine;
+    /** Null when PacketEvents is missing; the editor requires it. */
+    private Object editorService;
+    private SculptReplaceCommand replaceCommand;
+    private SculptRelightCommand relightCommand;
 
     // ---- observable startup state ----------------------------------------
     private volatile RuntimeHealth runtimeHealth = RuntimeHealth.loading(2);
@@ -305,14 +299,7 @@ public final class Sculpt extends JavaPlugin {
         // that need it check for null and return early.
         this.buildChecker = new BlockPlaceBuildChecker();
         getServer().getPluginManager().registerEvents(buildChecker, this);
-        this.editListener = new SculptEditListener(
-                this, null, new SculptBlockRegistryImpl(), buildChecker);
-        getServer().getPluginManager().registerEvents(editListener, this);
-        this.wandListener = new WandListener(this);
-        getServer().getPluginManager().registerEvents(wandListener, this);
         this.fillConverter = new FillConverter(this);
-        this.controlsListener = new SculptControlsListener(this);
-        getServer().getPluginManager().registerEvents(controlsListener, this);
         this.chunkListener = new SculptChunkListener(this);
         getServer().getPluginManager().registerEvents(chunkListener, this);
         getServer().getPluginManager().registerEvents(
@@ -333,23 +320,18 @@ public final class Sculpt extends JavaPlugin {
             }
         }
 
-        // ---- 6b. Building toolkit (planes, surfaces, brush, undo) ----------
-        this.buildToolkit = new BuildToolkit(this);
-        this.buildToolListener = new BuildToolListener(
-            buildToolkit, new BuildCommand(buildToolkit));
-        getServer().getPluginManager().registerEvents(buildToolListener, this);
-        buildToolListener.start();
+        // ---- 6b. Editing engine and the editor --------------------------
+        this.buildEngine = new BuildEngine(this, BuildLimits.from(getConfig()));
+        this.replaceCommand = new SculptReplaceCommand(this);
+        this.relightCommand = new SculptRelightCommand(this);
+        this.blueprintManager = new BlueprintManager(this);
+        getServer().getPluginManager().registerEvents(
+                new BlueprintItemListener(this), this);
+        startEditor();
 
         // ---- 7. Commands (registered now; access registries lazily) -------
-        this.blueprintManager = new BlueprintManager(this);
-        final SculptModeCommand modeCmd = new SculptModeCommand(this);
-        final SculptFillCommand fillCmd = new SculptFillCommand(this);
-        final SculptDisplayCommand displayCmd = new SculptDisplayCommand(this);
-        final SculptWandCommand wandCmd = new SculptWandCommand(this, blueprintManager);
         final SculptBlueprintCommand bpCmd = new SculptBlueprintCommand(this);
-        final SculptHeadsCommand headsCmd = new SculptHeadsCommand(this);
-        final SculptCommand cmd = new SculptCommand(
-            this, modeCmd, fillCmd, displayCmd, wandCmd, bpCmd, headsCmd);
+        final SculptCommand cmd = new SculptCommand(this, bpCmd);
         final var command = getCommand("sculpt");
         if (command != null) {
             command.setExecutor(cmd);
@@ -552,9 +534,6 @@ public final class Sculpt extends JavaPlugin {
 
         // Update the edit listener's headResolver reference
         // (registered in onEnable with null; now set to the real resolver)
-        if (this.editListener != null) {
-            this.editListener.setHeadResolver(headResolver);
-        }
 
         // ---- 9. Deferred reload scan (each chunk runs on its owning region) -
         if (chunkListener != null) {
@@ -608,17 +587,13 @@ public final class Sculpt extends JavaPlugin {
             pasteHandler = null;
         }
 
-        if (controlsListener != null) {
-            controlsListener.shutdown();
-            controlsListener = null;
+        if (editorService != null) {
+            ((dev.twme.sculpt.editor.EditorService) editorService).shutdown();
+            editorService = null;
         }
 
-        if (buildToolListener != null) {
-            buildToolListener.shutdown();
-            buildToolListener = null;
-        }
-        if (buildToolkit != null) {
-            buildToolkit.engine().history().clearAll();
+        if (buildEngine != null) {
+            buildEngine.history().clearAll();
         }
 
         // Cancel the async registry load if still running
@@ -796,8 +771,11 @@ public final class Sculpt extends JavaPlugin {
         if (blueprintManager != null) {
             blueprintManager.reloadConfig();
         }
-        if (buildToolkit != null) {
-            buildToolkit.reload();
+        if (buildEngine != null) {
+            buildEngine.reload(BuildLimits.from(getConfig()));
+        }
+        if (editorService != null) {
+            ((dev.twme.sculpt.editor.EditorService) editorService).reload();
         }
         getLogger().log(Level.INFO, "[Sculpt] config reloaded (defaultGridSize={0})",
                 config.chunkGridSize());
@@ -875,85 +853,6 @@ public final class Sculpt extends JavaPlugin {
     }
 
     // ========================================================================
-    //  Hover preview toggle (per-player)
-    // ========================================================================
-
-    /**
-     * Per-player explicit hover toggle.  {@code null} = use permission-based default.
-     */
-    /**
-     * Whether hover preview is enabled for the given player.
-     * <p>If the player has explicitly toggled hover via {@code /sculpt preview},
-     * that explicit state is returned.  Otherwise the fallback is the
-     * {@code sculpt.use.preview.auto} permission node.
-     */
-    public boolean isHoverEnabled(final Player player) {
-        final Boolean explicit = playerRuntimeState.hoverState(player.getUniqueId());
-        if (explicit != null) return explicit;
-        return player.hasPermission(SculptPermissions.USE_PREVIEW_AUTO);
-    }
-
-    /**
-     * Set the explicit hover preview state for the given player.
-     * Pass {@code null} to reset to the permission-based default.
-     */
-    public void setHoverEnabled(final Player player, final Boolean state) {
-        playerRuntimeState.setHoverState(player.getUniqueId(), state);
-    }
-
-    /**
-     * Toggle the hover preview for the given player.
-     * @return the new state
-     */
-    public boolean toggleHover(final Player player) {
-        final boolean next = !isHoverEnabled(player);
-        setHoverEnabled(player, next);
-        return next;
-    }
-
-    // ========================================================================
-    //  SculptMode state (retained across reconnects for this server process)
-    // ========================================================================
-
-    public boolean isSculptMode(final Player player) {
-        return playerRuntimeState.sculptMode(player.getUniqueId());
-    }
-
-    public void setSculptMode(final Player player, final boolean mode) {
-        playerRuntimeState.setSculptMode(player.getUniqueId(), mode);
-        playerRuntimeState.setSculptModeSuspended(player.getUniqueId(), false);
-        if (controlsListener != null) controlsListener.clearPending(player);
-        if (!mode && editListener != null) editListener.endSession(player);
-    }
-
-    public void toggleSculptMode(final Player player) {
-        setSculptMode(player, !isSculptMode(player));
-    }
-
-    public boolean isSculptModeSuspended(final Player player) {
-        return playerRuntimeState.sculptModeSuspended(player.getUniqueId());
-    }
-
-    public boolean isSculptModeActive(final Player player) {
-        return isSculptMode(player) && !isSculptModeSuspended(player);
-    }
-
-    public void setSculptModeSuspended(
-            final Player player,
-            final boolean suspended) {
-        playerRuntimeState.setSculptModeSuspended(
-            player.getUniqueId(), suspended);
-        if (controlsListener != null) controlsListener.clearPending(player);
-        if (suspended && editListener != null) editListener.endSession(player);
-    }
-
-    public boolean toggleSculptModeSuspended(final Player player) {
-        final boolean suspended = !isSculptModeSuspended(player);
-        setSculptModeSuspended(player, suspended);
-        return isSculptModeSuspended(player);
-    }
-
-    // ========================================================================
     //  Fill/display choices (retained across reconnects for this server process)
     // ========================================================================
 
@@ -992,40 +891,24 @@ public final class Sculpt extends JavaPlugin {
     }
 
     // ========================================================================
-    //  Held BlockData helper (used by SculptMode)
+    //  Item materials
     // ========================================================================
 
     /**
-     * 從玩家主手取得 BlockData。
-     * - 方塊物品有 BlockDataMeta → 回傳物品儲存的完整 BlockData（保留朝向等狀態）
-     * - 方塊物品無 BlockDataMeta → 回傳該材質的預設 BlockData
-     * - 非方塊物品或空手 → 回傳 null
+     * The cell material an item represents, or {@code null} for items that
+     * are not solid blocks. Block items keep their stored block state; player
+     * heads keep their existing {@code textures} property, so this never
+     * performs a profile or network lookup.
      */
-    public BlockData heldBlockData(final Player player) {
-        final ItemStack item = player.getInventory().getItemInMainHand();
+    public CellMaterial cellMaterialOf(final ItemStack item) {
         if (item == null || item.getType().isAir()) return null;
-        final Material mat = item.getType();
-        if (!mat.isBlock() || !mat.isSolid()) return null;
+        final Material material = item.getType();
         final ItemMeta meta = item.getItemMeta();
-        if (meta instanceof BlockDataMeta bdm) return bdm.getBlockData(mat);
-        return mat.createBlockData();
-    }
-
-    /**
-     * Resolve the material placed by Sculpt mode. Player heads are allowed even
-     * though Bukkit does not classify them as solid; only their already present
-     * {@code textures} property is copied, so this method never performs a
-     * profile/network lookup.
-     */
-    public CellMaterial heldCellMaterial(final Player player) {
-        final ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.getType().isAir()) return null;
-        if (item.getType() != Material.PLAYER_HEAD) {
-            final BlockData data = heldBlockData(player);
-            return data == null ? null : CellMaterial.block(data);
+        if (material != Material.PLAYER_HEAD) {
+            if (!material.isBlock() || !material.isSolid()) return null;
+            return CellMaterial.block(meta instanceof BlockDataMeta blockDataMeta
+                ? blockDataMeta.getBlockData(material) : material.createBlockData());
         }
-
-        final ItemMeta meta = item.getItemMeta();
         final BlockData data = meta instanceof BlockDataMeta blockDataMeta
             ? blockDataMeta.getBlockData(Material.PLAYER_HEAD)
             : Material.PLAYER_HEAD.createBlockData();
@@ -1049,16 +932,6 @@ public final class Sculpt extends JavaPlugin {
             }
         }
         return new CellMaterial(data, texture);
-    }
-
-    /**
-     * Show a full-grid preview overlay. Stub retained for SculptCommand
-     * compatibility; the ReDesign v2 uses SelectionHighlight/PreviewHighlight
-     * automatically via the hover system.
-     */
-    public void showFullGridPreview(final Player viewer, final Location blockPos,
-                                     final int gridN, final Quaternionf blockRotation) {
-        // v2: PreviewHighlight handles this automatically on hover
     }
 
     // ========================================================================
@@ -1105,12 +978,48 @@ public final class Sculpt extends JavaPlugin {
         return blueprintManager;
     }
 
-    public BuildToolkit getBuildToolkit() {
-        return buildToolkit;
+    public BuildEngine getBuildEngine() {
+        return buildEngine;
     }
 
-    public WandListener getWandListener() {
-        return wandListener;
+    /**
+     * The editor, or {@code null} when PacketEvents is not installed. Typed
+     * as the concrete class only here so that the class is never loaded
+     * without its packet dependencies.
+     */
+    public dev.twme.sculpt.editor.EditorService getEditorService() {
+        return (dev.twme.sculpt.editor.EditorService) editorService;
+    }
+
+    public SculptReplaceCommand getReplaceCommand() {
+        return replaceCommand;
+    }
+
+    public SculptRelightCommand getRelightCommand() {
+        return relightCommand;
+    }
+
+    /** Whether the PacketEvents plugin the editor needs is running. */
+    public boolean isEditorAvailable() {
+        return editorService != null;
+    }
+
+    private void startEditor() {
+        if (!getServer().getPluginManager().isPluginEnabled("packetevents")) {
+            getLogger().warning("[Sculpt] PacketEvents is not installed; the editor is disabled."
+                + " Install PacketEvents 2.14.0 or newer to use /sculpt edit.");
+            return;
+        }
+        try {
+            final dev.twme.sculpt.editor.EditorService service =
+                new dev.twme.sculpt.editor.EditorService(this, buildEngine);
+            service.start();
+            getServer().getPluginManager().registerEvents(
+                new dev.twme.sculpt.editor.EditorListener(service), this);
+            this.editorService = service;
+        } catch (final LinkageError | RuntimeException failure) {
+            getLogger().log(Level.SEVERE, "[Sculpt] failed to start the editor", failure);
+        }
     }
 
     public FillConverter getFillConverter() {
@@ -1710,97 +1619,4 @@ public final class Sculpt extends JavaPlugin {
     public static NamespacedKey key(final String ns, final String key) {
         return new NamespacedKey(ns, key);
     }
-
-    // ========================================================================
-    //  SculptBlockRegistry for SculptEditListener
-    // ========================================================================
-
-    private final class SculptBlockRegistryImpl
-            implements SculptEditListener.SculptBlockRegistry {
-
-        @Override
-        public SculptBlock getActiveBlock(final BlockPosKey key) {
-            return activeBlocks.get(key);
-        }
-
-        @Override
-        public boolean registerSculptBlock(final BlockPosKey key, final SculptBlock block) {
-            return Sculpt.this.registerSculptBlock(key, block);
-        }
-
-        @Override
-        public boolean replaceSculptBlock(final BlockPosKey key, final SculptBlock expected,
-                                          final SculptBlock replacement) {
-            return Sculpt.this.replaceSculptBlock(key, expected, replacement);
-        }
-
-        @Override
-        public void unregisterSculptBlock(final BlockPosKey key) {
-            Sculpt.this.unregisterSculptBlock(key);
-        }
-
-        @Override
-        public void unregisterSculptBlock(final BlockPosKey key, final SculptBlock block) {
-            Sculpt.this.unregisterSculptBlock(key, block);
-        }
-
-        @Override
-        public int getPlayerGrid(final org.bukkit.entity.Player player) {
-            return gridSizeFor(player);
-        }
-
-        @Override
-        public boolean isSculptMode(final org.bukkit.entity.Player player) {
-            return Sculpt.this.isSculptMode(player);
-        }
-
-        @Override
-        public boolean isSculptModeActive(final org.bukkit.entity.Player player) {
-            return Sculpt.this.isSculptModeActive(player);
-        }
-
-        @Override
-        public BlockData heldBlockData(final org.bukkit.entity.Player player) {
-            return Sculpt.this.heldBlockData(player);
-        }
-
-        @Override
-        public CellMaterial heldCellMaterial(final org.bukkit.entity.Player player) {
-            return Sculpt.this.heldCellMaterial(player);
-        }
-
-        @Override
-        public FillMode fillModeFor(final org.bukkit.entity.Player player) {
-            return Sculpt.this.fillModeFor(player);
-        }
-
-        @Override
-        public SculptDisplayMode displayModeFor(
-                final org.bukkit.entity.Player player) {
-            return Sculpt.this.displayModeFor(player);
-        }
-
-        @Override
-        public TextBlockRenderer textBlockRenderer() {
-            return Sculpt.this.getTextBlockRenderer();
-        }
-
-        @Override
-        public boolean isNonBakeable(final org.bukkit.Material material) {
-            return nonBakeableBlocks != null && nonBakeableBlocks.isNonBakeable(material);
-        }
-
-        @Override
-        public boolean isMaterialSupported(
-                final org.bukkit.Material material,
-                final SculptDisplayMode displayMode) {
-            return Sculpt.this.isMaterialSupported(material, displayMode);
-        }
-
-        @Override
-        public boolean isHoverEnabled(final org.bukkit.entity.Player player) {
-            return Sculpt.this.isHoverEnabled(player);
-        }
-    }
-
 }

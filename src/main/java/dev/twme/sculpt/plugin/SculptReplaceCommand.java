@@ -69,30 +69,30 @@ public final class SculptReplaceCommand {
         this.plugin = plugin;
     }
 
-    public boolean execute(final CommandSender sender, final String[] args) {
-        if (!(sender instanceof Player player)) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.replace.player_only");
-            return true;
-        }
-        if (!checkPermission(sender)) return true;
-        if (args.length != 1) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.replace.usage");
-            return true;
-        }
-
-        final RegionSelection selection = plugin.getWandListener() == null
-            ? null : plugin.getWandListener().getSelection(player);
+    /**
+     * Replace the material of every block and SculptBlock in the region while
+     * preserving visible shapes, including partial blocks such as stairs.
+     *
+     * @return whether the operation started
+     */
+    public boolean execute(
+            final Player player,
+            final RegionSelection selection,
+            final String blockDataInput) {
+        final CommandSender sender = player;
+        if (!checkPermission(sender)) return false;
         if (selection == null || !selection.isValid()) {
             MessageUtil.sendTranslated(sender, "command.sculpt.replace.no_selection");
-            return true;
+            return false;
         }
+        final String[] args = {blockDataInput};
 
         final long maximumVolume = Math.max(1L, plugin.getConfig().getLong(
             MAX_VOLUME_PATH, DEFAULT_MAX_VOLUME));
         if (selection.volume() > maximumVolume) {
             MessageUtil.sendTranslated(sender, "command.sculpt.replace.too_large",
                 selection.volume(), maximumVolume);
-            return true;
+            return false;
         }
 
         final BlockData replacement;
@@ -102,7 +102,7 @@ public final class SculptReplaceCommand {
         } catch (final IllegalArgumentException invalidBlockData) {
             MessageUtil.sendTranslated(sender,
                 "command.sculpt.replace.invalid_material", args[0]);
-            return true;
+            return false;
         }
 
         final SculptDisplayMode displayMode = plugin.displayModeFor(player);
@@ -111,18 +111,18 @@ public final class SculptReplaceCommand {
                 !plugin.isMaterialSupported(candidate, displayMode))) {
             MessageUtil.sendTranslated(sender,
                 "command.sculpt.replace.non_bakeable", material.getKey());
-            return true;
+            return false;
         }
 
         final BlockVisualShapeCache shapeCache = plugin.getVisualShapeCache();
         if (plugin.getHeadResolver() == null || shapeCache == null) {
             MessageUtil.sendTranslated(sender, "command.sculpt.replace.not_ready");
-            return true;
+            return false;
         }
         if (!activeOperations.add(player.getUniqueId())) {
             MessageUtil.sendTranslated(sender,
                 "command.sculpt.replace.already_running");
-            return true;
+            return false;
         }
 
         final VariantResolution rawVariant = plugin.getHeadResolver().resolveVariant(

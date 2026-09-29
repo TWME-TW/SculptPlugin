@@ -100,6 +100,28 @@ public class PasteEngine {
         return error;
     }
 
+    /**
+     * The block region a paste would occupy, for previews: {@code {minX,
+     * minY, minZ, sizeX, sizeY, sizeZ}}. Uses the same rotation rules as
+     * {@link #paste(Player, BlueprintData, Location, PasteSettings, BlockFace)}.
+     */
+    public int[] previewBounds(Player player, BlueprintData data, Location targetLoc,
+                               PasteSettings settings, @Nullable BlockFace clickedFace) {
+        World world = targetLoc.getWorld();
+        int baseX = targetLoc.getBlockX();
+        int baseY = targetLoc.getBlockY();
+        int baseZ = targetLoc.getBlockZ();
+        if (!data.hasBlockCollection() || world == null) {
+            return new int[]{baseX, baseY, baseZ, 1, 1, 1};
+        }
+        SculptBlock anchor = plugin.getActiveBlock(
+            new BlockPosKey(world.getName(), baseX, baseY, baseZ));
+        int rotationDegrees = resolveRotationDegrees(
+            settings, player, targetLoc, data.referenceFacing(), clickedFace, anchor);
+        int[] size = transformedDimensions(data.sizeX(), data.sizeY(), data.sizeZ(), rotationDegrees);
+        return new int[]{baseX, baseY, baseZ, size[0], size[1], size[2]};
+    }
+
     /** Reject unsafe synchronous cross-region access before touching world state. */
     @Nullable
     private String regionAccessError(

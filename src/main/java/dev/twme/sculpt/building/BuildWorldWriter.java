@@ -24,7 +24,7 @@ import dev.twme.sculpt.transport.bukkit.BukkitTransportSession;
  * Applies detached cell edits and snapshots to the world. Every method must
  * run on the region thread that owns the target block.
  */
-final class BuildWorldWriter {
+public final class BuildWorldWriter {
 
     enum Status { CHANGED, UNCHANGED, PROTECTED, OBSTRUCTED, LOCKED, LIMIT, STALE }
 
@@ -40,7 +40,7 @@ final class BuildWorldWriter {
     }
 
     /** Strategies applied to SculptBlocks created by an edit. */
-    record Strategies(FillMode fillMode, SculptDisplayMode displayMode) {}
+    public record Strategies(FillMode fillMode, SculptDisplayMode displayMode) {}
 
     private final Sculpt plugin;
 
@@ -304,12 +304,18 @@ final class BuildWorldWriter {
     }
 
     /**
-     * Regular blocks can join a cell edit when they are plain full cubes the
-     * active display can render. Block entities are never converted, so a
-     * build cannot silently delete container contents or other block state.
+     * Regular blocks can join a cell edit when the server allows converting
+     * normal blocks and they are plain full cubes the active display can
+     * render. Block entities are never converted, so a build cannot silently
+     * delete container contents or other block state.
      */
     private boolean isConvertible(final Block block, final SculptDisplayMode displayMode) {
-        if (!plugin.isMaterialSupported(block.getType(), displayMode)) return false;
+        return isConvertible(block) && plugin.isMaterialSupported(block.getType(), displayMode);
+    }
+
+    /** Shape and configuration checks for converting a regular block. */
+    boolean isConvertible(final Block block) {
+        if (!plugin.sculptConfig().blockBreakListenerEnabled()) return false;
         if (block.getState(false) instanceof TileState) return false;
         final var boxes = block.getCollisionShape().getBoundingBoxes();
         if (boxes.size() != 1) return false;

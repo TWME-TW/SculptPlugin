@@ -35,7 +35,12 @@
         <sqlite.version>3.53.2.1</sqlite.version>
         <joml.version>1.10.8</joml.version>
         <worldedit.version>7.4.1</worldedit.version>
-        <textdisplayshapes.version>3.0.0</textdisplayshapes.version>
+        <!--
+            TextDisplayShapes animation API (TWME-TW/TextDisplayShapes#41), built
+            by JitPack from the merge commit until the next tagged release.
+        -->
+        <textdisplayshapes.version>90cb9a3d65</textdisplayshapes.version>
+        <packetevents.version>2.14.0</packetevents.version>
 
         <!-- Test dependencies -->
         <junit.version>5.11.3</junit.version>
@@ -59,6 +64,14 @@
             Sonatype repositories. Required for the org.mineskin:java-client
             coordinates used by the skin upload pipeline (Phase 3).
         -->
+        <repository>
+            <id>codemc-releases</id>
+            <url>https://repo.codemc.io/repository/maven-releases/</url>
+        </repository>
+        <repository>
+            <id>jitpack</id>
+            <url>https://jitpack.io</url>
+        </repository>
         <repository>
             <id>inventivetalent-public</id>
             <url>https://repo.inventivetalent.org/repository/public/</url>
@@ -128,11 +141,27 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- TextDisplay pixel-plane geometry; shaded into Sculpt. -->
+        <!--
+            TextDisplay geometry and packet-only editor previews; shaded into
+            Sculpt together with VirtualEntities. The editor requires the
+            PacketEvents plugin at runtime.
+        -->
         <dependency>
-            <groupId>dev.twme</groupId>
-            <artifactId>textdisplayshape-paper</artifactId>
+            <groupId>com.github.TWME-TW.TextDisplayShapes</groupId>
+            <artifactId>textdisplayshape-packet</artifactId>
             <version>${textdisplayshapes.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-spigot</artifactId>
+            <version>${packetevents.version}</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.kyori</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- JUnit 5 (test scope only) -->
@@ -219,6 +248,10 @@
                                 <relocation>
                                     <pattern>dev.twme.textdisplayshape</pattern>
                                     <shadedPattern>dev.twme.sculpt.shaded.textdisplayshape</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.github.twme.virtualentities</pattern>
+                                    <shadedPattern>dev.twme.sculpt.shaded.virtualentities</shadedPattern>
                                 </relocation>
                             </relocations>
                             <artifactSet>

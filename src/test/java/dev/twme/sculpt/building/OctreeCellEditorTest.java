@@ -42,7 +42,7 @@ class OctreeCellEditorTest {
         final BitSet all = new BitSet();
         all.set(0, 64);
         OctreeCellEditor.apply(tree,
-            BlockCellEdit.single(4, BlockCellEdit.Operation.ADD, OAK, all));
+            BlockCellEdit.single(4, BlockCellEdit.Operation.ADD, (BlockData) OAK, all));
         OctreeCellEditor.canonicalize(tree);
 
         assertTrue(tree.isLeaf());
@@ -57,7 +57,7 @@ class OctreeCellEditorTest {
         final BitSet all = new BitSet();
         all.set(0, 8);
         OctreeCellEditor.apply(tree,
-            BlockCellEdit.single(2, BlockCellEdit.Operation.CARVE, null, all));
+            BlockCellEdit.single(2, BlockCellEdit.Operation.CARVE, (BlockData) null, all));
         OctreeCellEditor.canonicalize(tree);
 
         assertEquals(OctreeCellEditor.Occupancy.EMPTY, OctreeCellEditor.occupancy(tree));
@@ -99,7 +99,7 @@ class OctreeCellEditorTest {
         final BitSet all = new BitSet();
         all.set(0, 8);
         OctreeCellEditor.apply(tree,
-            BlockCellEdit.single(2, BlockCellEdit.Operation.PAINT, OAK, all));
+            BlockCellEdit.single(2, BlockCellEdit.Operation.PAINT, (BlockData) OAK, all));
         OctreeCellEditor.canonicalize(tree);
 
         assertNull(OctreeCellEditor.materialAt(tree, 0, 0, 0));
@@ -175,6 +175,23 @@ class OctreeCellEditorTest {
     }
 
     @Test
+    void addedHeadCellsKeepTheirTextureExceptAtWholeBlockResolution() {
+        final PlayerHeadTexture texture = new PlayerHeadTexture("texture", "signature");
+        final BitSet cell = new BitSet();
+        cell.set(0);
+        final OctreeNode tree = OctreeCellEditor.empty(STONE);
+        OctreeCellEditor.apply(tree, new BlockCellEdit(2, List.of(new BlockCellEdit.Layer(
+            BlockCellEdit.Operation.ADD, OAK, texture, cell))));
+        assertEquals(texture, tree.findLeaf(0, 0, 0).playerHeadTexture());
+
+        final OctreeNode whole = OctreeCellEditor.empty(STONE);
+        OctreeCellEditor.apply(whole, new BlockCellEdit(1, List.of(new BlockCellEdit.Layer(
+            BlockCellEdit.Operation.ADD, OAK, texture, cell))));
+        assertNull(whole.playerHeadTexture(), "the root cannot hold a head texture");
+        assertFalse(whole.isRemoved());
+    }
+
+    @Test
     void laterLayersWin() {
         final OctreeNode tree = OctreeCellEditor.empty(STONE);
         final BitSet cell = new BitSet();
@@ -196,6 +213,6 @@ class OctreeCellEditorTest {
             final int index) {
         final BitSet cells = new BitSet();
         cells.set(index);
-        return BlockCellEdit.single(grid, operation, material, cells);
+        return BlockCellEdit.single(grid, operation, (BlockData) material, cells);
     }
 }

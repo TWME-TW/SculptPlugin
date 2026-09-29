@@ -35,30 +35,24 @@ public final class SculptRelightCommand {
         this.plugin = plugin;
     }
 
-    public boolean execute(final CommandSender sender, final String[] args) {
-        if (!(sender instanceof Player player)) {
-            MessageUtil.sendTranslated(sender,
-                "command.sculpt.relight.player_only");
-            return true;
-        }
-        if (!sender.hasPermission(SculptPermissions.RELIGHT)) {
-            MessageUtil.sendTranslated(sender, "general.no_permission");
-            MessageUtil.sendTranslated(sender, "general.required_perm",
+    /**
+     * Restore automatic lighting of every active SculptBlock in the region.
+     *
+     * @return whether the operation started
+     */
+    public boolean execute(final Player player, final RegionSelection selection) {
+        if (!player.hasPermission(SculptPermissions.RELIGHT)) {
+            MessageUtil.sendTranslated(player, "general.no_permission");
+            MessageUtil.sendTranslated(player, "general.required_perm",
                 SculptPermissions.RELIGHT);
-            return true;
+            return false;
         }
-        if (args.length != 0) {
-            MessageUtil.sendTranslated(sender, "command.sculpt.relight.usage");
-            return true;
-        }
-
-        final RegionSelection selection = plugin.getWandListener() == null
-            ? null : plugin.getWandListener().getSelection(player);
         if (selection == null || !selection.isValid()) {
-            MessageUtil.sendTranslated(sender,
+            MessageUtil.sendTranslated(player,
                 "command.sculpt.relight.no_selection");
-            return true;
+            return false;
         }
+        final CommandSender sender = player;
 
         final List<SculptBlock> selected = new ArrayList<>();
         for (final SculptBlock block : plugin.getActiveBlocks()) {
@@ -76,12 +70,12 @@ public final class SculptRelightCommand {
         if (selected.isEmpty()) {
             MessageUtil.sendTranslated(sender,
                 "command.sculpt.relight.no_blocks");
-            return true;
+            return false;
         }
         if (!activeOperations.add(player.getUniqueId())) {
             MessageUtil.sendTranslated(sender,
                 "command.sculpt.relight.already_running");
-            return true;
+            return false;
         }
 
         MessageUtil.sendTranslated(sender, "command.sculpt.relight.started",
