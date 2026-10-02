@@ -37,6 +37,7 @@ import dev.twme.sculpt.assets.shape.BlockVisualShapeCache;
 import dev.twme.sculpt.assets.shape.BlockVisualShapeResolver;
 import dev.twme.sculpt.assets.shape.VisualShape;
 import dev.twme.sculpt.assets.shape.VoxelMask;
+import dev.twme.sculpt.building.OctreeCellEditor;
 import dev.twme.sculpt.core.FillMode;
 import dev.twme.sculpt.core.OctreeNode;
 import dev.twme.sculpt.core.OctreeVoxelShape;
@@ -692,6 +693,9 @@ public final class SculptReplaceCommand {
             target.configureStrategies(fillMode, displayMode,
                 plugin.getTextBlockRenderer());
             OctreeVoxelShape.initialize(target.root, mask, replacement);
+            // Collapse the shape to its canonical form so fully covered
+            // branches become single cells, like every editor build.
+            OctreeCellEditor.canonicalize(target.root);
             target.rebuildCollisionTopology();
             target.setOnCleared(() -> plugin.unregisterSculptBlock(key, target));
             return target;

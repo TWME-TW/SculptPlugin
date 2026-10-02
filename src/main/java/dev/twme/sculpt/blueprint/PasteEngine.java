@@ -27,6 +27,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import dev.twme.sculpt.Sculpt;
+import dev.twme.sculpt.building.OctreeCellEditor;
 import dev.twme.sculpt.core.ChunkCoord;
 import dev.twme.sculpt.core.HeadResolver;
 import dev.twme.sculpt.core.OctreeNode;
@@ -795,6 +796,10 @@ public class PasteEngine {
             new BukkitTransportSession(world), resolver);
 
         rebuildTree(sb.root, srcTree);
+        // Collapse the pasted tree to its canonical form, exactly like the
+        // editor's build path, so a paste that fills whole branches leaves
+        // one display entity per merged cell instead of one per leaf.
+        OctreeCellEditor.canonicalize(sb.root);
         sb.rebuildCollisionTopology();
         sb.storedCoords = storedCoords;
         sb.setOnCleared(() -> plugin.unregisterSculptBlock(posKey, sb));

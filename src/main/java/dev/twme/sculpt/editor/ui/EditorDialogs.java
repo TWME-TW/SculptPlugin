@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 import dev.twme.sculpt.Sculpt;
 import dev.twme.sculpt.blueprint.BlueprintManager;
+import dev.twme.sculpt.building.BuildLimits;
 import dev.twme.sculpt.building.ShapeRasterizer;
 import dev.twme.sculpt.core.CellMaterial;
 import dev.twme.sculpt.core.FillMode;
@@ -23,6 +24,7 @@ import dev.twme.sculpt.editor.tool.BlueprintTool;
 import dev.twme.sculpt.editor.tool.BrushTool;
 import dev.twme.sculpt.editor.tool.SelectionActions;
 import dev.twme.sculpt.editor.tool.ShapeTool;
+import dev.twme.sculpt.editor.tool.SmoothTool;
 import dev.twme.sculpt.editor.tool.TransformTool;
 import dev.twme.sculpt.gui.HeadBrowserGUI;
 import dev.twme.sculpt.plugin.SculptCommand;
@@ -220,6 +222,33 @@ public final class EditorDialogs {
             final ShapeRasterizer.BrushShape shape = ShapeRasterizer.BrushShape.valueOf(
                 view.getText("shape").toUpperCase(Locale.ROOT));
             brush.configure(session, radius == null ? brush.radius() : Math.round(radius), shape);
+            session.flash("editor.settings.applied");
+        })), 1);
+    }
+
+    public static void smooth(final EditorSession session, final SmoothTool smooth) {
+        final Player player = session.player();
+        final BuildLimits limits = session.service().engine().limits();
+        final int max = Math.max(1, limits.maxSmoothPasses());
+        final List<SingleOptionDialogInput.OptionEntry> shapes = new ArrayList<>();
+        for (final ShapeRasterizer.BrushShape shape : ShapeRasterizer.BrushShape.values()) {
+            final String id = shape.name().toLowerCase(Locale.ROOT);
+            shapes.add(SingleOptionDialogInput.OptionEntry.create(id, text(player, "editor.brush_shape." + id),
+                shape == smooth.shape()));
+        }
+        show(player, "editor.smooth.title", List.of(), List.of(
+            DialogInput.numberRange("radius", text(player, "editor.brush.radius"), 0, Math.max(1, limits.maxBrushRadius()))
+                .step(1f).initial((float) smooth.radius()).build(),
+            DialogInput.singleOption("shape", text(player, "editor.brush.shape"), shapes).build(),
+            DialogInput.numberRange("passes", text(player, "editor.smooth.passes"), 1, max)
+                .step(1f).initial((float) smooth.passes()).build()
+        ), List.of(button(player, "editor.dialog.apply", WIDE, view -> {
+            final Float radius = view.getFloat("radius");
+            final ShapeRasterizer.BrushShape shape = ShapeRasterizer.BrushShape.valueOf(
+                view.getText("shape").toUpperCase(Locale.ROOT));
+            smooth.configure(session,
+                radius == null ? smooth.radius() : Math.round(radius), shape,
+                Math.round(orDefault(view.getFloat("passes"), smooth.passes())));
             session.flash("editor.settings.applied");
         })), 1);
     }
