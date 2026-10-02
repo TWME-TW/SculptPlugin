@@ -135,7 +135,7 @@ public final class EditorDialogs {
             inputs.add(DialogInput.singleOption("display", text(player, "editor.settings.display"), displays).build());
         }
         inputs.add(DialogInput.bool("animations", text(player, "editor.settings.animations"))
-            .initial(session.scene() != null && session.service().config().animations()).build());
+            .initial(session.scene() != null && session.scene().animations()).build());
         show(player, "editor.settings.title", List.of(), inputs, List.of(
             button(player, "editor.dialog.apply", WIDE, view -> {
                 final String grid = view.getText("grid");

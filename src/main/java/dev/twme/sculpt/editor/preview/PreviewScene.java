@@ -25,15 +25,28 @@ import dev.twme.textdisplayshape.shape.ShapeStyle;
  * on the server or is visible to anyone else.
  *
  * <p>Elements are addressed by key and updated in place, so the client
- * animates changes with Display interpolation instead of respawning. Every
- * method must run on the player's thread.</p>
+ * animates changes with Display interpolation instead of respawning. Updates
+ * are only sent when the requested geometry actually changed, so an animation
+ * runs once instead of being restarted every tick. Every method must run on
+ * the player's thread.</p>
+ *
+ * <p>The origin is both the Text Display position of every shape and the
+ * reference point of their world-space geometry, so it must stay axis
+ * aligned: a Display applies its transformation <em>after</em> the entity's
+ * own orientation, which means an origin carrying the player's view rotation
+ * would rotate every preview around the player. {@link #follow(Location)}
+ * keeps the origin near the player without moving anything on screen.</p>
  */
 public final class PreviewScene {
 
-    /** Interpolation used for cursor and preview updates. */
+    /** Interpolation used when an element changes shape, size, or color. */
     public static final int UPDATE_TICKS = 2;
+    /** Ticks a pulse holds its color before it starts to fade out. */
+    private static final int PULSE_HOLD_TICKS = 2;
     private static final int PULSE_FADE_TICKS = 6;
     private static final float VIEW_RANGE = 4.0f;
+    /** Distance the player may move before the scene rebases its origin. */
+    private static final double REBASE_DISTANCE_SQUARED = 8.0 * 8.0;
 
     private final PacketShapeFactory shapes;
     private final UUID viewer;
@@ -53,13 +66,27 @@ public final class PreviewScene {
             final boolean animations) {
         this.shapes = shapes;
         this.viewer = viewer;
-        this.origin = origin.clone();
+        this.origin = aligned(origin);
         this.budget = budget;
         this.animations = animations;
     }
 
+    /**
+     * Apply an animation setting to the whole scene, including the elements
+     * that already exist.
+     */
     public void setAnimations(final boolean enabled) {
-        this.animations = enabled;
+        if (animations == enabled) return;
+        animations = enabled;
+        final int ticks = enabled ? UPDATE_TICKS : 0;
+        for (final Element element : elements.values()) {
+            element.shape().setInterpolationDuration(ticks);
+        }
+    }
+
+    /** Whether previews animate for this player. */
+    public boolean animations() {
+        return animations;
     }
 
     /** Whether the last update had to skip elements to stay within the budget. */
@@ -125,19 +152,19 @@ public final class PreviewScene {
         final Element existing = elements.get(key);
         if (existing != null && existing.shape() instanceof PacketPolyline polyline
                 && existing.closed() == closed) {
+            recolor(existing, argb);
+            if (same(points, existing.points())) return;
             final int extra = segments(points.size(), closed) - polyline.getSegmentCount();
             if (extra > 0 && !fits(extra)) return;
             polyline.setPoints(points);
-            recolor(existing, argb);
+            existing.setPoints(points);
             return;
         }
         remove(key);
         if (!fits(segments(points.size(), closed))) return;
         final PacketPolyline polyline = shapes.polyline(origin, points, thickness)
             .closed(closed).style(style(argb)).build();
-        elements.put(key, new Element(polyline, argb, closed));
-        polyline.addViewer(viewer);
-        polyline.spawn();
+        add(key, polyline, argb, points, closed);
     }
 
     /**
@@ -149,18 +176,19 @@ public final class PreviewScene {
         for (final Vector3f[] triangle : input) {
             if (!degenerate(triangle)) triangles.add(triangle);
         }
-        final Element existing = elements.get(key);
+        Element element = elements.get(key);
         final ShapeGroup group;
-        if (existing != null && existing.shape() instanceof ShapeGroup found
+        if (element != null && element.shape() instanceof ShapeGroup found
                 && !(found instanceof BoxOutline) && !(found instanceof BoxFaces)) {
             group = found;
-            recolor(existing, argb);
+            recolor(element, argb);
+            if (same(flatten(triangles), element.points())) return;
         } else {
             remove(key);
             group = new ShapeGroup();
             group.addViewer(viewer);
             group.spawn();
-            elements.put(key, new Element(group, argb, false));
+            element = add(key, group, argb);
         }
         final List<Shape> members = group.getMembers();
         for (int index = 0; index < triangles.size(); index++) {
@@ -176,6 +204,7 @@ public final class PreviewScene {
         for (int index = members.size() - 1; index >= triangles.size(); index--) {
             group.remove(members.get(index));
         }
+        element.setPoints(flatten(triangles));
     }
 
     public void remove(final String key) {
@@ -199,12 +228,40 @@ public final class PreviewScene {
     }
 
     // =====================================================================
+    //  Following the player
+    // =====================================================================
+
+    /**
+     * Rebase the origin onto the player once they have moved far enough. The
+     * shape origins and their stored translations move by the same amount, so
+     * the previews stay where they are on screen while the Text Display
+     * entities stay next to the viewer and keep small translations.
+     */
+    public void follow(final Location player) {
+        if (player == null || !Objects.equals(player.getWorld(), origin.getWorld())) return;
+        final double x = player.getX();
+        final double y = player.getY();
+        final double z = player.getZ();
+        final double dx = x - origin.getX();
+        final double dy = y - origin.getY();
+        final double dz = z - origin.getZ();
+        if (dx * dx + dy * dy + dz * dz < REBASE_DISTANCE_SQUARED) return;
+        shapes.batch(() -> {
+            for (final Element element : elements.values()) element.shape().teleportOrigin(x, y, z);
+            for (final Pulse pulse : pulses) pulse.faces().teleportOrigin(x, y, z);
+        });
+        origin.setX(x);
+        origin.setY(y);
+        origin.setZ(z);
+    }
+
+    // =====================================================================
     //  Pulses
     // =====================================================================
 
     /**
-     * Briefly highlight a region, then fade it out. Used to show what a
-     * commit, undo, or redo changed.
+     * Briefly highlight a region: hold the color for a moment, then fade it
+     * out. Used to show what a commit, undo, or redo changed.
      */
     public void pulse(final Vector3f min, final Vector3f max, final int argb) {
         if (!animations || !fits(6)) return;
@@ -213,7 +270,10 @@ public final class PreviewScene {
             style(argb).withInterpolationDuration(PULSE_FADE_TICKS));
         faces.addViewer(viewer);
         faces.spawn();
-        pulses.add(new Pulse(faces, pulseCounter + 1, pulseCounter + 2 + PULSE_FADE_TICKS));
+        // tick() advances the counter before it runs the pulses, so the first
+        // check after this frame happens on the next tick.
+        final int fadeAt = pulseCounter + PULSE_HOLD_TICKS;
+        pulses.add(new Pulse(faces, fadeAt, fadeAt + PULSE_FADE_TICKS + 1));
     }
 
     /** Advance pulse animations; call once per tick. */
@@ -249,17 +309,27 @@ public final class PreviewScene {
     //  Helpers
     // =====================================================================
 
-    private void add(final String key, final Shape shape, final int argb) {
-        elements.put(key, new Element(shape, argb, false));
+    private Element add(final String key, final Shape shape, final int argb) {
+        return add(key, shape, argb, List.of(), false);
+    }
+
+    private Element add(
+            final String key,
+            final Shape shape,
+            final int argb,
+            final List<Vector3f> points,
+            final boolean closed) {
+        final Element element = new Element(shape, argb, closed, points);
+        elements.put(key, element);
         shape.addViewer(viewer);
         shape.spawn();
+        return element;
     }
 
     private void recolor(final Element element, final int argb) {
         if (element.argb() == argb) return;
         element.shape().setColor(argb);
-        elements.replaceAll((key, value) -> value == element
-            ? new Element(value.shape(), argb, value.closed()) : value);
+        element.setArgb(argb);
     }
 
     private boolean fits(final int additional) {
@@ -276,6 +346,37 @@ public final class PreviewScene {
             .withInterpolationDuration(animations ? UPDATE_TICKS : 0);
     }
 
+    /**
+     * The given origin without view rotation. Preview geometry is expressed in
+     * world coordinates and every shape spawns at this origin, so the player's
+     * yaw and pitch must not leak into it.
+     */
+    static Location aligned(final Location origin) {
+        final Location aligned = origin.clone();
+        aligned.setYaw(0f);
+        aligned.setPitch(0f);
+        return aligned;
+    }
+
+    private static List<Vector3f> flatten(final List<Vector3f[]> triangles) {
+        final List<Vector3f> points = new ArrayList<>(triangles.size() * 3);
+        for (final Vector3f[] triangle : triangles) {
+            points.add(triangle[0]);
+            points.add(triangle[1]);
+            points.add(triangle[2]);
+        }
+        return points;
+    }
+
+    /** Whether both lists hold the same points in the same order. */
+    static boolean same(final List<Vector3f> first, final List<Vector3f> second) {
+        if (first.size() != second.size()) return false;
+        for (int index = 0; index < first.size(); index++) {
+            if (!first.get(index).equals(second.get(index))) return false;
+        }
+        return true;
+    }
+
     private static int segments(final int points, final boolean closed) {
         return closed && points > 2 ? points : points - 1;
     }
@@ -286,9 +387,43 @@ public final class PreviewScene {
         return ab.cross(ac).lengthSquared() < 1e-8f;
     }
 
-    private record Element(Shape shape, int argb, boolean closed) {
-        Element {
-            Objects.requireNonNull(shape, "shape");
+    /** One preview shape and the last inputs it was updated with. */
+    private static final class Element {
+
+        private final Shape shape;
+        private final boolean closed;
+        private int argb;
+        private List<Vector3f> points;
+
+        Element(final Shape shape, final int argb, final boolean closed, final List<Vector3f> points) {
+            this.shape = Objects.requireNonNull(shape, "shape");
+            this.argb = argb;
+            this.closed = closed;
+            this.points = List.copyOf(points);
+        }
+
+        Shape shape() {
+            return shape;
+        }
+
+        int argb() {
+            return argb;
+        }
+
+        boolean closed() {
+            return closed;
+        }
+
+        List<Vector3f> points() {
+            return points;
+        }
+
+        void setArgb(final int argb) {
+            this.argb = argb;
+        }
+
+        void setPoints(final List<Vector3f> points) {
+            this.points = List.copyOf(points);
         }
     }
 

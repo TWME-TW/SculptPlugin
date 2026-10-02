@@ -152,6 +152,7 @@ public final class EditorSession {
             player, grid(), service.config().reach(), plugin()::getActiveBlock).trace();
         target = traced == null ? null : CellTarget.of(traced, grid());
         scene.beginFrame();
+        scene.follow(player.getLocation());
         try {
             tool().preview(this);
         } catch (final RuntimeException failure) {
