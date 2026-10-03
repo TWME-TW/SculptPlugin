@@ -50,7 +50,7 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 | 4 | Paint | Pick the targeted material. | Repaint cells without changing the shape. |
 | 5 | Select | Set the two corners of a box of cells. | Open the selection actions. |
 | 6 | Transform | Grab the selection, then left-click again to drop it. | Move or copy the selection to the preview position. |
-| 7 | Shape | Add a control point, or grab and drag an existing one. | Build the previewed shape. |
+| 7 | Shape | Add a control point, or grab and drag an existing one. `Shift` + left-click starts the next surface line. | Build the previewed shape. |
 | 8 | Blueprint | Choose a blueprint. | Preview the paste; right-click the same spot again to paste. |
 | 9 | Settings | Open the material palette. | Open the editor settings. |
 
@@ -62,12 +62,14 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 
 **Smoothing.** `Shift` + right-click with the Smooth tool sets the brush radius, its sphere or cube shape, and the number of smoothing passes. Each pass repeats the majority filter on the result of the previous one, so a rough surface keeps rounding instead of stopping after a single cell of change. The result is still applied as one undoable edit.
 
-**Shapes.** Choose a shape type in the Shape tool settings (`Shift` + right-click). You can also set the thickness, the number of rows in a surface grid, hollow spheres and cylinders, and carving instead of adding. The preview updates live while you add or drag points.
+**Shapes.** Choose a shape type in the Shape tool settings (`Shift` + right-click). You can also set the thickness, hollow spheres and cylinders, and carving instead of adding. The preview updates live while you add or drag points.
+
+A surface is drawn one line at a time: left-click to add the points of the current line, then press `Shift` + left-click to start the next one. Every line is smoothed with a spline, and the strips between consecutive lines are swept into a single surface that passes through all of them, so line A, then B, then C gives a surface from A through B to C. `Q` removes the last point, or the last line once it is empty.
 
 | Shape | Points | Result |
 | --- | --- | --- |
 | Plane | 3 or more | A multi-angle plane joined as a fan from the first point. Three points form a triangle at any angle; four points form a quad, which may be folded. |
-| Surface | a grid of 2×2 to 4×4 | A curved Bézier surface. The surface touches the corner points and is pulled towards the others. |
+| Surface | 2 or more lines of 2 or more points | A surface lofted through the lines in order. Two points per line stay straight; more curve the line. |
 | Curve | 2 or more | A beam or smooth curve passing through every point. |
 | Sphere | 2 | A sphere around the first point, passing through the second. |
 | Cylinder | 3 | A cylinder whose axis runs from the first to the second point, with the third point on its side. |

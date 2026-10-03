@@ -38,7 +38,6 @@ class EditorMessagesTest {
                 while (matcher.find()) keys.add(matcher.group(1));
             }
         }
-        keys.remove("building.shape.surface.grid");
         assertAll(keys);
     }
 
@@ -59,9 +58,14 @@ class EditorMessagesTest {
         }
         for (final ShapeTool.Type type : ShapeTool.Type.values()) {
             keys.add("editor.shape_type." + type.id());
-            keys.add("building.shape." + type.id() + ".points");
+            if (type == ShapeTool.Type.SURFACE) {
+                keys.add("building.shape.surface.lines");
+                keys.add("building.shape.surface.line_points");
+            } else {
+                keys.add("building.shape." + type.id() + ".points");
+            }
         }
-        keys.add("building.shape.surface.grid");
+        keys.add("editor.status.surface");
         for (int line = 1; line <= 8; line++) keys.add("editor.help.line" + line);
         for (final String sub : List.of("edit", "undo", "redo", "blueprint", "admin")) {
             keys.add("command.sculpt.help." + sub);

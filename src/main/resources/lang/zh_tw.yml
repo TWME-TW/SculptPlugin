@@ -315,8 +315,8 @@ building:
     plane:
       points: "<#CE5F4E>平面至少需要 3 個控制點（目前 {0} 個）。控制點會依序以第一點為中心組成扇形。"
     surface:
-      points: "<#CE5F4E>曲面至少需要 2×2 的控制網格（目前 {0} 個點）。"
-      grid: "<#CE5F4E>{0} 個點無法組成控制網格；請增加控制點或使用 <white>--rows <n><#CE5F4E>。"
+      lines: "<#CE5F4E>曲面至少需要 2 條控制線；按 <white>Shift<#CE5F4E> + 左鍵開始下一條線。"
+      line_points: "<#CE5F4E>每條曲面控制線至少需要 2 個點。"
     curve:
       points: "<#CE5F4E>曲線至少需要 2 個控制點（目前 {0} 個）。"
     sphere:
@@ -417,6 +417,7 @@ editor:
     move: "<gray>移動 <white>{0}, {1}, {2}</white> · <white>{3}°"
     copy: "<gray>複製到 <white>{0}, {1}, {2}</white> · <white>{3}°"
     shape: "<gray>{0} · <white>{1}</white> 點 · 厚度 <white>{2}"
+    surface: "<gray>{0} · <white>{1}</white> 條線 · <white>{2}</white> 點 · 厚度 <white>{3}"
     no_blueprint: "<gray>尚未選擇藍圖"
   brush_shape:
     sphere: "球體"
@@ -457,14 +458,16 @@ editor:
   shape:
     point_added: "<#5FBA6B>控制點 <white>#{0}"
     point_removed: "<#E8C96D>已移除控制點，剩餘 <white>{0}</white> 個。"
+    line_started: "<#5FBA6B>已開始第 <white>{0}</white> 條線；左鍵加入這條線的控制點。"
+    line_removed: "<#E8C96D>已移除一條線，剩餘 <white>{0}</white> 條。"
+    line_short: "<#CE5F4E>曲面控制線至少需要 <white>{0}<#CE5F4E> 個點才能開始下一條線。"
     title: "形狀"
-    body: "控制點依序連接。曲面會逐列讀取控制點。"
+    body: "控制點依序連接。曲面以每次左鍵為一條控制線：按 Shift + 左鍵開始下一條線，相鄰兩條線之間會掃出條帶，組成通過每一條線的連續曲面。"
     type: "形狀"
     thickness: "厚度（格）"
     hollow: "空心球體或圓柱"
     carve: "挖除而不是堆加"
-    rows: "曲面列數（0 = 自動）"
-    clear: "清除控制點"
+    clear: "移除最後一個點"
   brush:
     title: "筆刷"
     radius: "半徑（格）"

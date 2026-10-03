@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Material;
@@ -73,25 +75,43 @@ class EditorToolLogicTest {
     }
 
     @Test
-    void surfaceRowsPreferSquareNets() {
-        assertEquals(2, ShapeTool.surfaceRows(4, 0));
-        assertEquals(3, ShapeTool.surfaceRows(9, 0));
-        assertEquals(2, ShapeTool.surfaceRows(6, 0));
-        assertEquals(-1, ShapeTool.surfaceRows(5, 0));
-        assertEquals(3, ShapeTool.surfaceRows(12, 3));
-        assertEquals(-1, ShapeTool.surfaceRows(12, 5));
-        assertEquals(-1, ShapeTool.surfaceRows(4, 4));
+    void aSurfaceNeedsTwoCompleteLines() {
+        final ShapeTool tool = new ShapeTool();
+        tool.configure(ShapeTool.Type.SURFACE, 1, 16, false, false);
+        assertEquals("building.shape.surface.lines", tool.validate());
+
+        tool.lines().add(new ArrayList<>(List.of(new Vector3d(0, 0, 0), new Vector3d(4, 0, 0))));
+        assertEquals("building.shape.surface.lines", tool.validate(),
+            "one line alone cannot form a surface");
+
+        tool.lines().add(new ArrayList<>(List.of(new Vector3d(0, 0, 4))));
+        assertEquals("building.shape.surface.line_points", tool.validate(),
+            "a line with a single point is incomplete");
+
+        tool.lines().get(1).add(new Vector3d(4, 0, 4));
+        assertNull(tool.validate());
+
+        // Switching away from a surface keeps only the first line.
+        tool.configure(ShapeTool.Type.PLANE, 1, 16, false, false);
+        assertEquals(1, tool.lines().size());
+        assertEquals(2, tool.lines().getFirst().size());
+    }
+
+    @Test
+    void otherShapesUseTheirFirstLine() {
+        final ShapeTool tool = new ShapeTool();
+        assertEquals("building.shape.plane.points", tool.validate(),
+            "a plane needs three points");
+
+        tool.lines().add(new ArrayList<>(List.of(
+            new Vector3d(0, 0, 0), new Vector3d(4, 0, 0), new Vector3d(4, 0, 4))));
+        assertNull(tool.validate());
     }
 
     @Test
     void cylinderRadiusIsMeasuredFromTheAxis() {
         assertEquals(3.0, ShapeTool.distanceToAxis(new Vector3d(3, 5, 0),
             new Vector3d(0, 0, 0), new Vector3d(0, 10, 0)), 1e-9);
-    }
-
-    @Test
-    void shapeValidationReportsPointCounts() {
-        assertEquals("building.shape.plane.points", new ShapeTool().validate());
     }
 
     private static BlockData blockData(final Material material) {

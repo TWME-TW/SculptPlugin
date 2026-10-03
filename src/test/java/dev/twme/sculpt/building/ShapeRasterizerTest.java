@@ -83,39 +83,55 @@ class ShapeRasterizerTest {
     }
 
     @Test
-    void bilinearSurfaceMatchesFlatRectangle() {
+    void loftingTwoStraightLinesMatchesAFlatRectangle() {
         final CellVolume volume = volume(2);
-        ShapeRasterizer.bezierSurface(List.of(
-            cellCenter(2, 0, 1, 0), cellCenter(2, 0, 1, 5),
-            cellCenter(2, 5, 1, 0), cellCenter(2, 5, 1, 5)), 2, 1.0, volume);
+        ShapeRasterizer.loft(List.of(
+            List.of(cellCenter(2, 0, 1, 0), cellCenter(2, 5, 1, 0)),
+            List.of(cellCenter(2, 0, 1, 5), cellCenter(2, 5, 1, 5))), 1.0, volume);
 
         assertEquals(36, volume.cellCount());
         assertTrue(cells(volume).stream().allMatch(cell -> cell.y() == 1));
     }
 
     @Test
-    void quadraticSurfaceBulgesTowardsItsMiddleControlPoint() {
+    void loftingThreeLinesPassesThroughTheMiddleLine() {
         final CellVolume volume = volume(4);
-        final List<Vector3d> net = new ArrayList<>();
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 3; column++) {
-                final int height = row == 1 && column == 1 ? 16 : 0;
-                net.add(cellCenter(4, row * 8, height, column * 8));
-            }
-        }
-        ShapeRasterizer.bezierSurface(net, 3, 1.0, volume);
+        // Three parallel lines at z = 0, 8 and 16. The middle line is raised,
+        // and the surface must pass through it while staying smooth between.
+        ShapeRasterizer.loft(List.of(
+            List.of(cellCenter(4, 0, 0, 0), cellCenter(4, 16, 0, 0)),
+            List.of(cellCenter(4, 0, 8, 8), cellCenter(4, 16, 8, 8)),
+            List.of(cellCenter(4, 0, 0, 16), cellCenter(4, 16, 0, 16))), 1.0, volume);
 
         final Set<Cell> cells = cells(volume);
         long middleHeight = Long.MIN_VALUE;
-        long cornerHeight = Long.MIN_VALUE;
+        long endHeight = Long.MIN_VALUE;
         for (final Cell cell : cells) {
-            if (cell.x() == 8 && cell.z() == 8) middleHeight = Math.max(middleHeight, cell.y());
-            if (cell.x() == 0 && cell.z() == 0) cornerHeight = Math.max(cornerHeight, cell.y());
+            if (cell.z() == 8) middleHeight = Math.max(middleHeight, cell.y());
+            if (cell.z() == 0 || cell.z() == 16) endHeight = Math.max(endHeight, cell.y());
         }
-        // The patch passes through 1/4 of the middle control point's height.
-        assertEquals(4, middleHeight, 1);
-        assertEquals(0, cornerHeight);
+        assertTrue(middleHeight >= 7, "the surface passes through the middle line");
+        assertTrue(endHeight <= 1, "the surface passes through the end lines");
         assertTrue(isSixConnected(cells));
+    }
+
+    @Test
+    void loftingLinesWithDifferentPointCountsStillFormsOneSurface() {
+        final CellVolume volume = volume(4);
+        ShapeRasterizer.loft(List.of(
+            List.of(cellCenter(4, 0, 0, 0), cellCenter(4, 16, 0, 0)),
+            List.of(cellCenter(4, 0, 0, 16), cellCenter(4, 8, 4, 16),
+                cellCenter(4, 16, 0, 16))), 1.0, volume);
+
+        assertTrue(volume.cellCount() > 0);
+        assertTrue(isSixConnected(cells(volume)),
+            "lines of different lengths still rasterize as one surface");
+    }
+
+    @Test
+    void loftRejectsASingleLine() {
+        assertThrows(IllegalArgumentException.class, () -> ShapeRasterizer.loft(
+            List.of(List.of(new Vector3d(), new Vector3d(1, 0, 0))), 1.0, volume(2)));
     }
 
     @Test
@@ -223,8 +239,9 @@ class ShapeRasterizerTest {
     void invalidShapesAreRejected() {
         assertThrows(IllegalArgumentException.class, () -> ShapeRasterizer.polygon(
             List.of(new Vector3d(), new Vector3d(1, 0, 0)), 1.0, volume(2)));
-        assertThrows(IllegalArgumentException.class, () -> ShapeRasterizer.bezierSurface(
-            List.of(new Vector3d(), new Vector3d(), new Vector3d()), 2, 1.0, volume(2)));
+        assertThrows(IllegalArgumentException.class, () -> ShapeRasterizer.loft(
+            List.of(List.of(new Vector3d(), new Vector3d()),
+                List.of(new Vector3d(1, 0, 0))), 1.0, volume(2)));
         assertThrows(IllegalArgumentException.class, () -> ShapeRasterizer.cylinder(
             new Vector3d(1, 1, 1), new Vector3d(1, 1, 1), 2.0, 0.0, volume(2)));
     }
