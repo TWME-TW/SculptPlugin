@@ -41,6 +41,14 @@ public interface Tool {
         return false;
     }
 
+    /**
+     * Double {@code Q}: drop everything the tool is holding at once, such as
+     * every control point of a shape. Returns whether anything was cleared.
+     */
+    default boolean clear(final EditorSession session) {
+        return false;
+    }
+
     /** {@code Shift}+right click. */
     default void openSettings(final EditorSession session) {
     }

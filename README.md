@@ -33,6 +33,7 @@ The same keys work for every tool:
 | `F` | Cycle through your permitted resolutions. |
 | `Shift` + `F` | Leave the editor. |
 | `Q` | Cancel what the tool is doing, such as a selection or unfinished shape. |
+| `Q` twice quickly | Drop everything the tool is holding at once, such as every control point of a shape. |
 | `Shift` + `Q` | Undo your last edit. |
 | Middle click | Use the material under the cursor. |
 
@@ -49,7 +50,7 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 | 3 | Smooth | Round off spikes and corners and fill pits. | Same as left-click. |
 | 4 | Paint | Pick the targeted material. | Repaint cells without changing the shape. |
 | 5 | Select | Set the two corners of a box of cells. | Open the selection actions. |
-| 6 | Transform | Grab the selection, then left-click again to drop it. | Move or copy the selection to the preview position. |
+| 6 | Transform | Grab the handle under the cursor, then left-click again to release it. | Apply the pending move, rotation, or mirror. |
 | 7 | Shape | Add a control point, or grab and drag an existing one. `Shift` + left-click starts the next surface line. | Build the previewed shape. |
 | 8 | Blueprint | Choose a blueprint. | Preview the paste; right-click the same spot again to paste. |
 | 9 | Settings | Open the material palette. | Open the editor settings. |
@@ -58,13 +59,15 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 
 **Selection actions.** With a selection, right-click with the Select tool to delete, fill, or repaint it, replace its material while keeping the visible shape, restore automatic lighting, change its fill mode, or save it as a blueprint.
 
-**Transform.** Grab the selection and move the cursor; a ghost box follows it. Use `Shift` + scroll to rotate in 90° steps. `Shift` + right-click sets mirroring and chooses between moving and copying. `Q` resets the transform.
+**Transform.** A gizmo sits at the center of the selection with a handle for each action: three arrows for axis moves, a square for free movement in the horizontal plane, a ring for rotation, and a cube on each horizontal axis for mirroring. Left-click grabs the handle under the cursor and it follows your view until you left-click again, so looking around never moves the selection on its own. Only movement along the handle you grabbed counts, which is why a drag stays on its axis. Handles grow with distance so they stay a usable size, and the hovered handle brightens.
+
+`Shift` + scroll cycles the rotation snap step (90°, 45°, 15°, 5°, 1°, then free), `Shift` freezes an active drag, `Q` resets it, and right-click applies it. Rotating by a whole quarter turn is exact; any other angle resamples the destination so the result has no holes. `Shift` + right-click opens the dialog, which chooses between moving and copying.
 
 **Smoothing.** `Shift` + right-click with the Smooth tool sets the brush radius, its sphere or cube shape, and the number of smoothing passes. Each pass repeats the majority filter on the result of the previous one, so a rough surface keeps rounding instead of stopping after a single cell of change. The result is still applied as one undoable edit.
 
 **Shapes.** Choose a shape type in the Shape tool settings (`Shift` + right-click). You can also set the thickness, hollow spheres and cylinders, and carving instead of adding. The preview updates live while you add or drag points.
 
-A surface is drawn one line at a time: left-click to add the points of the current line, then press `Shift` + left-click to start the next one. Every line is smoothed with a spline, and the strips between consecutive lines are swept into a single surface that passes through all of them, so line A, then B, then C gives a surface from A through B to C. `Q` removes the last point, or the last line once it is empty.
+A surface is drawn one line at a time: left-click to add the points of the current line, then press `Shift` + left-click to start the next one. Every line is smoothed with a spline, and the strips between consecutive lines are swept into a single surface that passes through all of them, so line A, then B, then C gives a surface from A through B to C. `Q` removes the last point, or the last line once it is empty; press `Q` twice quickly to drop the whole surface at once.
 
 | Shape | Points | Result |
 | --- | --- | --- |
@@ -290,6 +293,18 @@ mvn -B verify
 ```
 
 The built plugin is written to `target/Sculpt-*.jar`.
+
+### Integration tests
+
+`integration/paper-plugin` is a probe plugin that inspects Sculpt's state over a command, and `integration/mineflayer` drives a real client against a real server. The scripts in that directory download Paper (and the editor plugin they need), start a server, and run their test:
+
+```bash
+integration/mineflayer/run-e2e.sh                 # WorldEdit/FAWE paste detection
+integration/mineflayer/run-folia-blueprint-e2e.sh # Folia region ownership
+integration/mineflayer/run-gizmo-e2e.sh           # transform gizmo picking and dragging
+```
+
+They need Node 22+, `jq`, and network access on the first run to fetch the server jars. Set `SCULPT_E2E_KEEP_SERVER=true` to keep the temporary server for inspection.
 
 ## License
 

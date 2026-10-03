@@ -218,6 +218,11 @@ public final class EditorSession {
         if (!tool().cancel(this)) flash("editor.nothing_to_cancel");
     }
 
+    /** Double {@code Q}: drop everything the current tool holds. */
+    void clear() {
+        if (!tool().clear(this)) flash("editor.nothing_to_cancel");
+    }
+
     /** Middle click, or left click with the paint tool: pick the material under the cursor. */
     public void pickMaterialAtCursor() {
         if (target == null) return;

@@ -217,6 +217,29 @@ public final class ShapeTool implements Tool {
         return true;
     }
 
+    /**
+     * Double {@code Q} drops the whole shape at once: every control line and
+     * every point, for any shape type.
+     */
+    @Override
+    public boolean clear(final EditorSession session) {
+        if (lines.isEmpty()) return false;
+        final int count = lines.size();
+        final int points = clearLines();
+        session.scene().removePrefix(PREFIX);
+        session.flash("editor.shape.cleared", points, count);
+        return true;
+    }
+
+    /** Drop every control line; returns how many points were removed. */
+    int clearLines() {
+        draggingLine = -1;
+        draggingIndex = -1;
+        final int points = totalPoints();
+        lines.clear();
+        return points;
+    }
+
     private void removePoint(final int line, final int index) {
         if (line < 0 || line >= lines.size()) return;
         final List<Vector3d> points = lines.get(line);

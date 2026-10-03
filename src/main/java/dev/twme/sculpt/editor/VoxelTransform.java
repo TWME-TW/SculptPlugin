@@ -1,71 +1,47 @@
 package dev.twme.sculpt.editor;
 
 /**
- * Maps voxels of a source box to a destination: optional mirroring along X
- * and Z, a clockwise rotation around the Y axis in quarter turns (viewed from
- * above), then a translation of the box's minimum corner.
+ * Maps the voxels of a source box to a destination: a horizontal rotation
+ * around the box center with optional mirroring, then a translation.
+ *
+ * <p>The destination box is derived, not configured: it is the smallest
+ * whole-voxel box containing the transformed source, shifted by the
+ * translation. Rotation happens before translation, so the rotation pivot
+ * stays the center of the original selection however far it is dragged.</p>
  */
-public record VoxelTransform(
-        VoxelBox source,
-        int quarterTurns,
-        boolean mirrorX,
-        boolean mirrorZ,
-        long offsetX,
-        long offsetY,
-        long offsetZ
-) {
-
-    public VoxelTransform {
-        quarterTurns = Math.floorMod(quarterTurns, 4);
-    }
+public record VoxelTransform(VoxelRotation rotation, long offsetX, long offsetY, long offsetZ) {
 
     public static VoxelTransform identity(final VoxelBox source) {
-        return new VoxelTransform(source, 0, false, false, 0, 0, 0);
+        return new VoxelTransform(VoxelRotation.identity(source), 0, 0, 0);
     }
 
     public boolean isIdentity() {
-        return quarterTurns == 0 && !mirrorX && !mirrorZ
-            && offsetX == 0 && offsetY == 0 && offsetZ == 0;
+        return rotation.isIdentity() && offsetX == 0 && offsetY == 0 && offsetZ == 0;
     }
 
-    /** The box the transformed voxels occupy. */
-    public VoxelBox destination() {
-        final boolean swap = quarterTurns % 2 == 1;
-        final long sizeX = swap ? source.sizeZ() : source.sizeX();
-        final long sizeZ = swap ? source.sizeX() : source.sizeZ();
-        final long minX = source.minX() + offsetX;
-        final long minY = source.minY() + offsetY;
-        final long minZ = source.minZ() + offsetZ;
-        return new VoxelBox(minX, minY, minZ, minX + sizeX, minY + source.sizeY(), minZ + sizeZ);
+    /** The box the transformed voxels occupy, including the translation. */
+    public VoxelBox destination(final VoxelBox source) {
+        final VoxelBox rotated = rotation.destination(source);
+        return rotated.offset(offsetX, offsetY, offsetZ);
     }
 
-    /** The destination of one absolute source voxel, as {@code {x, y, z}}. */
+    /** The destination of one source voxel, as {@code {x, y, z}}. */
     public long[] apply(final long x, final long y, final long z) {
-        final long sizeX = source.sizeX();
-        final long sizeZ = source.sizeZ();
-        long lx = x - source.minX();
-        long lz = z - source.minZ();
-        if (mirrorX) lx = sizeX - 1 - lx;
-        if (mirrorZ) lz = sizeZ - 1 - lz;
-        long rx = lx;
-        long rz = lz;
-        switch (quarterTurns) {
-            case 1 -> {
-                rx = sizeZ - 1 - lz;
-                rz = lx;
-            }
-            case 2 -> {
-                rx = sizeX - 1 - lx;
-                rz = sizeZ - 1 - lz;
-            }
-            case 3 -> {
-                rx = lz;
-                rz = sizeX - 1 - lx;
-            }
-            default -> {
-            }
-        }
-        final VoxelBox destination = destination();
-        return new long[]{destination.minX() + rx, y + offsetY, destination.minZ() + rz};
+        final long[] horizontal = rotation.applyVoxel(x, z);
+        return new long[]{horizontal[0] + offsetX, y + offsetY, horizontal[1] + offsetZ};
+    }
+
+    /**
+     * The source voxel that lands in the given destination voxel, or
+     * {@code null} when the destination is not covered by the source box.
+     */
+    public long[] inverse(final long x, final long y, final long z, final VoxelBox source) {
+        final long uy = y - offsetY;
+        if (uy < source.minY() || uy >= source.maxY()) return null;
+        final long[] horizontal = rotation.inverseVoxel(x - offsetX, z - offsetZ);
+        final long ux = horizontal[0];
+        final long uz = horizontal[1];
+        if (!source.contains(ux, uy, uz)) return null;
+        return new long[]{ux, uy, uz};
     }
 }
