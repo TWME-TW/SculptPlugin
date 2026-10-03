@@ -28,8 +28,8 @@ public final class Gizmo {
     // ---- handle geometry, in blocks relative to the pivot ----
     private static final double AXIS_INNER = 0.22;
     private static final double AXIS_OUTER = 1.35;
-    private static final double AXIS_RADIUS = 0.14;
-    private static final double TIP_HALF = 0.10;
+    private static final double AXIS_RADIUS = 0.06;
+    private static final double TIP_HALF = 0.09;
     private static final double PLANE_INNER = 0.30;
     private static final double PLANE_OUTER = 0.78;
     private static final double RING_RADIUS = 1.75;
@@ -401,13 +401,16 @@ public final class Gizmo {
         final double s = scale;
         switch (handle.kind()) {
             case MOVE -> {
-                scene.outline(key + ".shaft",
+                // Filled rather than outlined, so the handle reads as a solid
+                // bar and the shaft can stay thin without disappearing.
+                scene.faces(key + ".shaft",
                     axisBox(pivot, handle, AXIS_INNER * s, AXIS_OUTER * s, AXIS_RADIUS * s),
-                    axisBoxMax(pivot, handle, AXIS_INNER * s, AXIS_OUTER * s, AXIS_RADIUS * s), color);
-                scene.outline(key + ".tip",
+                    axisBoxMax(pivot, handle, AXIS_INNER * s, AXIS_OUTER * s, AXIS_RADIUS * s),
+                    solid(color));
+                scene.faces(key + ".tip",
                     axisBox(pivot, handle, (AXIS_OUTER - TIP_HALF) * s, (AXIS_OUTER + TIP_HALF) * s, TIP_HALF * s),
                     axisBoxMax(pivot, handle, (AXIS_OUTER - TIP_HALF) * s, (AXIS_OUTER + TIP_HALF) * s, TIP_HALF * s),
-                    color);
+                    solid(color));
             }
             case MOVE_PLANE -> scene.faces(key + ".plane",
                 new Vector3f((float) (pivot.x + PLANE_INNER * s), (float) (pivot.y - 0.01),
@@ -416,12 +419,12 @@ public final class Gizmo {
                     (float) (pivot.z + PLANE_OUTER * s)),
                 active ? color : Colors.withAlpha(color, 0x50));
             case ROTATE -> scene.polyline(key + ".ring", ring(pivot), false, (float) (0.03 * s), color);
-            case MIRROR -> scene.outline(key + ".cube",
+            case MIRROR -> scene.faces(key + ".cube",
                 axisBox(pivot, handle, -(MIRROR_RADIUS + MIRROR_HALF) * s,
                     -(MIRROR_RADIUS - MIRROR_HALF) * s, MIRROR_HALF * s),
                 axisBoxMax(pivot, handle, -(MIRROR_RADIUS + MIRROR_HALF) * s,
                     -(MIRROR_RADIUS - MIRROR_HALF) * s, MIRROR_HALF * s),
-                color);
+                solid(color));
         }
     }
 
@@ -462,6 +465,11 @@ public final class Gizmo {
                 (float) (pivot.z + Math.sin(arc) * RING_RADIUS * scale)));
         }
         return points;
+    }
+
+    /** A solid handle face: the color at high alpha. */
+    private static int solid(final int argb) {
+        return Colors.withAlpha(argb, 0xC0);
     }
 
     /** Dim a handle's color so the hovered one stands out. */

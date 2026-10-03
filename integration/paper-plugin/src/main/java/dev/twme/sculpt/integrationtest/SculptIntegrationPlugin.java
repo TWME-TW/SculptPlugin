@@ -80,6 +80,26 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
                 foliaBlueprint(player);
                 return true;
             }
+            if (args.length >= 1 && "shape".equals(args[0])
+                    && sender instanceof Player player) {
+                shape(player, args);
+                return true;
+            }
+            if (args.length == 1 && "build".equals(args[0])
+                    && sender instanceof Player player) {
+                build(player);
+                return true;
+            }
+            if (args.length == 1 && "airclick".equals(args[0])
+                    && sender instanceof Player player) {
+                airClick(player);
+                return true;
+            }
+            if (args.length == 7 && "scan".equals(args[0])
+                    && sender instanceof Player player) {
+                scan(player, args);
+                return true;
+            }
             if (args.length >= 1 && "gizmo".equals(args[0])
                     && sender instanceof Player player) {
                 gizmo(player, args);
@@ -562,6 +582,133 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
     }
 
     /** The editor session for a player, or {@code null}. */
+    /** Place a surface control line straight through the tool. */
+    private void shape(Player player, String[] args) throws ReflectiveOperationException {
+        Object session = editorSession(player);
+        if (session == null) {
+            player.sendMessage("SCULPT_TEST shape=false;error=no_session");
+            return;
+        }
+        Object tool = invokeWithArgs(session, "tool", toolId("SHAPE"));
+        invokeWithArgs(tool, "configure", shapeType("SURFACE"), 1, 16, false, false);
+        List<Object> line = new ArrayList<>();
+        for (int index = 2; index + 2 < args.length; index += 3) {
+            line.add(new org.joml.Vector3d(
+                Double.parseDouble(args[index]),
+                Double.parseDouble(args[index + 1]),
+                Double.parseDouble(args[index + 2])));
+        }
+        List<Object> lines = lines(tool);
+        if (args.length >= 2 && "new".equals(args[1])) {
+            lines.clear();
+            lines.add(new ArrayList<>());
+        } else if (args.length >= 2 && "line".equals(args[1])) {
+            lines.add(new ArrayList<>());
+        } else if (lines.isEmpty()) {
+            lines.add(new ArrayList<>());
+        }
+        @SuppressWarnings("unchecked")
+        List<Object> current = (List<Object>) lines.getLast();
+        current.addAll(line);
+        player.sendMessage("SCULPT_TEST shape=ok;lines=" + lines.size()
+            + ";points=" + current.size() + ";problem=" + invoke(tool, "validate"));
+    }
+
+    /** Build whatever the shape tool currently holds. */
+    private void build(Player player) throws ReflectiveOperationException {
+        Object session = editorSession(player);
+        if (session == null) {
+            player.sendMessage("SCULPT_TEST build=false;error=no_session");
+            return;
+        }
+        invokeWithArgs(session, "selectTool", toolId("SHAPE"));
+        Object tool = invokeWithArgs(session, "tool", toolId("SHAPE"));
+        invokeWithArgs(tool, "secondary", session);
+        player.sendMessage("SCULPT_TEST build=ok");
+    }
+
+    /** A real left-click in the air while sneaking: this starts the next line. */
+    private void airClick(Player player) throws ReflectiveOperationException {
+        Object session = editorSession(player);
+        if (session == null) {
+            player.sendMessage("SCULPT_TEST airclick=false;error=no_session");
+            return;
+        }
+        // The click goes to the active tool, so the shape tool is selected.
+        invokeWithArgs(session, "selectTool", toolId("SHAPE"));
+        Object tool = invokeWithArgs(session, "tool", toolId("SHAPE"));
+        // The target is only recomputed on a tick, so force one first; otherwise
+        // the report below describes where the player was looking earlier.
+        invokeWithArgs(session, "tick");
+        int before = lines(tool).size();
+        boolean wasSneaking = player.isSneaking();
+        player.setSneaking(true);
+        boolean cancelled;
+        try {
+            PlayerInteractEvent event = new PlayerInteractEvent(
+                player, Action.LEFT_CLICK_AIR, player.getInventory().getItemInMainHand(),
+                null, BlockFace.UP, EquipmentSlot.HAND);
+            Bukkit.getPluginManager().callEvent(event);
+            cancelled = event.isCancelled();
+        } finally {
+            player.setSneaking(wasSneaking);
+        }
+        player.sendMessage("SCULPT_TEST airclick=ok;before=" + before
+            + ";after=" + lines(tool).size()
+            + ";cancelled=" + cancelled
+            + ";target=" + (invoke(session, "target") != null));
+    }
+
+    /**
+     * Count the cells inside a box. A cell's collision block can be invisible,
+     * so this reports the SculptBlocks themselves as well as world blocks.
+     */
+    private void scan(Player player, String[] args) throws ReflectiveOperationException {
+        int x0 = Integer.parseInt(args[1]), y0 = Integer.parseInt(args[2]);
+        int z0 = Integer.parseInt(args[3]);
+        int x1 = Integer.parseInt(args[4]), y1 = Integer.parseInt(args[5]);
+        int z1 = Integer.parseInt(args[6]);
+        int count = 0;
+        for (int x = x0; x <= x1; x++) {
+            for (int y = y0; y <= y1; y++) {
+                for (int z = z0; z <= z1; z++) {
+                    if (!player.getWorld().getBlockAt(x, y, z).getType().isAir()) count++;
+                }
+            }
+        }
+        int active = 0;
+        int activeMinY = Integer.MAX_VALUE, activeMaxY = Integer.MIN_VALUE;
+        for (Object sculptBlock : (java.util.Collection<?>) invoke(sculpt(), "getActiveBlocks")) {
+            Location at = (Location) publicField(sculptBlock, "pos").get(sculptBlock);
+            if (at.getWorld() != player.getWorld()) continue;
+            if (at.getBlockX() < x0 || at.getBlockX() > x1
+                    || at.getBlockZ() < z0 || at.getBlockZ() > z1) {
+                continue;
+            }
+            active++;
+            activeMinY = Math.min(activeMinY, at.getBlockY());
+            activeMaxY = Math.max(activeMaxY, at.getBlockY());
+        }
+        player.sendMessage("SCULPT_TEST scan=ok;active=" + active
+            + ";activeMinY=" + (active == 0 ? "-" : activeMinY)
+            + ";activeMaxY=" + (active == 0 ? "-" : activeMaxY)
+            + ";count=" + count);
+    }
+
+    /** The shape tool's control lines. */
+    @SuppressWarnings("unchecked")
+    private static List<Object> lines(Object tool) throws ReflectiveOperationException {
+        return (List<Object>) invoke(tool, "lines");
+    }
+
+    /** The {@code ShapeTool.Type} constant with the given name. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object shapeType(String name) throws ClassNotFoundException {
+        Class<? extends Enum> type = (Class<? extends Enum>)
+            Class.forName("dev.twme.sculpt.editor.tool.ShapeTool$Type");
+        return Enum.valueOf(type, name);
+    }
+
     private Object editorSession(Player player) throws ReflectiveOperationException {
         Object service = invoke(sculpt(), "getEditorService");
         return invokeWithArgs(service, "session", player);

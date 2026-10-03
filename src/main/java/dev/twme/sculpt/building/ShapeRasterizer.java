@@ -63,6 +63,12 @@ public final class ShapeRasterizer {
             final double thickness,
             final CellVolume output) {
         final List<List<Vector3d>> net = loftNet(lines, output.grid());
+        if (net.size() < 2) {
+            // One control line: there is no strip to sweep, so the shape is the
+            // curve through that line.
+            curve(net.getFirst(), thickness, output);
+            return;
+        }
         for (final List<Vector3d> line : net) {
             for (final Vector3d point : line) point.mul(output.grid());
         }
@@ -74,13 +80,23 @@ public final class ShapeRasterizer {
      * coordinates: {@code lines} rows of resampled points. The preview uses it
      * so it draws exactly the surface {@link #loft} builds.
      *
+     * <p>A single line has no sheet to sweep, so its own spline is returned as
+     * the net: the surface degenerates to the curve through that line.</p>
+     *
      * @param grid build resolution, used only to choose the sample density
      */
     public static List<List<Vector3d>> loftNet(
             final List<? extends List<? extends Vector3dc>> lines,
             final int grid) {
-        if (lines == null || lines.size() < 2) {
-            throw new IllegalArgumentException("at least 2 lines are required");
+        if (lines == null || lines.isEmpty()) {
+            throw new IllegalArgumentException("at least 1 line is required");
+        }
+        if (lines.size() == 1) {
+            // One line has no sheet to sweep, so the net is its own spline: the
+            // surface degenerates to the curve through that line, which is
+            // everything one line can describe.
+            requireAtLeast(lines.getFirst(), 2);
+            return List.of(curvePoints(lines.getFirst(), 8));
         }
         final List<List<Vector3d>> control = new ArrayList<>(lines.size());
         for (final List<? extends Vector3dc> line : lines) {

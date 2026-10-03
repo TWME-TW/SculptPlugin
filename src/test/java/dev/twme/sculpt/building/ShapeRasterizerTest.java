@@ -129,9 +129,34 @@ class ShapeRasterizerTest {
     }
 
     @Test
-    void loftRejectsASingleLine() {
+    void oneLineLoftsIntoTheCurveThroughItself() {
+        // A single line has no sheet to sweep, so it becomes the curve through
+        // that line: every point of it is kept and the middle one bows away.
+        final CellVolume volume = volume(4);
+        ShapeRasterizer.loft(List.of(List.of(
+            cellCenter(4, 0, 0, 0), cellCenter(4, 10, 6, 0), cellCenter(4, 20, 0, 0))),
+            1.0, volume);
+
+        final Set<Cell> cells = cells(volume);
+        assertFalse(cells.isEmpty(), "one line still builds something");
+        assertTrue(cells.contains(new Cell(0, 0, 0)), "the first point is kept");
+        assertTrue(cells.contains(new Cell(20, 0, 0)), "the last point is kept");
+        assertTrue(cells.stream().anyMatch(cell -> cell.y() >= 4),
+            "the curve bows up toward the middle point, not straight across");
+        assertTrue(cells.stream().allMatch(cell -> cell.z() == 0),
+            "a single line stays in its own plane");
+    }
+
+    @Test
+    void loftRejectsALineWithOnePoint() {
         assertThrows(IllegalArgumentException.class, () -> ShapeRasterizer.loft(
-            List.of(List.of(new Vector3d(), new Vector3d(1, 0, 0))), 1.0, volume(2)));
+            List.of(List.of(new Vector3d(1, 0, 0))), 1.0, volume(2)));
+    }
+
+    @Test
+    void loftRejectsNoLinesAtAll() {
+        assertThrows(IllegalArgumentException.class, () -> ShapeRasterizer.loft(
+            List.of(), 1.0, volume(2)));
     }
 
     @Test
