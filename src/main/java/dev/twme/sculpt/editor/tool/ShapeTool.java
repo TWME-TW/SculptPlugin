@@ -23,10 +23,16 @@ import dev.twme.sculpt.editor.ui.EditorDialogs;
 import dev.twme.sculpt.util.MessageUtil;
 
 /**
- * Multi-angle planes, curved surfaces, curves, spheres, and cylinders from
+ * Multi-angle planes, lofted surfaces, curves, spheres, and cylinders from
  * control points. Left click adds a point in front of the targeted face, or
  * grabs a point under the cursor so it follows the view; left click again
  * drops it. The shape is previewed live and applied with right click.
+ *
+ * <p>Every shape is described by one or more control lines. A plane, curve,
+ * sphere, or cylinder uses a single line. A surface uses one line per
+ * left-click group: {@code Shift} + left click starts the next line, and the
+ * strips between consecutive lines are swept into one continuous surface, so
+ * line A, then B, then C produces a surface from A through B to C.</p>
  */
 public final class ShapeTool implements Tool {
 
@@ -52,19 +58,20 @@ public final class ShapeTool implements Tool {
     }
 
     public static final int MAX_POINTS = 16;
+    /** Points one surface line needs before the next line may start. */
+    static final int MIN_LINE_POINTS = 2;
     private static final String PREFIX = "shape.";
     private static final double HANDLE_HALF = 0.09;
     private static final double PICK_RADIUS = 0.25;
     private static final int SURFACE_LINES = 5;
-    private static final int SURFACE_SEGMENTS = 12;
 
-    private final List<Vector3d> points = new ArrayList<>();
+    private final List<List<Vector3d>> lines = new ArrayList<>();
     private Type type = Type.PLANE;
     private int thickness = 1;
     private boolean hollow;
     private boolean carve;
-    private int rows;
-    private int dragging = -1;
+    private int draggingLine = -1;
+    private int draggingIndex = -1;
     private double dragDistance;
     private Type previewedType;
 
@@ -89,17 +96,22 @@ public final class ShapeTool implements Tool {
         return carve;
     }
 
-    public int rows() {
-        return rows;
+    /** The control lines drawn so far; the last one is still being drawn. */
+    public List<List<Vector3d>> lines() {
+        return lines;
     }
 
-    public void configure(final EditorSession session, final Type newType, final int newThickness,
-                          final boolean newHollow, final boolean newCarve, final int newRows) {
+    public void configure(final Type newType, final int newThickness, final int maxThickness,
+                          final boolean newHollow, final boolean newCarve) {
         this.type = newType;
-        this.thickness = Math.clamp(newThickness, 1, limits(session).maxThickness());
+        this.thickness = Math.clamp(newThickness, 1, Math.max(1, maxThickness));
         this.hollow = newHollow;
         this.carve = newCarve;
-        this.rows = Math.max(0, newRows);
+        if (newType != Type.SURFACE && lines.size() > 1) {
+            final List<Vector3d> merged = new ArrayList<>(lines.getFirst());
+            lines.clear();
+            lines.add(merged);
+        }
     }
 
     // =====================================================================
@@ -108,31 +120,48 @@ public final class ShapeTool implements Tool {
 
     @Override
     public void primary(final EditorSession session) {
-        if (dragging >= 0) {
-            dragging = -1;
+        if (draggingLine >= 0) {
+            draggingLine = -1;
+            draggingIndex = -1;
             return;
         }
-        final int hovered = hovered(session);
-        if (hovered >= 0) {
-            dragging = hovered;
-            dragDistance = eye(session).distance(points.get(hovered));
+        final int[] hovered = hovered(session);
+        if (hovered != null) {
+            draggingLine = hovered[0];
+            draggingIndex = hovered[1];
+            dragDistance = eye(session).distance(lines.get(hovered[0]).get(hovered[1]));
             return;
         }
         final CellTarget target = session.target();
         if (target == null) return;
-        if (points.size() >= MAX_POINTS) {
+        if (type == Type.SURFACE && session.player().isSneaking()) {
+            startLine(session);
+            return;
+        }
+        if (totalPoints() >= MAX_POINTS) {
             session.flash("building.points.limit", MAX_POINTS);
             return;
         }
-        points.add(target.center(true));
-        session.flash("editor.shape.point_added", points.size());
+        if (lines.isEmpty()) lines.add(new ArrayList<>());
+        lines.getLast().add(target.center(true));
+        session.flash("editor.shape.point_added", totalPoints());
+    }
+
+    /** Begin the next surface line, once the current one has enough points. */
+    private void startLine(final EditorSession session) {
+        if (!lines.isEmpty() && lines.getLast().size() < MIN_LINE_POINTS) {
+            session.flash("editor.shape.line_short", MIN_LINE_POINTS);
+            return;
+        }
+        lines.add(new ArrayList<>());
+        session.flash("editor.shape.line_started", lines.size());
     }
 
     @Override
     public void secondary(final EditorSession session) {
         final String problem = validate();
         if (problem != null) {
-            session.flash(problem, points.size());
+            session.flash(problem, totalPoints());
             return;
         }
         CellMaterial material = null;
@@ -154,25 +183,45 @@ public final class ShapeTool implements Tool {
 
     @Override
     public void adjust(final EditorSession session, final int delta) {
-        if (dragging >= 0) {
+        if (draggingLine >= 0) {
             dragDistance = Math.clamp(dragDistance + delta * 0.5, 1.0, session.service().config().reach() * 2);
             return;
         }
         thickness = Math.clamp(thickness + delta, 1, limits(session).maxThickness());
     }
 
+    /** {@code Q} removes the point drawn last, then the lines before it. */
     @Override
     public boolean cancel(final EditorSession session) {
-        if (dragging >= 0) {
-            points.remove(dragging);
-            dragging = -1;
-            session.flash("editor.shape.point_removed", points.size());
+        if (draggingLine >= 0) {
+            removePoint(draggingLine, draggingIndex);
+            draggingLine = -1;
+            draggingIndex = -1;
+            session.flash("editor.shape.point_removed", totalPoints());
             return true;
         }
-        if (points.isEmpty()) return false;
-        points.clear();
-        session.flash("building.points.cleared");
+        if (lines.isEmpty()) return false;
+        final int last = lines.size() - 1;
+        removePoint(last, lines.get(last).size() - 1);
+        if (lines.get(last).isEmpty() && lines.size() > 1) {
+            lines.remove(last);
+            session.flash("editor.shape.line_removed", lines.size());
+            return true;
+        }
+        if (lines.size() == 1 && lines.getFirst().isEmpty()) {
+            lines.clear();
+            session.flash("building.points.cleared");
+            return true;
+        }
+        session.flash("editor.shape.point_removed", totalPoints());
         return true;
+    }
+
+    private void removePoint(final int line, final int index) {
+        if (line < 0 || line >= lines.size()) return;
+        final List<Vector3d> points = lines.get(line);
+        if (index < 0 || index >= points.size()) return;
+        points.remove(index);
     }
 
     @Override
@@ -182,7 +231,8 @@ public final class ShapeTool implements Tool {
 
     @Override
     public void deactivate(final EditorSession session) {
-        dragging = -1;
+        draggingLine = -1;
+        draggingIndex = -1;
         session.scene().removePrefix(PREFIX);
     }
 
@@ -192,28 +242,39 @@ public final class ShapeTool implements Tool {
 
     @Override
     public void preview(final EditorSession session) {
-        if (dragging >= 0 && dragging < points.size()) {
-            points.set(dragging, snap(session, dragTarget(session)));
+        if (draggingLine >= 0 && draggingLine < lines.size()
+                && draggingIndex < lines.get(draggingLine).size()) {
+            lines.get(draggingLine).set(draggingIndex, snap(session, dragTarget(session)));
         }
-        final int hovered = dragging >= 0 ? dragging : hovered(session);
-        for (int index = 0; index < MAX_POINTS; index++) {
-            final String key = PREFIX + "handle." + index;
-            if (index >= points.size()) {
-                session.scene().remove(key);
-                continue;
+        final int[] hovered = draggingLine >= 0
+            ? new int[]{draggingLine, draggingIndex} : hovered(session);
+        int flat = 0;
+        for (int line = 0; line < lines.size(); line++) {
+            final List<Vector3d> points = lines.get(line);
+            for (int index = 0; index < points.size(); index++, flat++) {
+                final String key = PREFIX + "handle." + flat;
+                final int color = line == draggingLine && index == draggingIndex ? Colors.ADD
+                    : hovered != null && hovered[0] == line && hovered[1] == index ? Colors.CURSOR
+                    : Colors.SELECT;
+                session.scene().outline(key, handleMin(points.get(index)),
+                    handleMax(points.get(index)), color);
             }
-            final Vector3d point = points.get(index);
-            final int color = index == dragging ? Colors.ADD
-                : index == hovered ? Colors.CURSOR : Colors.SELECT;
-            session.scene().outline(key, handleMin(point), handleMax(point), color);
         }
-        if (points.isEmpty()) {
+        for (int index = totalPoints(); index < MAX_POINTS; index++) {
+            session.scene().remove(PREFIX + "handle." + index);
+        }
+        for (int line = 0; line < lines.size(); line++) {
+            session.scene().polyline(PREFIX + "line" + line,
+                floats(lines.get(line)), false, 0.01f, Colors.withAlpha(Colors.CURSOR, 0x60));
+        }
+        for (int line = lines.size(); line < MAX_POINTS; line++) {
+            session.scene().remove(PREFIX + "line" + line);
+        }
+        if (lines.isEmpty()) {
             Previews.cell(session, PREFIX + "cursor", true, Colors.CURSOR);
         } else {
             session.scene().remove(PREFIX + "cursor");
         }
-        session.scene().polyline(PREFIX + "net", floats(points), false, 0.01f,
-            Colors.withAlpha(Colors.CURSOR, 0x60));
         previewShape(session);
     }
 
@@ -230,25 +291,18 @@ public final class ShapeTool implements Tool {
         switch (type) {
             case PLANE -> {
                 final List<Vector3f[]> triangles = new ArrayList<>();
+                final List<Vector3d> points = lines.getFirst();
                 for (int index = 1; index + 1 < points.size(); index++) {
                     triangles.add(new Vector3f[]{
                         f(points.getFirst()), f(points.get(index)), f(points.get(index + 1))});
                 }
                 session.scene().triangles(PREFIX + "preview.plane", triangles, Colors.face(color));
             }
-            case SURFACE -> {
-                final int netRows = surfaceRows(points.size(), rows);
-                for (int line = 0; line < SURFACE_LINES; line++) {
-                    final double t = (double) line / (SURFACE_LINES - 1);
-                    session.scene().polyline(PREFIX + "preview.u" + line,
-                        surfaceLine(netRows, t, true), false, 0.02f, color);
-                    session.scene().polyline(PREFIX + "preview.v" + line,
-                        surfaceLine(netRows, t, false), false, 0.02f, color);
-                }
-            }
+            case SURFACE -> previewSurface(session, color);
             case CURVE -> session.scene().polyline(PREFIX + "preview.curve",
-                floats(ShapeRasterizer.curvePoints(points, 8)), false, 0.03f, color);
+                floats(ShapeRasterizer.curvePoints(lines.getFirst(), 8)), false, 0.03f, color);
             case SPHERE -> {
+                final List<Vector3d> points = lines.getFirst();
                 final double radius = points.get(0).distance(points.get(1));
                 for (int axis = 0; axis < 3; axis++) {
                     session.scene().polyline(PREFIX + "preview.ring" + axis,
@@ -259,7 +313,32 @@ public final class ShapeTool implements Tool {
         }
     }
 
+    /**
+     * Draw the same net {@link ShapeRasterizer#loft} fills: one line along
+     * each sample row, and cross lines joining the matching points of the
+     * consecutive control lines.
+     */
+    private void previewSurface(final EditorSession session, final int color) {
+        final List<List<Vector3d>> net = ShapeRasterizer.loftNet(lines, session.grid());
+        final int rows = net.getFirst().size();
+        final int strips = net.size();
+        for (int line = 0; line < SURFACE_LINES; line++) {
+            final int index = Math.min(strips - 1,
+                (int) Math.round((double) line / (SURFACE_LINES - 1) * (strips - 1)));
+            session.scene().polyline(PREFIX + "preview.u" + line,
+                floats(net.get(index)), false, 0.02f, color);
+        }
+        for (int line = 0; line < SURFACE_LINES; line++) {
+            final int index = Math.min(rows - 1,
+                (int) Math.round((double) line / (SURFACE_LINES - 1) * (rows - 1)));
+            final List<Vector3d> column = new ArrayList<>(strips);
+            for (final List<Vector3d> sample : net) column.add(sample.get(index));
+            session.scene().polyline(PREFIX + "preview.v" + line, floats(column), false, 0.02f, color);
+        }
+    }
+
     private void previewCylinder(final EditorSession session, final int color) {
+        final List<Vector3d> points = lines.getFirst();
         final Vector3d start = points.get(0);
         final Vector3d end = points.get(1);
         final double radius = distanceToAxis(points.get(2), start, end);
@@ -280,62 +359,59 @@ public final class ShapeTool implements Tool {
         }
     }
 
-    private List<Vector3f> surfaceLine(final int netRows, final double fixed, final boolean alongU) {
-        final List<Vector3f> line = new ArrayList<>(SURFACE_SEGMENTS + 1);
-        for (int step = 0; step <= SURFACE_SEGMENTS; step++) {
-            final double t = (double) step / SURFACE_SEGMENTS;
-            line.add(f(alongU
-                ? ShapeRasterizer.bezierPoint(points, netRows, t, fixed)
-                : ShapeRasterizer.bezierPoint(points, netRows, fixed, t)));
-        }
-        return line;
-    }
-
     // =====================================================================
     //  Geometry
     // =====================================================================
 
     /** The translation key describing why the points cannot form the shape, or {@code null}. */
     String validate() {
-        if (points.size() < type.minPoints || points.size() > type.maxPoints) {
-            return "building.shape." + type.id() + ".points";
+        if (type == Type.SURFACE) {
+            if (lines.size() < 2) return "building.shape.surface.lines";
+            for (final List<Vector3d> line : lines) {
+                if (line.size() < MIN_LINE_POINTS) return "building.shape.surface.line_points";
+            }
+            return null;
         }
-        if (type == Type.SURFACE && surfaceRows(points.size(), rows) < 0) {
-            return "building.shape.surface.grid";
+        final int count = totalPoints();
+        if (count < type.minPoints || count > type.maxPoints) {
+            return "building.shape." + type.id() + ".points";
         }
         return null;
     }
 
     Consumer<CellVolume> rasterizer() {
-        final List<Vector3d> copy = new ArrayList<>();
-        for (final Vector3d point : points) copy.add(new Vector3d(point));
         final double shell = hollow ? thickness : 0.0;
         final double width = thickness;
-        final int netRows = type == Type.SURFACE ? surfaceRows(copy.size(), rows) : 0;
+        if (type == Type.SURFACE) {
+            final List<List<Vector3d>> copy = copyLines();
+            return volume -> ShapeRasterizer.loft(copy, width, volume);
+        }
+        final List<Vector3d> copy = new ArrayList<>(lines.getFirst());
         return switch (type) {
             case PLANE -> volume -> ShapeRasterizer.polygon(copy, width, volume);
-            case SURFACE -> volume -> ShapeRasterizer.bezierSurface(copy, netRows, width, volume);
             case CURVE -> volume -> ShapeRasterizer.curve(copy, width, volume);
             case SPHERE -> volume -> ShapeRasterizer.sphere(copy.get(0),
                 copy.get(0).distance(copy.get(1)), shell, volume);
             case CYLINDER -> volume -> ShapeRasterizer.cylinder(copy.get(0), copy.get(1),
                 distanceToAxis(copy.get(2), copy.get(0), copy.get(1)), shell, volume);
+            case SURFACE -> throw new IllegalStateException("handled above");
         };
     }
 
-    /**
-     * Rows of a surface control net. An explicit value must divide the point
-     * count; otherwise square nets are preferred, then two rows.
-     *
-     * @return the row count, or {@code -1} when no valid grid exists
-     */
-    static int surfaceRows(final int count, final int requested) {
-        if (requested > 0) {
-            return count % requested == 0 && count / requested >= 2 && requested >= 2 ? requested : -1;
+    private List<List<Vector3d>> copyLines() {
+        final List<List<Vector3d>> copy = new ArrayList<>(lines.size());
+        for (final List<Vector3d> line : lines) {
+            final List<Vector3d> points = new ArrayList<>(line.size());
+            for (final Vector3d point : line) points.add(new Vector3d(point));
+            copy.add(points);
         }
-        final int root = (int) Math.round(Math.sqrt(count));
-        if (root >= 2 && root * root == count) return root;
-        return count % 2 == 0 && count >= 4 ? 2 : -1;
+        return copy;
+    }
+
+    private int totalPoints() {
+        int total = 0;
+        for (final List<Vector3d> line : lines) total += line.size();
+        return total;
     }
 
     static double distanceToAxis(final Vector3d point, final Vector3d start, final Vector3d end) {
@@ -348,21 +424,24 @@ public final class ShapeTool implements Tool {
         return offset.sub(axis.mul(along)).length();
     }
 
-    /** Index of the handle closest to the view ray, within the pick radius. */
-    private int hovered(final EditorSession session) {
+    /** Line and index of the handle closest to the view ray, within the pick radius. */
+    private int[] hovered(final EditorSession session) {
         final Vector3d eye = eye(session);
         final Vector3d direction = direction(session);
         final double reach = session.service().config().reach() + 2;
-        int best = -1;
+        int[] best = null;
         double bestDistance = PICK_RADIUS;
-        for (int index = 0; index < points.size(); index++) {
-            final Vector3d offset = new Vector3d(points.get(index)).sub(eye);
-            final double along = offset.dot(direction);
-            if (along < 0 || along > reach) continue;
-            final double distance = offset.sub(new Vector3d(direction).mul(along)).length();
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                best = index;
+        for (int line = 0; line < lines.size(); line++) {
+            final List<Vector3d> points = lines.get(line);
+            for (int index = 0; index < points.size(); index++) {
+                final Vector3d offset = new Vector3d(points.get(index)).sub(eye);
+                final double along = offset.dot(direction);
+                if (along < 0 || along > reach) continue;
+                final double distance = offset.sub(new Vector3d(direction).mul(along)).length();
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = new int[]{line, index};
+                }
             }
         }
         return best;
@@ -429,8 +508,13 @@ public final class ShapeTool implements Tool {
 
     @Override
     public String status(final EditorSession session) {
+        final String shape = MessageUtil.getTranslated(session.player(),
+            "editor.shape_type." + type.id());
+        if (type == Type.SURFACE) {
+            return MessageUtil.getTranslated(session.player(), "editor.status.surface",
+                shape, lines.size(), totalPoints(), thickness);
+        }
         return MessageUtil.getTranslated(session.player(), "editor.status.shape",
-            MessageUtil.getTranslated(session.player(), "editor.shape_type." + type.id()),
-            points.size(), thickness);
+            shape, totalPoints(), thickness);
     }
 }

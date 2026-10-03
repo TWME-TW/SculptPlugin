@@ -266,16 +266,13 @@ public final class EditorDialogs {
             DialogInput.numberRange("thickness", text(player, "editor.shape.thickness"), 1, Math.max(2, maxThickness))
                 .step(1f).initial((float) tool.thickness()).build(),
             DialogInput.bool("hollow", text(player, "editor.shape.hollow")).initial(tool.hollow()).build(),
-            DialogInput.bool("carve", text(player, "editor.shape.carve")).initial(tool.carve()).build(),
-            DialogInput.numberRange("rows", text(player, "editor.shape.rows"), 0, 4)
-                .step(1f).initial((float) tool.rows()).build()
+            DialogInput.bool("carve", text(player, "editor.shape.carve")).initial(tool.carve()).build()
         ), List.of(
             button(player, "editor.dialog.apply", NARROW, view -> {
-                tool.configure(session, ShapeTool.Type.valueOf(view.getText("type").toUpperCase(Locale.ROOT)),
-                    Math.round(orDefault(view.getFloat("thickness"), tool.thickness())),
+                tool.configure(ShapeTool.Type.valueOf(view.getText("type").toUpperCase(Locale.ROOT)),
+                    Math.round(orDefault(view.getFloat("thickness"), tool.thickness())), maxThickness,
                     Boolean.TRUE.equals(view.getBoolean("hollow")),
-                    Boolean.TRUE.equals(view.getBoolean("carve")),
-                    Math.round(orDefault(view.getFloat("rows"), tool.rows())));
+                    Boolean.TRUE.equals(view.getBoolean("carve")));
                 session.flash("editor.settings.applied");
             }),
             button(player, "editor.shape.clear", NARROW, view -> tool.cancel(session))), 2);

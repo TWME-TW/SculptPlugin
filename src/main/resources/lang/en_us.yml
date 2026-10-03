@@ -315,8 +315,8 @@ building:
     plane:
       points: "<#CE5F4E>A plane needs at least 3 points (you have {0}). Points are joined in order as a fan from the first point."
     surface:
-      points: "<#CE5F4E>A curved surface needs a control grid of at least 2×2 points (you have {0})."
-      grid: "<#CE5F4E>{0} points do not form a control grid; add points or use <white>--rows <n><#CE5F4E>."
+      lines: "<#CE5F4E>A surface needs at least 2 control lines; press <white>Shift<#CE5F4E> + left-click to start the next line."
+      line_points: "<#CE5F4E>Every surface line needs at least 2 points."
     curve:
       points: "<#CE5F4E>A curve needs at least 2 points (you have {0})."
     sphere:
@@ -417,6 +417,7 @@ editor:
     move: "<gray>move <white>{0}, {1}, {2}</white> · <white>{3}°"
     copy: "<gray>copy to <white>{0}, {1}, {2}</white> · <white>{3}°"
     shape: "<gray>{0} · <white>{1}</white> points · thickness <white>{2}"
+    surface: "<gray>{0} · <white>{1}</white> lines · <white>{2}</white> points · thickness <white>{3}"
     no_blueprint: "<gray>no blueprint chosen"
   brush_shape:
     sphere: "sphere"
@@ -457,14 +458,16 @@ editor:
   shape:
     point_added: "<#5FBA6B>Point <white>#{0}"
     point_removed: "<#E8C96D>Point removed; <white>{0}</white> left."
+    line_started: "<#5FBA6B>Line <white>#{0}</white> started; left-click to add its points."
+    line_removed: "<#E8C96D>Line removed; <white>{0}</white> left."
+    line_short: "<#CE5F4E>A surface line needs at least <white>{0}<#CE5F4E> points before the next line starts."
     title: "Shape"
-    body: "Points are joined in order. Surfaces read points row by row."
+    body: "Points are joined in order. For a surface, each line is a separate left-click group: press Shift + left-click to start the next line, and the strips between consecutive lines are swept into one surface through every line."
     type: "Shape"
     thickness: "Thickness (cells)"
     hollow: "Hollow sphere or cylinder"
     carve: "Carve instead of add"
-    rows: "Surface rows (0 = automatic)"
-    clear: "Clear points"
+    clear: "Remove the last point"
   brush:
     title: "Brush"
     radius: "Radius (cells)"

@@ -49,41 +49,141 @@ public final class ShapeRasterizer {
     }
 
     /**
-     * Fill a Bézier surface patch whose control net is given in row-major
-     * order. Two rows of two points form a bilinear (twisted) quad; three or
-     * four rows/columns produce quadratic or cubic curvature.
+     * Fill the surface swept through a sequence of control lines. Every line
+     * is resampled with a Catmull-Rom spline, so two points stay straight and
+     * more points curve the line; matching points of consecutive lines are
+     * then joined by another Catmull-Rom spline, so the strips between the
+     * lines form one continuous surface. The surface passes through every
+     * control line.
+     *
+     * @param lines control lines in sweep order, each with at least 2 points
      */
-    public static void bezierSurface(
-            final List<? extends Vector3dc> controlPoints,
-            final int rows,
+    public static void loft(
+            final List<? extends List<? extends Vector3dc>> lines,
             final double thickness,
             final CellVolume output) {
-        if (rows < 2 || controlPoints.size() % rows != 0
-                || controlPoints.size() / rows < 2) {
-            throw new IllegalArgumentException(
-                "control points must form a grid with at least 2 rows and 2 columns");
+        final List<List<Vector3d>> net = loftNet(lines, output.grid());
+        for (final List<Vector3d> line : net) {
+            for (final Vector3d point : line) point.mul(output.grid());
         }
-        final int columns = controlPoints.size() / rows;
-        final List<Vector3d> net = toCellSpace(controlPoints, output.grid());
-        final int segmentsU = segmentsFor(maxPolylineLength(net, rows, columns, true));
-        final int segmentsV = segmentsFor(maxPolylineLength(net, rows, columns, false));
+        triangulateNet(net, thickness, output);
+    }
 
-        final Vector3d[][] samples = new Vector3d[segmentsU + 1][segmentsV + 1];
-        for (int i = 0; i <= segmentsU; i++) {
-            final double u = (double) i / segmentsU;
-            for (int j = 0; j <= segmentsV; j++) {
-                samples[i][j] = evaluateBezierSurface(
-                    net, rows, columns, u, (double) j / segmentsV);
+    /**
+     * The sampled surface net for a list of control lines, in the input's own
+     * coordinates: {@code lines} rows of resampled points. The preview uses it
+     * so it draws exactly the surface {@link #loft} builds.
+     *
+     * @param grid build resolution, used only to choose the sample density
+     */
+    public static List<List<Vector3d>> loftNet(
+            final List<? extends List<? extends Vector3dc>> lines,
+            final int grid) {
+        if (lines == null || lines.size() < 2) {
+            throw new IllegalArgumentException("at least 2 lines are required");
+        }
+        final List<List<Vector3d>> control = new ArrayList<>(lines.size());
+        for (final List<? extends Vector3dc> line : lines) {
+            requireAtLeast(line, 2);
+            control.add(copy(line));
+        }
+
+        // One shared point count, so matching points of the lines can be joined.
+        int rows = 2;
+        for (final List<Vector3d> line : control) {
+            rows = Math.max(rows, segmentsFor(polylineLength(line) * grid));
+        }
+        final List<List<Vector3d>> net = new ArrayList<>(control.size());
+        for (final List<Vector3d> line : control) net.add(resample(line, rows));
+
+        // One shared strip count, so the surface curves between the lines too.
+        int strips = 2;
+        for (int index = 0; index + 1 < net.size(); index++) {
+            double gap = 0.0;
+            for (int step = 0; step <= rows; step++) {
+                gap = Math.max(gap,
+                    net.get(index).get(step).distance(net.get(index + 1).get(step)));
+            }
+            strips = Math.max(strips, segmentsFor(gap * grid));
+        }
+
+        final List<List<Vector3d>> samples = new ArrayList<>(strips + 1);
+        for (int strip = 0; strip <= strips; strip++) {
+            final double t = (double) strip / strips;
+            final List<Vector3d> sample = new ArrayList<>(rows + 1);
+            for (int step = 0; step <= rows; step++) {
+                sample.add(spline(net, step, t));
+            }
+            samples.add(sample);
+        }
+        return samples;
+    }
+
+    private static void triangulateNet(
+            final List<List<Vector3d>> net,
+            final double thickness,
+            final CellVolume output) {
+        for (int strip = 0; strip + 1 < net.size(); strip++) {
+            final List<Vector3d> first = net.get(strip);
+            final List<Vector3d> second = net.get(strip + 1);
+            for (int step = 0; step + 1 < first.size(); step++) {
+                triangle(first.get(step), second.get(step),
+                    second.get(step + 1), thickness, output);
+                triangle(first.get(step), second.get(step + 1),
+                    first.get(step + 1), thickness, output);
             }
         }
-        for (int i = 0; i < segmentsU; i++) {
-            for (int j = 0; j < segmentsV; j++) {
-                triangle(samples[i][j], samples[i + 1][j],
-                    samples[i + 1][j + 1], thickness, output);
-                triangle(samples[i][j], samples[i + 1][j + 1],
-                    samples[i][j + 1], thickness, output);
-            }
+    }
+
+    /**
+     * A point of the surface net at index {@code step} along the lines and
+     * parameter {@code t} across them. {@code t = 0} is the first control line
+     * and {@code t = 1} the last, so the surface passes through every line.
+     */
+    private static Vector3d spline(
+            final List<List<Vector3d>> net,
+            final int step,
+            final double t) {
+        final int last = net.size() - 1;
+        final double position = t * last;
+        final int index = Math.min((int) Math.floor(position), last - 1);
+        return catmullRom(
+            net.get(Math.max(0, index - 1)).get(step),
+            net.get(index).get(step),
+            net.get(index + 1).get(step),
+            net.get(Math.min(last, index + 2)).get(step),
+            position - index);
+    }
+
+    /** Resample a line through its control points into {@code segments + 1} points. */
+    static List<Vector3d> resample(final List<Vector3d> points, final int segments) {
+        final int last = points.size() - 1;
+        final List<Vector3d> result = new ArrayList<>(segments + 1);
+        for (int step = 0; step <= segments; step++) {
+            final double position = (double) step / segments * last;
+            final int index = Math.min((int) Math.floor(position), last - 1);
+            result.add(catmullRom(
+                points.get(Math.max(0, index - 1)),
+                points.get(index),
+                points.get(index + 1),
+                points.get(Math.min(last, index + 2)),
+                position - index));
         }
+        return result;
+    }
+
+    private static double polylineLength(final List<Vector3d> points) {
+        double total = 0.0;
+        for (int index = 1; index < points.size(); index++) {
+            total += points.get(index - 1).distance(points.get(index));
+        }
+        return total;
+    }
+
+    private static List<Vector3d> copy(final List<? extends Vector3dc> points) {
+        final List<Vector3d> result = new ArrayList<>(points.size());
+        for (final Vector3dc point : points) result.add(new Vector3d(point));
+        return result;
     }
 
     /**
@@ -458,20 +558,6 @@ public final class ShapeRasterizer {
             a.z() + abz * v + acz * w);
     }
 
-    /**
-     * A point on the Bézier surface of a row-major control net, in the
-     * net's own coordinates.
-     */
-    public static Vector3d bezierPoint(
-            final List<? extends Vector3dc> net,
-            final int rows,
-            final double u,
-            final double v) {
-        final List<Vector3d> copy = new ArrayList<>(net.size());
-        for (final Vector3dc point : net) copy.add(new Vector3d(point));
-        return evaluateBezierSurface(copy, rows, net.size() / rows, u, v);
-    }
-
     /** Points along the curve {@link #curve} rasterizes, in world coordinates. */
     public static List<Vector3d> curvePoints(final List<? extends Vector3dc> points, final int stepsPerSegment) {
         final List<Vector3d> samples = new ArrayList<>();
@@ -487,42 +573,6 @@ public final class ShapeRasterizer {
             }
         }
         return samples;
-    }
-
-    static Vector3d evaluateBezierSurface(
-            final List<Vector3d> net,
-            final int rows,
-            final int columns,
-            final double u,
-            final double v) {
-        final double[] bu = bernstein(rows - 1, u);
-        final double[] bv = bernstein(columns - 1, v);
-        final Vector3d result = new Vector3d();
-        for (int row = 0; row < rows; row++) {
-            for (int column = 0; column < columns; column++) {
-                final double weight = bu[row] * bv[column];
-                final Vector3d point = net.get(row * columns + column);
-                result.add(point.x * weight, point.y * weight, point.z * weight);
-            }
-        }
-        return result;
-    }
-
-    private static double[] bernstein(final int degree, final double t) {
-        final double[] weights = new double[degree + 1];
-        for (int index = 0; index <= degree; index++) {
-            weights[index] = binomial(degree, index)
-                * Math.pow(t, index) * Math.pow(1.0 - t, degree - index);
-        }
-        return weights;
-    }
-
-    private static double binomial(final int n, final int k) {
-        double result = 1.0;
-        for (int index = 1; index <= k; index++) {
-            result = result * (n - k + index) / index;
-        }
-        return result;
     }
 
     static Vector3d catmullRom(
@@ -541,30 +591,6 @@ public final class ShapeRasterizer {
             p0.x() * w0 + p1.x() * w1 + p2.x() * w2 + p3.x() * w3,
             p0.y() * w0 + p1.y() * w1 + p2.y() * w2 + p3.y() * w3,
             p0.z() * w0 + p1.z() * w1 + p2.z() * w2 + p3.z() * w3);
-    }
-
-    private static double maxPolylineLength(
-            final List<Vector3d> net,
-            final int rows,
-            final int columns,
-            final boolean alongRows) {
-        double maximum = 0.0;
-        final int lines = alongRows ? columns : rows;
-        final int length = alongRows ? rows : columns;
-        for (int line = 0; line < lines; line++) {
-            double total = 0.0;
-            for (int index = 1; index < length; index++) {
-                final Vector3d previous = alongRows
-                    ? net.get((index - 1) * columns + line)
-                    : net.get(line * columns + index - 1);
-                final Vector3d current = alongRows
-                    ? net.get(index * columns + line)
-                    : net.get(line * columns + index);
-                total += previous.distance(current);
-            }
-            maximum = Math.max(maximum, total);
-        }
-        return maximum;
     }
 
     private static int segmentsFor(final double lengthInCells) {
