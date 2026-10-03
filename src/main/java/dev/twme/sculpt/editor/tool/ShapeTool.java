@@ -132,12 +132,14 @@ public final class ShapeTool implements Tool {
             dragDistance = eye(session).distance(lines.get(hovered[0]).get(hovered[1]));
             return;
         }
-        final CellTarget target = session.target();
-        if (target == null) return;
+        // Starting the next surface line needs no target: Shift + left-click in
+        // the air starts it, so the check comes before the target is required.
         if (type == Type.SURFACE && session.player().isSneaking()) {
             startLine(session);
             return;
         }
+        final CellTarget target = session.target();
+        if (target == null) return;
         if (totalPoints() >= MAX_POINTS) {
             session.flash("building.points.limit", MAX_POINTS);
             return;
@@ -343,6 +345,12 @@ public final class ShapeTool implements Tool {
      */
     private void previewSurface(final EditorSession session, final int color) {
         final List<List<Vector3d>> net = ShapeRasterizer.loftNet(lines, session.grid());
+        if (net.size() < 2) {
+            // One control line: draw the curve it becomes, not a sheet.
+            session.scene().polyline(PREFIX + "preview.curve",
+                floats(net.getFirst()), false, 0.03f, color);
+            return;
+        }
         final int rows = net.getFirst().size();
         final int strips = net.size();
         for (int line = 0; line < SURFACE_LINES; line++) {
@@ -389,7 +397,8 @@ public final class ShapeTool implements Tool {
     /** The translation key describing why the points cannot form the shape, or {@code null}. */
     String validate() {
         if (type == Type.SURFACE) {
-            if (lines.size() < 2) return "building.shape.surface.lines";
+            // One line is enough: it is swept into the curve through itself.
+            if (lines.isEmpty()) return "building.shape.surface.lines";
             for (final List<Vector3d> line : lines) {
                 if (line.size() < MIN_LINE_POINTS) return "building.shape.surface.line_points";
             }

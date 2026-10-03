@@ -315,7 +315,7 @@ building:
     plane:
       points: "<#CE5F4E>平面至少需要 3 個控制點（目前 {0} 個）。控制點會依序以第一點為中心組成扇形。"
     surface:
-      lines: "<#CE5F4E>曲面至少需要 2 條控制線；按 <white>Shift<#CE5F4E> + 左鍵開始下一條線。"
+      lines: "<#CE5F4E>曲面至少需要 1 條控制線；左鍵加入控制點。按 <white>Shift<#CE5F4E> + 左鍵開始下一條線。"
       line_points: "<#CE5F4E>每條曲面控制線至少需要 2 個點。"
     curve:
       points: "<#CE5F4E>曲線至少需要 2 個控制點（目前 {0} 個）。"
@@ -457,7 +457,7 @@ editor:
   shape:
     point_added: "<#5FBA6B>控制點 <white>#{0}"
     point_removed: "<#E8C96D>已移除控制點，剩餘 <white>{0}</white> 個。"
-    line_started: "<#5FBA6B>已開始第 <white>{0}</white> 條線；左鍵加入這條線的控制點。"
+    line_started: "<#5FBA6B>已開始第 <white>{0}</white> 條線；左鍵加入這條線的控制點。只有一條線時會直接畫成曲線。"
     line_removed: "<#E8C96D>已移除一條線，剩餘 <white>{0}</white> 條。"
     line_short: "<#CE5F4E>曲面控制線至少需要 <white>{0}<#CE5F4E> 個點才能開始下一條線。"
     cleared: "<#E8C96D>已清除形狀：<white>{0}</white> 個點、<white>{1}</white> 條線。"

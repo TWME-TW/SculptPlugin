@@ -80,14 +80,15 @@ class EditorToolLogicTest {
     }
 
     @Test
-    void aSurfaceNeedsTwoCompleteLines() {
+    void aSurfaceNeedsAtLeastOneCompleteLine() {
         final ShapeTool tool = new ShapeTool();
         tool.configure(ShapeTool.Type.SURFACE, 1, 16, false, false);
-        assertEquals("building.shape.surface.lines", tool.validate());
+        assertEquals("building.shape.surface.lines", tool.validate(),
+            "no line means nothing to build");
 
         tool.lines().add(new ArrayList<>(List.of(new Vector3d(0, 0, 0), new Vector3d(4, 0, 0))));
-        assertEquals("building.shape.surface.lines", tool.validate(),
-            "one line alone cannot form a surface");
+        assertNull(tool.validate(),
+            "one line is enough: it is swept into the curve through itself");
 
         tool.lines().add(new ArrayList<>(List.of(new Vector3d(0, 0, 4))));
         assertEquals("building.shape.surface.line_points", tool.validate(),

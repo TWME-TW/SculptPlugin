@@ -315,7 +315,7 @@ building:
     plane:
       points: "<#CE5F4E>A plane needs at least 3 points (you have {0}). Points are joined in order as a fan from the first point."
     surface:
-      lines: "<#CE5F4E>A surface needs at least 2 control lines; press <white>Shift<#CE5F4E> + left-click to start the next line."
+      lines: "<#CE5F4E>A surface needs at least 1 control line; left-click to add its points. Press <white>Shift<#CE5F4E> + left-click to start another line."
       line_points: "<#CE5F4E>Every surface line needs at least 2 points."
     curve:
       points: "<#CE5F4E>A curve needs at least 2 points (you have {0})."
@@ -457,7 +457,7 @@ editor:
   shape:
     point_added: "<#5FBA6B>Point <white>#{0}"
     point_removed: "<#E8C96D>Point removed; <white>{0}</white> left."
-    line_started: "<#5FBA6B>Line <white>#{0}</white> started; left-click to add its points."
+    line_started: "<#5FBA6B>Line <white>#{0}</white> started; left-click to add its points. One line already builds a curve."
     line_removed: "<#E8C96D>Line removed; <white>{0}</white> left."
     line_short: "<#CE5F4E>A surface line needs at least <white>{0}<#CE5F4E> points before the next line starts."
     cleared: "<#E8C96D>Shape cleared: <white>{0}</white> points in <white>{1}</white> lines."

@@ -51,7 +51,7 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 | 4 | Paint | Pick the targeted material. | Repaint cells without changing the shape. |
 | 5 | Select | Set the two corners of a box of cells. | Open the selection actions. |
 | 6 | Transform | Grab the handle under the cursor, then left-click again to release it. | Apply the pending move, rotation, or mirror. |
-| 7 | Shape | Add a control point, or grab and drag an existing one. `Shift` + left-click starts the next surface line. | Build the previewed shape. |
+| 7 | Shape | Add a control point, or grab and drag an existing one. `Shift` + left-click starts the next surface line, on a block or in the air. | Build the previewed shape. |
 | 8 | Blueprint | Choose a blueprint. | Preview the paste; right-click the same spot again to paste. |
 | 9 | Settings | Open the material palette. | Open the editor settings. |
 
@@ -67,7 +67,7 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 
 **Shapes.** Choose a shape type in the Shape tool settings (`Shift` + right-click). You can also set the thickness, hollow spheres and cylinders, and carving instead of adding. The preview updates live while you add or drag points.
 
-A surface is drawn one line at a time: left-click to add the points of the current line, then press `Shift` + left-click to start the next one. Every line is smoothed with a spline, and the strips between consecutive lines are swept into a single surface that passes through all of them, so line A, then B, then C gives a surface from A through B to C. `Q` removes the last point, or the last line once it is empty; press `Q` twice quickly to drop the whole surface at once.
+A surface is drawn one line at a time: left-click to add the points of the current line, then press `Shift` + left-click to start the next one. The `Shift` click works in the air as well as on a block, so you do not have to find something to aim at. Every line is smoothed with a spline, and the strips between consecutive lines are swept into a single surface that passes through all of them, so line A, then B, then C gives a surface from A through B to C. A single line is a complete shape on its own: it is built as the curve through its points, so two or more points are enough to right-click and build. `Q` removes the last point, or the last line once it is empty; press `Q` twice quickly to drop the whole surface at once.
 
 | Shape | Points | Result |
 | --- | --- | --- |
@@ -302,6 +302,7 @@ The built plugin is written to `target/Sculpt-*.jar`.
 integration/mineflayer/run-e2e.sh                 # WorldEdit/FAWE paste detection
 integration/mineflayer/run-folia-blueprint-e2e.sh # Folia region ownership
 integration/mineflayer/run-gizmo-e2e.sh           # transform gizmo picking and dragging
+integration/mineflayer/run-shape-e2e.sh           # one-line surfaces and Shift + left-click in the air
 ```
 
 They need Node 22+, `jq`, and network access on the first run to fetch the server jars. Set `SCULPT_E2E_KEEP_SERVER=true` to keep the temporary server for inspection.
