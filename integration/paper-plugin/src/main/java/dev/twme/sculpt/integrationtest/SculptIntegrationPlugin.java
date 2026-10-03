@@ -80,6 +80,11 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
                 foliaBlueprint(player);
                 return true;
             }
+            if (args.length >= 1 && "gizmo".equals(args[0])
+                    && sender instanceof Player player) {
+                gizmo(player, args);
+                return true;
+            }
             sender.sendMessage("SCULPT_TEST error=usage");
         } catch (ReflectiveOperationException exception) {
             getLogger().log(java.util.logging.Level.SEVERE,
@@ -422,6 +427,198 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
                                 + ":" + aimed.getType()));
     }
 
+    /**
+     * Drive the transform gizmo from the real editor session. This is the only
+     * way to exercise picking and dragging end to end, because they depend on
+     * the live eye ray and the editor tick.
+     */
+    private void gizmo(Player player, String[] args) throws ReflectiveOperationException {
+        Object session = editorSession(player);
+        if (session == null) {
+            player.sendMessage("SCULPT_TEST gizmo=false;error=no_session");
+            return;
+        }
+        switch (args[1]) {
+            case "select" -> {
+                invokeWithArgs(session, "selectTool", toolId("TRANSFORM"));
+                // A one-block selection three blocks in front of the player.
+                Location at = player.getLocation().add(
+                    player.getLocation().getDirection().setY(0).normalize().multiply(3));
+                long vx = (long) Math.floor(at.getX() * 16);
+                long vy = (long) Math.floor(at.getY() * 16);
+                long vz = (long) Math.floor(at.getZ() * 16);
+                Object box = voxelBox(vx, vy, vz, 16);
+                invokeWithArgs(session, "setSelection", box);
+                player.sendMessage("SCULPT_TEST gizmo=select;box="
+                    + vx + "," + vy + "," + vz);
+            }
+            case "aim" -> {
+                // Aim the player at the gizmo handle named by args[2].
+                Object box = invoke(session, "selection");
+                if (box == null) {
+                    player.sendMessage("SCULPT_TEST gizmo=false;error=no_selection");
+                    return;
+                }
+                double px = ((long) component(box, "minX") + (long) component(box, "maxX")) / 32.0;
+                double py = ((long) component(box, "minY") + (long) component(box, "maxY")) / 32.0;
+                double pz = ((long) component(box, "minZ") + (long) component(box, "maxZ")) / 32.0;
+                double[] offset = handleOffset(args[2]);
+                if (args.length >= 4) {
+                    // A rotation offset in degrees, for sweeping a ring.
+                    double degrees = Double.parseDouble(args[3]);
+                    double radians = Math.toRadians(degrees);
+                    offset = new double[]{
+                        Math.cos(radians) * 1.75, 0, Math.sin(radians) * 1.75};
+                }
+                Location standing = player.getLocation().clone();
+                // Teleport first so the direction is computed from the eye the
+                // player will actually look from, then aim from there.
+                player.teleport(standing);
+                Location eye = player.getEyeLocation();
+                double distance = Math.sqrt(
+                    Math.pow(eye.getX() - px, 2) + Math.pow(eye.getY() - py, 2)
+                        + Math.pow(eye.getZ() - pz, 2));
+                double scale = Math.clamp(distance * 0.16, 0.55, 2.4);
+                Location aim = new Location(player.getWorld(),
+                    px + offset[0] * scale, py + offset[1] * scale, pz + offset[2] * scale);
+                standing.setDirection(aim.toVector().subtract(eye.toVector()));
+                player.teleport(standing);
+                player.sendMessage("SCULPT_TEST gizmo=aim;handle=" + args[2]
+                    + ";scale=" + String.format(java.util.Locale.ROOT, "%.3f", scale)
+                    + ";eye=" + eye.getX() + "," + eye.getY() + "," + eye.getZ()
+                    + ";aim=" + aim.getX() + "," + aim.getY() + "," + aim.getZ());
+            }
+            case "tick" -> {
+                // Force one editor tick so the gizmo re-picks or drags.
+                invokeWithArgs(session, "tick");
+                Location look = player.getEyeLocation();
+                org.bukkit.util.Vector dir = look.getDirection();
+                player.sendMessage("SCULPT_TEST gizmo=tick;hover=" + gizmoValue(session, "hovered")
+                    + ";dragging=" + gizmoValue(session, "dragging")
+                    + ";eye=" + look.getX() + "," + look.getY() + "," + look.getZ()
+                    + ";dir=" + dir.getX() + "," + dir.getY() + "," + dir.getZ());
+            }
+            case "primary" -> {
+                invoke(session, "primary");
+                player.sendMessage("SCULPT_TEST gizmo=primary;hover=" + gizmoValue(session, "hovered")
+                    + ";dragging=" + gizmoValue(session, "dragging"));
+            }
+            case "cancel" -> {
+                Object tool = invokeWithArgs(session, "tool", toolId("TRANSFORM"));
+                Object cancelled = invokeWithArgs(tool, "cancel", session);
+                player.sendMessage("SCULPT_TEST gizmo=cancel;cancelled=" + cancelled);
+            }
+            case "snap" -> {
+                // Shift+scroll routes to the tool's adjust, which cycles the
+                // rotation snap step.
+                invokeWithArgs(session, "adjust", 1);
+                player.sendMessage("SCULPT_TEST gizmo=snap;step=" + gizmoValue(session, "angleStep"));
+            }
+            case "fill" -> {
+                // Put a real block in the selection so an applied transform has
+                // something to move.
+                Object box = invoke(session, "selection");
+                if (box == null) {
+                    player.sendMessage("SCULPT_TEST gizmo=false;error=no_selection");
+                    return;
+                }
+                Material material = Material.matchMaterial(args[2]);
+                for (long x = (long) component(box, "minX"); x < (long) component(box, "maxX"); x++) {
+                    for (long y = (long) component(box, "minY"); y < (long) component(box, "maxY"); y++) {
+                        for (long z = (long) component(box, "minZ"); z < (long) component(box, "maxZ"); z++) {
+                            player.getWorld().getBlockAt(
+                                (int) Math.floorDiv(x, 16), (int) Math.floorDiv(y, 16),
+                                (int) Math.floorDiv(z, 16)).setType(material, false);
+                        }
+                    }
+                }
+                player.sendMessage("SCULPT_TEST gizmo=fill;material=" + material);
+            }
+            case "apply" -> {
+                invokeWithArgs(session, "secondary", false);
+                player.sendMessage("SCULPT_TEST gizmo=apply");
+            }
+            case "block" -> {
+                Location at = new Location(player.getWorld(),
+                    Integer.parseInt(args[2]), Integer.parseInt(args[3]), Integer.parseInt(args[4]));
+                player.sendMessage("SCULPT_TEST gizmo=block;type="
+                    + player.getWorld().getBlockAt(at).getType().getKey());
+            }
+            case "pos" -> {
+                Location at = player.getLocation();
+                player.sendMessage("SCULPT_TEST gizmo=pos;x=" + at.getX() + ";y=" + at.getY()
+                    + ";z=" + at.getZ() + ";onGround=" + player.isOnGround());
+            }
+            case "state" -> player.sendMessage("SCULPT_TEST gizmo=state"
+                + ";hover=" + gizmoValue(session, "hovered")
+                + ";dragging=" + gizmoValue(session, "dragging")
+                + ";angleStep=" + gizmoValue(session, "angleStep")
+                + ";angle=" + gizmoValue(session, "angle")
+                + ";offsetX=" + gizmoValue(session, "offsetX")
+                + ";offsetY=" + gizmoValue(session, "offsetY")
+                + ";offsetZ=" + gizmoValue(session, "offsetZ"));
+            default -> player.sendMessage("SCULPT_TEST gizmo=false;error=usage");
+        }
+    }
+
+    /** The editor session for a player, or {@code null}. */
+    private Object editorSession(Player player) throws ReflectiveOperationException {
+        Object service = invoke(sculpt(), "getEditorService");
+        return invokeWithArgs(service, "session", player);
+    }
+
+    /** The {@code ToolId} constant with the given name. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object toolId(String name) throws ClassNotFoundException {
+        Class<? extends Enum> type = (Class<? extends Enum>)
+            Class.forName("dev.twme.sculpt.editor.ToolId");
+        return Enum.valueOf(type, name);
+    }
+
+    /** A {@code VoxelBox} with the given corner and side. */
+    private static Object voxelBox(long x, long y, long z, int side)
+            throws ReflectiveOperationException {
+        try {
+            Class<?> type = Class.forName("dev.twme.sculpt.editor.VoxelBox");
+            return type.getConstructor(long.class, long.class, long.class,
+                long.class, long.class, long.class).newInstance(
+                    x, y, z, x + side, y + side, z + side);
+        } catch (ClassNotFoundException exception) {
+            throw new IllegalStateException("VoxelBox is unavailable", exception);
+        }
+    }
+
+    /** One record component of a box, as a {@code long}. */
+    private static long component(Object record, String name)
+            throws ReflectiveOperationException {
+        for (RecordComponent component : record.getClass().getRecordComponents()) {
+            if (component.getName().equals(name)) {
+                return ((Number) component.getAccessor().invoke(record)).longValue();
+            }
+        }
+        throw new NoSuchFieldException(name);
+    }
+
+    /** The gizmo's offset for a named handle, in handle-geometry units. */
+    private static double[] handleOffset(String handle) {
+        return switch (handle) {
+            case "move_x" -> new double[]{1.0, 0, 0};
+            case "move_y" -> new double[]{0, 1.0, 0};
+            case "move_z" -> new double[]{0, 0, 1.0};
+            case "rotate_y" -> new double[]{1.75, 0, 0};
+            case "mirror_x" -> new double[]{-1.5, 0, 0};
+            default -> throw new IllegalArgumentException("unknown handle " + handle);
+        };
+    }
+
+    /** Read a getter off the transform tool's gizmo. */
+    private String gizmoValue(Object session, String name) throws ReflectiveOperationException {
+        Object tool = invokeWithArgs(session, "tool", toolId("TRANSFORM"));
+        Object gizmo = publicField(tool, "gizmo").get(tool);
+        Object value = invoke(gizmo, name);
+        return value == null ? "null" : String.valueOf(value);
+    }
+
     private Interaction findInteraction(Target target) {
         Location center = new Location(target.world,
                 target.x + 0.5, target.y + 0.5, target.z + 0.5);
@@ -556,17 +753,7 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
 
     private static Object invoke(Object target, String method)
             throws ReflectiveOperationException {
-        Method match = null;
-        for (Method candidate : target.getClass().getMethods()) {
-            if (candidate.getName().equals(method)
-                    && candidate.getParameterCount() == 0) {
-                match = candidate;
-                break;
-            }
-        }
-        if (match == null) throw new NoSuchMethodException(
-                target.getClass().getName() + "." + method + "()");
-        return match.invoke(target);
+        return method(target, method, 0).invoke(target);
     }
 
     private static Object invokeWithArgs(Object target, String name, Object... arguments)
@@ -577,21 +764,40 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
     private static Method method(Object target, String name, int parameterCount)
             throws NoSuchMethodException {
         Method match = null;
-        for (Method candidate : target.getClass().getMethods()) {
-            if (candidate.getName().equals(name)
-                    && candidate.getParameterCount() == parameterCount) {
-                if (match != null) {
+        // The editor's session and tool methods are package-private, so the
+        // declared methods are searched too and made accessible.
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            for (Method candidate : type.getDeclaredMethods()) {
+                if (!candidate.getName().equals(name)
+                        || candidate.getParameterCount() != parameterCount) {
+                    continue;
+                }
+                if (match != null && !sameSignature(match, candidate)) {
                     throw new NoSuchMethodException(
                         target.getClass().getName() + "." + name
                             + " has multiple " + parameterCount + "-argument overloads");
                 }
-                match = candidate;
+                if (match == null) {
+                    candidate.setAccessible(true);
+                    match = candidate;
+                }
             }
         }
         if (match == null) throw new NoSuchMethodException(
             target.getClass().getName() + "." + name
                 + "(" + parameterCount + " arguments)");
         return match;
+    }
+
+    /** Whether two methods would erase to the same signature. */
+    private static boolean sameSignature(Method left, Method right) {
+        Class<?>[] a = left.getParameterTypes();
+        Class<?>[] b = right.getParameterTypes();
+        if (a.length != b.length) return false;
+        for (int index = 0; index < a.length; index++) {
+            if (!a[index].equals(b[index])) return false;
+        }
+        return true;
     }
 
     private static Object replaceRecordComponent(
@@ -619,7 +825,16 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
 
     private static Field publicField(Object target, String name)
             throws NoSuchFieldException {
-        return target.getClass().getField(name);
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            try {
+                Field field = type.getDeclaredField(name);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException ignored) {
+                // Keep walking up the hierarchy.
+            }
+        }
+        throw new NoSuchFieldException(target.getClass().getName() + "." + name);
     }
 
     @SuppressWarnings("unchecked")

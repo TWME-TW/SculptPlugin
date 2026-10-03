@@ -22,6 +22,7 @@ import dev.twme.sculpt.building.CellSamples;
 import dev.twme.sculpt.building.CellVolume;
 import dev.twme.sculpt.core.CellMaterial;
 import dev.twme.sculpt.editor.VoxelBox;
+import dev.twme.sculpt.editor.VoxelRotation;
 import dev.twme.sculpt.editor.VoxelTransform;
 
 class EditorToolLogicTest {
@@ -34,13 +35,15 @@ class EditorToolLogicTest {
         final CellMaterial[] cells = new CellMaterial[4096];
         cells[CellVolume.localIndex(16, 0, 0, 0)] = STONE;
         final CellSamples samples = CellSamples.of(16, Map.of(new BlockPos(0, 0, 0), cells));
+        final VoxelBox box = new VoxelBox(0, 0, 0, 1, 1, 1);
         final VoxelTransform transform = new VoxelTransform(
-            new VoxelBox(0, 0, 0, 1, 1, 1), 0, false, false, 16, 0, 0);
+            VoxelRotation.identity(box), 16, 0, 0);
 
-        final Map<BlockPos, BlockCellEdit> edits = TransformTool.edits(transform, samples, true);
+        final Map<BlockPos, BlockCellEdit> edits =
+            TransformTool.edits(transform, box, samples, true);
 
-        final BlockCellEdit source = edits.get(new BlockPos(0, 0, 0));
-        assertEquals(BlockCellEdit.Operation.CARVE, source.layers().get(0).operation());
+        final BlockCellEdit carved = edits.get(new BlockPos(0, 0, 0));
+        assertEquals(BlockCellEdit.Operation.CARVE, carved.layers().get(0).operation());
         final BlockCellEdit destination = edits.get(new BlockPos(1, 0, 0));
         final BlockCellEdit.Layer add = destination.layers().get(destination.layers().size() - 1);
         assertEquals(BlockCellEdit.Operation.ADD, add.operation());
@@ -52,10 +55,12 @@ class EditorToolLogicTest {
         final CellMaterial[] cells = new CellMaterial[4096];
         cells[CellVolume.localIndex(16, 0, 0, 0)] = STONE;
         final CellSamples samples = CellSamples.of(16, Map.of(new BlockPos(0, 0, 0), cells));
+        final VoxelBox source = new VoxelBox(0, 0, 0, 2, 1, 1);
         final VoxelTransform transform = new VoxelTransform(
-            new VoxelBox(0, 0, 0, 2, 1, 1), 0, false, false, 16, 0, 0);
+            VoxelRotation.identity(source), 16, 0, 0);
 
-        final Map<BlockPos, BlockCellEdit> edits = TransformTool.edits(transform, samples, false);
+        final Map<BlockPos, BlockCellEdit> edits =
+            TransformTool.edits(transform, source, samples, false);
 
         assertNull(edits.get(new BlockPos(0, 0, 0)), "copies leave the source untouched");
         final BlockCellEdit destination = edits.get(new BlockPos(1, 0, 0));

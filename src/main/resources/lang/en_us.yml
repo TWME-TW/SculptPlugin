@@ -396,8 +396,8 @@ editor:
       right: "<!italic><gray>Right-click: selection actions"
     transform:
       name: "Transform"
-      left: "<!italic><gray>Left-click: grab or drop the selection"
-      right: "<!italic><gray>Right-click: apply · Shift+scroll: rotate"
+      left: "<!italic><gray>Left-click: grab or release a gizmo handle"
+      right: "<!italic><gray>Right-click: apply · Shift+scroll: rotation snap"
     shape:
       name: "Shape"
       left: "<!italic><gray>Left-click: add a point, or grab one"
@@ -443,16 +443,15 @@ editor:
     cleared: "<#E8C96D>Selection cleared."
     blueprint_failed: "<#CE5F4E>Could not use the selection for a blueprint."
   transform:
-    grabbed: "<#B08CE8>Moving; left-click to drop, right-click to apply."
-    dropped: "<#B08CE8>Dropped. Right-click to apply or Q to reset."
-    reset: "<#E8C96D>Transform reset."
+    grabbed: "<#B08CE8>Dragging <white>{0}<#B08CE8>; left-click to release, right-click to apply."
+    dropped: "<#B08CE8>Released. Right-click to apply, Q to reset."
+    reset_done: "<#E8C96D>Transform reset."
     unchanged: "<gray>Move, rotate, or mirror the selection first."
+    snap: "<#B08CE8>Rotation snap: <white>{0}"
+    snap_free: "free"
     title: "Transform selection"
-    body: "Copy keeps the original. Rotation turns clockwise around the vertical axis."
+    body: "Drag a handle to move, rotate, or mirror the selection. Left-click grabs the handle under the cursor and left-click again releases it; a drag only moves the selection along the handle you grabbed. Shift freezes a drag, Q resets, Shift+scroll sets the rotation snap, and right-click applies."
     copy: "Copy instead of move"
-    mirror_x: "Mirror east–west"
-    mirror_z: "Mirror north–south"
-    rotation: "Rotation"
     apply: "Apply now"
     reset: "Reset"
   shape:

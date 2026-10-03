@@ -282,21 +282,10 @@ public final class EditorDialogs {
 
     public static void transform(final EditorSession session, final TransformTool tool) {
         final Player player = session.player();
-        final List<SingleOptionDialogInput.OptionEntry> rotations = new ArrayList<>();
-        for (int turns = 0; turns < 4; turns++) {
-            rotations.add(SingleOptionDialogInput.OptionEntry.create(Integer.toString(turns),
-                Component.text(turns * 90 + "°"), turns == tool.quarterTurns()));
-        }
-        final Consumer<DialogResponseView> configure = view -> tool.configure(
-            Boolean.TRUE.equals(view.getBoolean("copy")),
-            Boolean.TRUE.equals(view.getBoolean("mirror_x")),
-            Boolean.TRUE.equals(view.getBoolean("mirror_z")),
-            Integer.parseInt(view.getText("rotation")));
+        final Consumer<DialogResponseView> configure = view ->
+            tool.configure(Boolean.TRUE.equals(view.getBoolean("copy")));
         show(player, "editor.transform.title", List.of(body(player, "editor.transform.body")), List.of(
-            DialogInput.bool("copy", text(player, "editor.transform.copy")).initial(tool.copy()).build(),
-            DialogInput.bool("mirror_x", text(player, "editor.transform.mirror_x")).initial(tool.mirrorX()).build(),
-            DialogInput.bool("mirror_z", text(player, "editor.transform.mirror_z")).initial(tool.mirrorZ()).build(),
-            DialogInput.singleOption("rotation", text(player, "editor.transform.rotation"), rotations).build()
+            DialogInput.bool("copy", text(player, "editor.transform.copy")).initial(tool.copy()).build()
         ), List.of(
             button(player, "editor.transform.apply", NARROW, view -> {
                 configure.accept(view);
@@ -306,7 +295,9 @@ public final class EditorDialogs {
                 configure.accept(view);
                 session.flash("editor.settings.applied");
             }),
-            button(player, "editor.transform.reset", WIDE, view -> tool.reset())), 2);
+            button(player, "editor.transform.reset", WIDE, view -> {
+                if (!tool.cancel(session)) session.flash("editor.transform.unchanged");
+            })), 2);
     }
 
     // =====================================================================

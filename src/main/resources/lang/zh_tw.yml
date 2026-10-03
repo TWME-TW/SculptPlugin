@@ -396,8 +396,8 @@ editor:
       right: "<!italic><gray>右鍵：選取動作"
     transform:
       name: "變形"
-      left: "<!italic><gray>左鍵：抓起或放下選取"
-      right: "<!italic><gray>右鍵：套用 · Shift+滾輪：旋轉"
+      left: "<!italic><gray>左鍵：抓起或放開把手"
+      right: "<!italic><gray>右鍵：套用 · Shift+滾輪：旋轉吸附"
     shape:
       name: "形狀"
       left: "<!italic><gray>左鍵：新增控制點，或抓起控制點"
@@ -443,16 +443,15 @@ editor:
     cleared: "<#E8C96D>已清除選取。"
     blueprint_failed: "<#CE5F4E>無法將此選取存成藍圖。"
   transform:
-    grabbed: "<#B08CE8>移動中；左鍵放下，右鍵套用。"
-    dropped: "<#B08CE8>已放下。右鍵套用，或按 Q 重設。"
-    reset: "<#E8C96D>已重設變形。"
+    grabbed: "<#B08CE8>正在拖曳 <white>{0}<#B08CE8>；左鍵放開，右鍵套用。"
+    dropped: "<#B08CE8>已放開。右鍵套用，Q 重設。"
+    reset_done: "<#E8C96D>已重設變形。"
     unchanged: "<gray>請先移動、旋轉或鏡射選取。"
+    snap: "<#B08CE8>旋轉吸附：<white>{0}"
+    snap_free: "自由"
     title: "變形選取"
-    body: "複製會保留原本的內容。旋轉以垂直軸順時針轉動。"
+    body: "拖曳把手來移動、旋轉或鏡射選取。左鍵抓起游標下的把手，再按左鍵放開；拖曳只會沿著你抓起的把手移動選取。蹲下可凍結拖曳，Q 重設，Shift+滾輪調整旋轉吸附，右鍵套用。"
     copy: "複製而不是移動"
-    mirror_x: "東西鏡射"
-    mirror_z: "南北鏡射"
-    rotation: "旋轉"
     apply: "立即套用"
     reset: "重設"
   shape:
