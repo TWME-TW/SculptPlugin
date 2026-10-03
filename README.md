@@ -33,6 +33,7 @@ The same keys work for every tool:
 | `F` | Cycle through your permitted resolutions. |
 | `Shift` + `F` | Leave the editor. |
 | `Q` | Cancel what the tool is doing, such as a selection or unfinished shape. |
+| `Q` twice quickly | Drop everything the tool is holding at once, such as every control point of a shape. |
 | `Shift` + `Q` | Undo your last edit. |
 | Middle click | Use the material under the cursor. |
 
@@ -64,7 +65,7 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 
 **Shapes.** Choose a shape type in the Shape tool settings (`Shift` + right-click). You can also set the thickness, hollow spheres and cylinders, and carving instead of adding. The preview updates live while you add or drag points.
 
-A surface is drawn one line at a time: left-click to add the points of the current line, then press `Shift` + left-click to start the next one. Every line is smoothed with a spline, and the strips between consecutive lines are swept into a single surface that passes through all of them, so line A, then B, then C gives a surface from A through B to C. `Q` removes the last point, or the last line once it is empty.
+A surface is drawn one line at a time: left-click to add the points of the current line, then press `Shift` + left-click to start the next one. Every line is smoothed with a spline, and the strips between consecutive lines are swept into a single surface that passes through all of them, so line A, then B, then C gives a surface from A through B to C. `Q` removes the last point, or the last line once it is empty; press `Q` twice quickly to drop the whole surface at once.
 
 | Shape | Points | Result |
 | --- | --- | --- |

@@ -98,6 +98,19 @@ class EditorToolLogicTest {
     }
 
     @Test
+    void clearingDropsEveryLineAtOnce() {
+        final ShapeTool tool = new ShapeTool();
+        tool.configure(ShapeTool.Type.SURFACE, 1, 16, false, false);
+        tool.lines().add(new ArrayList<>(List.of(new Vector3d(0, 0, 0), new Vector3d(4, 0, 0))));
+        tool.lines().add(new ArrayList<>(List.of(new Vector3d(0, 1, 4), new Vector3d(4, 1, 4))));
+        assertEquals(4, tool.lines().stream().mapToInt(List::size).sum());
+
+        assertEquals(4, tool.clearLines(), "every point of every line is removed");
+        assertTrue(tool.lines().isEmpty());
+        assertEquals("building.shape.surface.lines", tool.validate());
+    }
+
+    @Test
     void otherShapesUseTheirFirstLine() {
         final ShapeTool tool = new ShapeTool();
         assertEquals("building.shape.plane.points", tool.validate(),

@@ -55,6 +55,8 @@ public final class EditorService {
     private final Map<UUID, EditorSession> sessions = new ConcurrentHashMap<>();
     private final InputInterceptor input = new InputInterceptor(sessions::containsKey, this::onPacketInput);
     private final Map<UUID, Integer> lastClick = new ConcurrentHashMap<>();
+    /** Last press time of each double-tap shortcut, keyed by player and kind. */
+    private final Map<String, Long> lastTap = new ConcurrentHashMap<>();
     private volatile EditorConfig config;
     private Object tickTask;
 
@@ -204,6 +206,18 @@ public final class EditorService {
         }
     }
 
+    /**
+     * Whether this is the second press of {@code kind} within the configured
+     * double-tap window, resetting the timer either way.
+     */
+    private boolean doubleTap(final UUID player, final int kind) {
+        final long window = plugin.sculptConfig().doubleTapWindowMs();
+        final long now = System.currentTimeMillis();
+        final String key = player + ":" + kind;
+        final Long previous = lastTap.put(key, now);
+        return previous != null && now - previous <= window;
+    }
+
     private void onPacketInput(final UUID id, final InputInterceptor.Input kind) {
         final Player player = Bukkit.getPlayer(id);
         if (player == null) return;
@@ -217,6 +231,8 @@ public final class EditorService {
                     player.updateInventory();
                     if (player.isSneaking()) {
                         revert(player, false, 1);
+                    } else if (doubleTap(id, 1)) {
+                        session.clear();
                     } else {
                         session.cancel();
                     }

@@ -275,7 +275,9 @@ public final class EditorDialogs {
                     Boolean.TRUE.equals(view.getBoolean("carve")));
                 session.flash("editor.settings.applied");
             }),
-            button(player, "editor.shape.clear", NARROW, view -> tool.cancel(session))), 2);
+            button(player, "editor.shape.clear", NARROW, view -> {
+                if (!tool.clear(session)) session.flash("editor.nothing_to_cancel");
+            })), 2);
     }
 
     public static void transform(final EditorSession session, final TransformTool tool) {
