@@ -385,7 +385,7 @@ editor:
     smooth:
       name: "平滑"
       left: "<!italic><gray>點擊：削去尖角、填平凹洞"
-      right: "<!italic><gray>Shift+滾輪：筆刷大小"
+      right: "<!italic><gray>Shift+滾輪：筆刷大小 · Shift+右鍵：次數"
     paint:
       name: "上色"
       left: "<!italic><gray>左鍵：吸取材質"
@@ -412,6 +412,7 @@ editor:
       right: "<!italic><gray>右鍵：編輯器設定"
   status:
     brush: "<gray>半徑 <white>{0}</white> {1}"
+    smooth: "<gray>半徑 <white>{0}</white> {1} · <white>{2}</white> 次"
     selection: "<gray>選取 <white>{0}×{1}×{2}"
     move: "<gray>移動 <white>{0}, {1}, {2}</white> · <white>{3}°"
     copy: "<gray>複製到 <white>{0}, {1}, {2}</white> · <white>{3}°"
@@ -468,6 +469,9 @@ editor:
     title: "筆刷"
     radius: "半徑（格）"
     shape: "形狀"
+  smooth:
+    title: "平滑"
+    passes: "平滑次數"
   blueprint:
     title: "藍圖"
     body: "選擇要放置的藍圖。☁ 表示公開藍圖。"

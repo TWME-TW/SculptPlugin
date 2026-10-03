@@ -76,6 +76,11 @@ building:
   brush:
     # Largest brush radius, in cells at the player's resolution.
     maxRadius: 8
+  smooth:
+    # Smoothing passes one Smooth-tool click runs.
+    passes: 1
+    # Largest number of passes a player may choose in the Smooth tool settings.
+    maxPasses: 8
   history:
     # Undo steps kept per player until they leave the server.
     maxEntries: 30

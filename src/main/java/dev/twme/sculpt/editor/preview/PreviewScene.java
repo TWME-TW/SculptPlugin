@@ -30,6 +30,10 @@ import dev.twme.textdisplayshape.shape.ShapeStyle;
  * runs once instead of being restarted every tick. Every method must run on
  * the player's thread.</p>
  *
+ * <p>Every shape is double-sided, so outlines, faces, and surfaces stay
+ * visible when the camera moves to the other side of them; the library emits
+ * one extra entity per rendered part for the back face.</p>
+ *
  * <p>The origin is both the Text Display position of every shape and the
  * reference point of their world-space geometry, so it must stay axis
  * aligned: a Display applies its transformation <em>after</em> the entity's
@@ -47,6 +51,11 @@ public final class PreviewScene {
     private static final float VIEW_RANGE = 4.0f;
     /** Distance the player may move before the scene rebases its origin. */
     private static final double REBASE_DISTANCE_SQUARED = 8.0 * 8.0;
+    /**
+     * Every rendered part is drawn twice, once facing each way, so a preview
+     * is visible from both sides. The budget counts those entities.
+     */
+    private static final int SIDES = 2;
 
     private final PacketShapeFactory shapes;
     private final UUID viewer;
@@ -116,7 +125,7 @@ public final class PreviewScene {
             return;
         }
         remove(key);
-        if (!fits(12)) return;
+        if (!fits(12 * SIDES)) return;
         final float size = Math.min(max.x - min.x, Math.min(max.y - min.y, max.z - min.z));
         final float thickness = Math.clamp(size * 0.04f, 0.006f, 0.05f);
         final BoxOutline outline = shapes.boxOutline(origin, min, max, thickness, style(argb));
@@ -134,7 +143,7 @@ public final class PreviewScene {
             return;
         }
         remove(key);
-        if (!fits(6)) return;
+        if (!fits(6 * SIDES)) return;
         add(key, shapes.boxFaces(origin, min, max, style(argb)), argb);
     }
 
@@ -155,21 +164,21 @@ public final class PreviewScene {
             recolor(existing, argb);
             if (same(points, existing.points())) return;
             final int extra = segments(points.size(), closed) - polyline.getSegmentCount();
-            if (extra > 0 && !fits(extra)) return;
+            if (extra > 0 && !fits(extra * SIDES)) return;
             polyline.setPoints(points);
             existing.setPoints(points);
             return;
         }
         remove(key);
-        if (!fits(segments(points.size(), closed))) return;
+        if (!fits(segments(points.size(), closed) * SIDES)) return;
         final PacketPolyline polyline = shapes.polyline(origin, points, thickness)
             .closed(closed).style(style(argb)).build();
         add(key, polyline, argb, points, closed);
     }
 
     /**
-     * Double-sided translucent triangles, reusing existing triangles so the
-     * surface morphs smoothly while control points move.
+     * Translucent triangles, reusing existing triangles so the surface morphs
+     * smoothly while control points move.
      */
     public void triangles(final String key, final List<Vector3f[]> input, final int argb) {
         final List<Vector3f[]> triangles = new ArrayList<>(input.size());
@@ -196,9 +205,9 @@ public final class PreviewScene {
             if (index < members.size()) {
                 ((PacketTriangle) members.get(index)).setPoints(triangle[0], triangle[1], triangle[2]);
             } else {
-                if (!fits(6)) break;
+                if (!fits(6 * SIDES)) break;
                 group.add(shapes.triangle(origin, triangle[0], triangle[1], triangle[2])
-                    .style(style(argb).withDoubleSided(true)).build());
+                    .style(style(argb)).build());
             }
         }
         for (int index = members.size() - 1; index >= triangles.size(); index--) {
@@ -264,7 +273,7 @@ public final class PreviewScene {
      * out. Used to show what a commit, undo, or redo changed.
      */
     public void pulse(final Vector3f min, final Vector3f max, final int argb) {
-        if (!animations || !fits(6)) return;
+        if (!animations || !fits(6 * SIDES)) return;
         final BoxFaces faces = shapes.boxFaces(origin,
             new Vector3f(min).sub(0.01f, 0.01f, 0.01f), new Vector3f(max).add(0.01f, 0.01f, 0.01f),
             style(argb).withInterpolationDuration(PULSE_FADE_TICKS));
@@ -341,6 +350,7 @@ public final class PreviewScene {
     private ShapeStyle style(final int argb) {
         return ShapeStyle.DEFAULT
             .withColor(argb)
+            .withDoubleSided(true)
             .withSeeThrough(true)
             .withViewRange(VIEW_RANGE)
             .withInterpolationDuration(animations ? UPDATE_TICKS : 0);

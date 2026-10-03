@@ -385,7 +385,7 @@ editor:
     smooth:
       name: "Smooth"
       left: "<!italic><gray>Click: round off spikes and fill pits"
-      right: "<!italic><gray>Shift+scroll: brush size"
+      right: "<!italic><gray>Shift+scroll: brush size · Shift+right-click: passes"
     paint:
       name: "Paint"
       left: "<!italic><gray>Left-click: pick the material"
@@ -412,6 +412,7 @@ editor:
       right: "<!italic><gray>Right-click: editor settings"
   status:
     brush: "<gray>radius <white>{0}</white> {1}"
+    smooth: "<gray>radius <white>{0}</white> {1} · <white>{2}</white> passes"
     selection: "<gray>selection <white>{0}×{1}×{2}"
     move: "<gray>move <white>{0}, {1}, {2}</white> · <white>{3}°"
     copy: "<gray>copy to <white>{0}, {1}, {2}</white> · <white>{3}°"
@@ -468,6 +469,9 @@ editor:
     title: "Brush"
     radius: "Radius (cells)"
     shape: "Shape"
+  smooth:
+    title: "Smooth"
+    passes: "Smoothing passes"
   blueprint:
     title: "Blueprints"
     body: "Choose a blueprint to place. ☁ marks public blueprints."

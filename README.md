@@ -60,6 +60,8 @@ You can target cells behind holes in a sculpture. At `1×1×1`, whole blocks are
 
 **Transform.** Grab the selection and move the cursor; a ghost box follows it. Use `Shift` + scroll to rotate in 90° steps. `Shift` + right-click sets mirroring and chooses between moving and copying. `Q` resets the transform.
 
+**Smoothing.** `Shift` + right-click with the Smooth tool sets the brush radius, its sphere or cube shape, and the number of smoothing passes. Each pass repeats the majority filter on the result of the previous one, so a rough surface keeps rounding instead of stopping after a single cell of change. The result is still applied as one undoable edit.
+
 **Shapes.** Choose a shape type in the Shape tool settings (`Shift` + right-click). You can also set the thickness, the number of rows in a surface grid, hollow spheres and cylinders, and carving instead of adding. The preview updates live while you add or drag points.
 
 | Shape | Points | Result |
@@ -90,6 +92,10 @@ Your settings remain associated with your UUID when you leave and rejoin during 
 ### Undo and redo
 
 `Shift` + `Q` in the editor, `/sculpt undo [steps]`, and `/sculpt redo [steps]` revert and reapply your edits from every tool, blueprint pastes included. A block that someone else changed after your edit is skipped instead of being overwritten, and region protection is checked again. History is kept per player until they leave the server. Replacing a selection's material is not recorded in the history.
+
+### Merged cells
+
+Every edit collapses its octree before it is installed, so cells that end up identical merge back into larger cells, down to a plain vanilla block when the whole block is uniform again. Blueprint pastes and `/sculpt replace` do the same, so pasting a full block or replacing a whole shape does not leave one display entity per cell. Cells that carry their own texture are never merged.
 
 ### Player commands
 
@@ -241,6 +247,8 @@ The current configuration schema is `configVersion: 6`, and bundled language fil
 | `building.maxThickness` | `16` | Largest shape thickness. |
 | `building.maxTransformVoxels` | `2097152` | Largest selection, in 1/16-block voxels, that can be moved or copied. |
 | `building.brush.maxRadius` | `8` | Largest brush radius in cells. |
+| `building.smooth.passes` | `1` | Smoothing passes one Smooth-tool click runs. |
+| `building.smooth.maxPasses` | `8` | Largest number of passes a player may choose in the Smooth tool settings. |
 | `building.history.maxEntries` | `30` | Undo steps kept per player. |
 | `building.history.maxBlocks` | `32768` | Block snapshots kept per player; the oldest steps are dropped first. |
 | `language.default` | `en_us` | Fallback language. |

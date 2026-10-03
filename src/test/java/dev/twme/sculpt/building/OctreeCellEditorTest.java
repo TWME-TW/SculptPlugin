@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.junit.jupiter.api.Test;
 
+import dev.twme.sculpt.core.ChunkCoord;
 import dev.twme.sculpt.core.OctreeNode;
 import dev.twme.sculpt.core.PlayerHeadTexture;
 
@@ -204,6 +205,43 @@ class OctreeCellEditorTest {
         assertEquals(OAK, OctreeCellEditor.materialAt(tree,
             CellVolume.localX(2, 3) * 8, CellVolume.localY(2, 3) * 8,
             CellVolume.localZ(2, 3) * 8));
+    }
+
+    @Test
+    void canonicalizeCollapsesFullyCoveredBranches() {
+        // Carving a single cell out of a full block leaves a shape whose
+        // remaining volume is mostly whole branches; merging them is what
+        // keeps the display entity count down.
+        final OctreeNode tree = OctreeCellEditor.full(STONE);
+        OctreeCellEditor.apply(tree, edit(16, BlockCellEdit.Operation.CARVE, null, 0));
+        OctreeCellEditor.canonicalize(tree);
+
+        assertEquals(28, OctreeCellEditor.occupiedLeaves(tree),
+            "one carved cell of 4096 must not leave 4095 separate cells");
+
+        // Refilling it returns the whole block to a single leaf.
+        OctreeCellEditor.apply(tree, edit(16, BlockCellEdit.Operation.ADD, STONE, 0));
+        OctreeCellEditor.canonicalize(tree);
+        assertTrue(tree.isLeaf() && !tree.isRemoved());
+        assertEquals(1, OctreeCellEditor.occupiedLeaves(tree));
+    }
+
+    @Test
+    void canonicalizeLeavesTexturedCellsAlone() {
+        // Cells with their own texture coordinate must stay distinct, so a
+        // merged branch never loses a per-cell texture.
+        final OctreeNode tree = OctreeCellEditor.full(STONE);
+        OctreeCellEditor.apply(tree, edit(16, BlockCellEdit.Operation.CARVE, null, 0));
+        final List<OctreeNode> leaves = tree.collectLeaves();
+        leaves.get(0).setTextureCoord(new ChunkCoord(1, 2, 3));
+        final int before = OctreeCellEditor.occupiedLeaves(tree);
+
+        OctreeCellEditor.canonicalize(tree);
+
+        assertEquals(before, OctreeCellEditor.occupiedLeaves(tree));
+        assertEquals(new ChunkCoord(1, 2, 3),
+            tree.findLeaf(leaves.get(0).minX(), leaves.get(0).minY(),
+                leaves.get(0).minZ()).textureCoord());
     }
 
     private static BlockCellEdit edit(
