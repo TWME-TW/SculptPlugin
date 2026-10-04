@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
+import org.mineskin.QueueOptions;
 
 class SkinUploaderTest {
 
@@ -39,5 +40,26 @@ class SkinUploaderTest {
         assertThrows(IllegalArgumentException.class,
                 () -> SkinUploader.normalizeApiUrl(
                         "https://skins.example.test#fragment"));
+    }
+
+    @Test
+    void queueOptionsAreFixedRatherThanGrantRefreshing() {
+        final QueueOptions options = SkinUploader.queueOptions();
+
+        // AutoGenerateQueueOptions re-reads the account's grants over the
+        // network whenever its values are read, which is what logged a stack
+        // trace for a timeout that only affected queue sizing. Returning the
+        // final QueueOptions type rules it out at compile time; this pins the
+        // concrete type so a future change to the factory is visible here.
+        assertEquals(QueueOptions.class, options.getClass());
+        assertEquals(1000, options.intervalMillis());
+        assertEquals(2, options.concurrency());
+
+        // Reading the values must stay cheap: the auto options would issue a
+        // request here once five minutes had passed.
+        for (int i = 0; i < 100; i++) {
+            assertEquals(1000, options.intervalMillis());
+            assertEquals(2, options.concurrency());
+        }
     }
 }

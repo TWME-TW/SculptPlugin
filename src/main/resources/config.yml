@@ -27,7 +27,12 @@ runtimeBaking:
     apiKey: ""
     apiUrl: "https://api.mineskin.org"
   upload:
+    # Minimum delay between upload batches. MineSkin's free tier allows 180
+    # requests/minute; 16 uploads per batch at 6000ms stays well under it.
     batchDelayMs: 6000
+    # How long to wait for one upload to finish before giving up on it.
+    # This is the whole job, not a single HTTP request; requests themselves
+    # time out after 30 seconds.
     timeoutMinutes: 10
 
 storage:
