@@ -218,4 +218,58 @@ class GizmoTest {
         assertEquals(0, gizmo.offsetY(), "an X handle does not move the selection up");
         assertEquals(0, gizmo.offsetZ(), "an X handle does not move the selection north");
     }
+
+    @Test
+    void theDrawnPivotFollowsThePendingMove() {
+        final Gizmo gizmo = new Gizmo("g.");
+        // Nothing pending: the handles sit on the selection center.
+        assertEquals(PIVOT.x, gizmo.drawnPivot(SELECTION).x, 1e-9);
+
+        // A one-block move east carries the handles with it, so the gizmo
+        // shows where the selection is going.
+        final Vector3d eye = new Vector3d(1.05, 5, 1.025);
+        final Vector3d look = toward(eye, new Vector3d(1, 1.9, 1));
+        gizmo.update(PIVOT, eye, look);
+        gizmo.beginDrag(PIVOT, eye, look);
+        gizmo.update(PIVOT, new Vector3d(1.05, 6, 1.025), look);
+
+        final Vector3d drawn = gizmo.drawnPivot(SELECTION);
+        assertEquals(16, gizmo.offsetY(), "the drag moved one block up");
+        assertEquals(PIVOT.y + 1.0, drawn.y, 1e-9, "the handles follow the move");
+        assertEquals(PIVOT.x, drawn.x, 1e-9, "an up move does not shift the other axes");
+        assertEquals(PIVOT.z, drawn.z, 1e-9);
+    }
+
+    @Test
+    void aMovingPivotDoesNotFeedBackIntoTheDrag() {
+        // The drawn pivot follows the offset. If the drag measured against
+        // that pivot, each tick's plane would move with it and the offset
+        // would compound instead of tracking the view.
+        final Gizmo gizmo = new Gizmo("g.");
+        final Vector3d eye = new Vector3d(1.05, 5, 1.025);
+        final Vector3d look = toward(eye, new Vector3d(1, 1.9, 1));
+        gizmo.update(PIVOT, eye, look);
+        gizmo.beginDrag(PIVOT, eye, look);
+
+        // One block of drag: the offset must settle and stay put when the
+        // view is unchanged, however many ticks run.
+        final Vector3d pulled = new Vector3d(1.05, 6, 1.025);
+        gizmo.update(PIVOT, pulled, look);
+        final long settled = gizmo.offsetY();
+        assertEquals(16, settled);
+        for (int tick = 0; tick < 20; tick++) {
+            // Each tick re-derives the pivot the way the tool does, so the
+            // anchor is what keeps this from compounding.
+            gizmo.update(gizmo.drawnPivot(SELECTION), pulled, look);
+            assertEquals(settled, gizmo.offsetY(),
+                "an unchanged view must not keep moving the selection");
+        }
+    }
+
+    @Test
+    void degreesAreNormalizedForDisplay() {
+        final Gizmo gizmo = new Gizmo("g.");
+        assertEquals(0.0, gizmo.degrees(), 1e-9);
+        assertFalse(gizmo.isRotating(), "nothing is being rotated yet");
+    }
 }

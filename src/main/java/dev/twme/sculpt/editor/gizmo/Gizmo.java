@@ -61,6 +61,12 @@ public final class Gizmo {
     private Vector3d dragStart;
     private Vector3d dragDirection;
     private Vector3d dragPlaneNormal;
+    /**
+     * The pivot the active drag measures against, captured when the drag
+     * began. The drawn pivot follows the pending move, so measuring against
+     * the live one would feed each tick's offset back into the next.
+     */
+    private Vector3d dragPivot;
     private double dragStartAngle;
     private double scale = 1.0;
     private int angleStep = 2;
@@ -138,10 +144,37 @@ public final class Gizmo {
         return VoxelRotation.around(source, angle, mirrorX, mirrorZ);
     }
 
+    /**
+     * Where the handles should be drawn: the selection center carried by the
+     * pending move, so the gizmo travels with the ghost instead of sitting on
+     * the original position.
+     */
+    public Vector3d drawnPivot(final VoxelBox source) {
+        final Vector3d center = source.center();
+        return center.add(
+            offsetX / (double) VoxelBox.VOXELS_PER_BLOCK,
+            offsetY / (double) VoxelBox.VOXELS_PER_BLOCK,
+            offsetZ / (double) VoxelBox.VOXELS_PER_BLOCK);
+    }
+
+    /** Whether a rotation is being dragged right now. */
+    public boolean isRotating() {
+        return dragging != null && dragging.kind() == GizmoHandle.Kind.ROTATE;
+    }
+
+    /** The pending rotation in degrees, normalized to {@code (-180, 180]}. */
+    public double degrees() {
+        double degrees = Math.toDegrees(angle) % 360.0;
+        if (degrees > 180.0) degrees -= 360.0;
+        if (degrees <= -180.0) degrees += 360.0;
+        return degrees;
+    }
+
     /** Drop every pending change and any active drag. */
     public void reset() {
         dragging = null;
         hovered = null;
+        dragPivot = null;
         angle = 0;
         offsetX = 0;
         offsetY = 0;
@@ -153,6 +186,7 @@ public final class Gizmo {
     /** Stop dragging but keep the pending change. */
     public void release() {
         dragging = null;
+        dragPivot = null;
     }
 
     /** Forget the hovered handle, for example when the selection goes away. */
@@ -182,6 +216,7 @@ public final class Gizmo {
     public boolean beginDrag(final Vector3d pivot, final Vector3d eye, final Vector3d direction) {
         if (hovered == null) return false;
         final GizmoHandle handle = hovered;
+        dragPivot = new Vector3d(pivot);
         switch (handle.kind()) {
             case MOVE, MIRROR -> {
                 dragDirection = handle.direction();
@@ -211,12 +246,15 @@ public final class Gizmo {
 
     /** Convert the current view ray into an offset or an angle for the active drag. */
     private void drag(final Vector3d pivot, final Vector3d eye, final Vector3d direction) {
+        // Measure against the pivot the drag started from, not the one being
+        // drawn: the drawn pivot follows the pending move.
+        final Vector3d anchor = dragPivot != null ? dragPivot : pivot;
         if (dragging.kind() == GizmoHandle.Kind.MOVE) {
             // The plane must follow the view: it is what keeps the drag
             // meaningful while the player looks around.
             dragPlaneNormal = dragPlane(direction);
         }
-        final Vector3d hit = GizmoMath.rayPlane(eye, direction, pivot, dragPlaneNormal);
+        final Vector3d hit = GizmoMath.rayPlane(eye, direction, anchor, dragPlaneNormal);
         if (hit == null) return;
         if (dragStart == null) {
             // The plane was edge-on to the ray when the drag began; anchor on
@@ -388,6 +426,60 @@ public final class Gizmo {
             final int color = hot ? Colors.CURSOR : dim(handle.color());
             draw(scene, handle, pivot, color, active);
         }
+        drawAngle(scene, pivot);
+    }
+
+    /**
+     * Draw the pending rotation on the ring: a sector sweeping from where the
+     * drag started to the current angle, and a marker at the current angle.
+     * The angle itself is reported numerically through the status text, since
+     * the preview shapes cannot carry text.
+     */
+    private void drawAngle(final PreviewScene scene, final Vector3d pivot) {
+        final String key = prefix + "angle";
+        if (angle == 0 || dragging == null || dragging.kind() != GizmoHandle.Kind.ROTATE) {
+            scene.remove(key + ".sector");
+            scene.remove(key + ".marker");
+            return;
+        }
+        final Vector3d axis = dragging.direction();
+        final double from = dragStartAngle;
+        final double sweep = angle;
+        final int color = Colors.CURSOR;
+
+        final int steps = Math.max(2, (int) Math.ceil(Math.abs(sweep) / (Math.PI / 36)));
+        final List<Vector3f> sector = new ArrayList<>(steps + 2);
+        sector.add(f(ringPoint(pivot, axis, from)));
+        for (int index = 0; index <= steps; index++) {
+            sector.add(f(ringPoint(pivot, axis, from + sweep * index / steps)));
+        }
+        // A filled wedge from the pivot, so the swept amount reads at a glance.
+        final List<Vector3f[]> triangles = new ArrayList<>(steps);
+        for (int index = 0; index < steps; index++) {
+            triangles.add(new Vector3f[]{f(pivot), sector.get(index + 1), sector.get(index + 2)});
+        }
+        scene.triangles(key + ".sector", triangles, Colors.withAlpha(color, 0x50));
+
+        final Vector3d mark = ringPoint(pivot, axis, from + sweep);
+        final double marker = 0.09 * scale;
+        scene.faces(key + ".marker",
+            new Vector3f((float) (mark.x - marker), (float) (mark.y - marker), (float) (mark.z - marker)),
+            new Vector3f((float) (mark.x + marker), (float) (mark.y + marker), (float) (mark.z + marker)),
+            color);
+    }
+
+    /** A point on the rotation ring at {@code arc} radians, in world space. */
+    private Vector3d ringPoint(final Vector3d pivot, final Vector3d axis, final double arc) {
+        final Vector3d u = GizmoMath.reject(new Vector3d(1, 0, 0), axis).normalize();
+        final Vector3d v = new Vector3d(axis).cross(u).normalize();
+        final double radius = RING_RADIUS * scale;
+        return new Vector3d(pivot)
+            .fma(Math.cos(arc) * radius, u)
+            .fma(Math.sin(arc) * radius, v);
+    }
+
+    private static Vector3f f(final Vector3d point) {
+        return new Vector3f((float) point.x, (float) point.y, (float) point.z);
     }
 
     /** Remove every handle. */

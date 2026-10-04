@@ -569,6 +569,24 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
                 player.sendMessage("SCULPT_TEST gizmo=pos;x=" + at.getX() + ";y=" + at.getY()
                     + ";z=" + at.getZ() + ";onGround=" + player.isOnGround());
             }
+            case "pivot" -> {
+                // Where the gizmo is actually drawn: the handles must follow
+                // the pending move, not stay on the original selection.
+                Object box = invoke(session, "selection");
+                if (box == null) {
+                    player.sendMessage("SCULPT_TEST gizmo=false;error=no_selection");
+                    return;
+                }
+                Object tool = invokeWithArgs(session, "tool", toolId("TRANSFORM"));
+                Object gizmo = publicField(tool, "gizmo").get(tool);
+                Object drawn = invokeWithArgs(gizmo, "drawnPivot", box);
+                player.sendMessage("SCULPT_TEST gizmo=pivot"
+                    + ";x=" + String.format(java.util.Locale.ROOT, "%.4f", componentDouble(drawn, "x"))
+                    + ";y=" + String.format(java.util.Locale.ROOT, "%.4f", componentDouble(drawn, "y"))
+                    + ";z=" + String.format(java.util.Locale.ROOT, "%.4f", componentDouble(drawn, "z"))
+                    + ";degrees=" + String.format(java.util.Locale.ROOT, "%.1f",
+                        (double) invoke(gizmo, "degrees")));
+            }
             case "state" -> player.sendMessage("SCULPT_TEST gizmo=state"
                 + ";hover=" + gizmoValue(session, "hovered")
                 + ";dragging=" + gizmoValue(session, "dragging")
@@ -738,12 +756,22 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
     /** One record component of a box, as a {@code long}. */
     private static long component(Object record, String name)
             throws ReflectiveOperationException {
-        for (RecordComponent component : record.getClass().getRecordComponents()) {
-            if (component.getName().equals(name)) {
-                return ((Number) component.getAccessor().invoke(record)).longValue();
+        return (long) componentDouble(record, name);
+    }
+
+    /** One record component as a {@code double}. */
+    private static double componentDouble(Object record, String name)
+            throws ReflectiveOperationException {
+        RecordComponent[] components = record.getClass().getRecordComponents();
+        if (components != null) {
+            for (RecordComponent component : components) {
+                if (component.getName().equals(name)) {
+                    return ((Number) component.getAccessor().invoke(record)).doubleValue();
+                }
             }
         }
-        throw new NoSuchFieldException(name);
+        // JOML vectors expose plain getters rather than record components.
+        return ((Number) invoke(record, name)).doubleValue();
     }
 
     /** The gizmo's offset for a named handle, in handle-geometry units. */

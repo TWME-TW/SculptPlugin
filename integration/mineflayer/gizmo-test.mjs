@@ -55,11 +55,16 @@ await command('/gamemode creative', m => /Creative/.test(m))
 // edge before the ground arrives, so the ground is placed under it instead.
 await bot.look(0, 0, true)   // face south, so "forward" is +Z
 await sleep(400)
+// The world persists between runs, so clear anything an earlier run left here
+// before laying the platform down.
 const base = bot.entity.position.floored()
 const X = base.x, Z = base.z
 const floorY = base.y - 1
+await command(`/fill ${X - 8} ${floorY - 1} ${Z - 8} ${X + 8} ${floorY + 12} ${Z + 14} minecraft:air`,
+  m => /Successfully filled|No blocks/.test(m))
+await sleep(400)
 check(await command(`/fill ${X - 6} ${floorY} ${Z - 6} ${X + 6} ${floorY} ${Z + 12} minecraft:bedrock`,
-  m => /Successfully filled/.test(m)) != null, 'a platform is built under the player')
+  m => /Successfully filled|No blocks/.test(m)) != null, 'a platform is built under the player')
 check(await command(`/fill ${X - 6} ${floorY + 1} ${Z - 6} ${X + 6} ${floorY + 8} ${Z + 12} minecraft:air`,
   m => /Successfully filled|No blocks/.test(m)) != null, 'the space above the platform is cleared')
 await sleep(900)
@@ -204,6 +209,64 @@ for (let y = by - 4; y <= by + 4; y++) {
 }
 check(occupied.length > 0 && !occupied.includes(by),
   'nothing is left behind in the source block', `y=${JSON.stringify(occupied)}`)
+
+// The handles must travel with the pending move, and a rotation must report
+// its angle as it is dragged.
+const pivotState = async () => {
+  const line = await gizmo('pivot')
+  const value = key => Number((new RegExp(key + '=([-\\d.]+)').exec(line) || [])[1])
+  return { x: value('x'), y: value('y'), z: value('z'), degrees: value('degrees'), raw: line }
+}
+
+await gizmo('cancel')
+await sleep(400)
+await gizmo('select')
+await sleep(400)
+const resting = await pivotState()
+check(Number.isFinite(resting.y), 'the gizmo reports where it is drawn', resting.raw)
+
+await aimAt('move_y'); await sleep(400)
+await aimAt('move_y'); await sleep(300)
+await gizmo('tick')
+await gizmo('primary')
+await aimAt('move_y', 3); await sleep(400)
+await aimAt('move_y', 3); await sleep(300)
+await gizmo('tick')
+const dragState = await state()
+await gizmo('primary')
+await sleep(200)
+const moved = await pivotState()
+check(Math.abs(moved.y - resting.y - dragState.y / 16) < 1e-3,
+  'the gizmo follows the move as it is dragged',
+  `resting.y=${resting.y} moved.y=${moved.y} offset=${dragState.y}`)
+check(Math.abs(moved.x - resting.x) < 1e-3 && Math.abs(moved.z - resting.z) < 1e-3,
+  'following the move does not shift the other axes',
+  `dx=${(moved.x - resting.x).toFixed(4)} dz=${(moved.z - resting.z).toFixed(4)}`)
+
+// A rotation reports its angle while the ring is held.
+await gizmo('cancel')
+await sleep(400)
+// Aiming can land on a neighbouring handle; retry until the ring is hovered
+// before grabbing it.
+let ringGrabbed = null
+for (let attempt = 0; attempt < 6 && ringGrabbed !== 'ROTATE_Y'; attempt++) {
+  await aimAt('rotate_y', 60)
+  await sleep(400)
+  await aimAt('rotate_y', 60)
+  await sleep(300)
+  const line = await gizmo('tick')
+  ringGrabbed = field(line, 'hover')
+}
+check(ringGrabbed === 'ROTATE_Y', 'the rotation ring can be grabbed', `hover=${ringGrabbed}`)
+await gizmo('primary')
+await aimAt('rotate_y', 120); await sleep(400)
+await aimAt('rotate_y', 120); await sleep(300)
+await gizmo('tick')
+const turning = await pivotState()
+check(Number.isFinite(turning.degrees) && turning.degrees !== 0,
+  'the rotation angle is reported while dragging', `degrees=${turning.degrees}`)
+await gizmo('cancel')
+await sleep(300)
 
 console.log(`\n${results.filter(r => r.ok).length}/${results.length} checks passed`)
 bot.quit('done')

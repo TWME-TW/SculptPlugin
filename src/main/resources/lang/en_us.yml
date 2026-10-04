@@ -448,6 +448,7 @@ editor:
     reset_done: "<#E8C96D>Transform reset."
     unchanged: "<gray>Move, rotate, or mirror the selection first."
     snap: "<#B08CE8>Rotation snap: <white>{0}"
+    angle: "<#E8C96D>Rotating <white>{0}°"
     snap_free: "free"
     title: "Transform selection"
     body: "Drag a handle to move, rotate, or mirror the selection. Left-click grabs the handle under the cursor and left-click again releases it; a drag only moves the selection along the handle you grabbed. Shift freezes a drag, Q resets, Shift+scroll sets the rotation snap, and right-click applies."

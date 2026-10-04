@@ -160,6 +160,14 @@ public final class EditorSession {
                 "[Sculpt] editor preview failed for " + player.getName(), failure);
         }
         scene.tick();
+        if (!player.isSneaking()) {
+            try {
+                tool().tickStatus(this);
+            } catch (final RuntimeException failure) {
+                plugin().getLogger().log(Level.WARNING,
+                    "[Sculpt] editor status failed for " + player.getName(), failure);
+            }
+        }
         if (ticks % service.config().hudIntervalTicks() == 0) sendHud();
     }
 
