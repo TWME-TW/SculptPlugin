@@ -448,6 +448,7 @@ editor:
     reset_done: "<#E8C96D>已重設變形。"
     unchanged: "<gray>請先移動、旋轉或鏡射選取。"
     snap: "<#B08CE8>旋轉吸附：<white>{0}"
+    angle: "<#E8C96D>旋轉中 <white>{0}°"
     snap_free: "自由"
     title: "變形選取"
     body: "拖曳把手來移動、旋轉或鏡射選取。左鍵抓起游標下的把手，再按左鍵放開；拖曳只會沿著你抓起的把手移動選取。蹲下可凍結拖曳，Q 重設，Shift+滾輪調整旋轉吸附，右鍵套用。"

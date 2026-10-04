@@ -129,6 +129,16 @@ public final class TransformTool implements Tool {
                 : Math.round(step) + "°");
     }
 
+    /**
+     * While a rotation is being dragged, the action bar reports the angle, so
+     * the number is visible as it changes rather than only after applying.
+     */
+    @Override
+    public void tickStatus(final EditorSession session) {
+        if (!gizmo.isRotating()) return;
+        session.flash("editor.transform.angle", Math.round(gizmo.degrees()));
+    }
+
     @Override
     public boolean cancel(final EditorSession session) {
         if (!grabbed && !gizmo.isChanged()) return false;
@@ -168,7 +178,9 @@ public final class TransformTool implements Tool {
             session.scene().remove(PREFIX + "ghost.faces");
             return;
         }
-        final Vector3d center = pivot(selection);
+        // The handles travel with the pending move, so a drag shows where the
+        // selection is going rather than staying on its original position.
+        final Vector3d center = gizmo.drawnPivot(selection);
         // A frozen drag (sneaking) keeps the handles still, like DEU.
         if (!session.player().isSneaking()) {
             gizmo.update(center, eye(session.player()), view(session.player()));

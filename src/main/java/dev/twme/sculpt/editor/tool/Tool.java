@@ -56,6 +56,13 @@ public interface Tool {
     /** Update this tool's previews after the cursor was traced; runs every tick. */
     void preview(EditorSession session);
 
+    /**
+     * Called every tick, for a tool that has something to report as it
+     * changes, such as the angle of an in-progress rotation.
+     */
+    default void tickStatus(final EditorSession session) {
+    }
+
     /** Short status for the action bar, such as the brush radius; may be empty. */
     default String status(final EditorSession session) {
         return "";
