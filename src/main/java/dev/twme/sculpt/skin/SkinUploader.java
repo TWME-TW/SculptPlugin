@@ -24,7 +24,7 @@ import org.mineskin.MineSkinClient;
 import org.mineskin.data.SkinInfo;
 import org.mineskin.data.Visibility;
 import org.mineskin.exception.MineSkinRequestException;
-import org.mineskin.options.GenerateQueueOptions;
+import org.mineskin.QueueOptions;
 import org.mineskin.request.GenerateRequest;
 import org.mineskin.response.QueueResponse;
 
@@ -72,6 +72,25 @@ public final class SkinUploader {
     /** Base delay in ms for exponential backoff after a 429. */
     private static final long RETRY_BASE_DELAY_MS = 1000L;
 
+    /**
+     * Per-request read timeout. The client library defaults to 10s, which is
+     * short enough that an ordinary slow reply times out mid-bake.
+     */
+    private static final int REQUEST_TIMEOUT_MILLIS = 30_000;
+
+    /**
+     * Interval between queue submissions. The client library's auto queue
+     * starts at 1000ms; its own rate-limit penalty backs this off from there,
+     * and {@link #batchDelayMs} is the primary rate control.
+     */
+    private static final int QUEUE_INTERVAL_MILLIS = 1000;
+
+    /**
+     * Concurrent queue submissions. The client library's auto queue starts at
+     * 2 and raises it from the account's grants; 2 is a safe fixed value.
+     */
+    private static final int QUEUE_CONCURRENCY = 2;
+
     private final Logger logger;
     private final String userAgent;
     private final long batchDelayMs;
@@ -114,6 +133,21 @@ public final class SkinUploader {
         return client != null;
     }
 
+    /**
+     * The queue options the client is built with.
+     *
+     * <p>Deliberately not {@code GenerateQueueOptions.createAuto()}: the auto
+     * options re-read the account's grants with a background {@code GET /user}
+     * every five minutes, and a failure there is logged by the library as a
+     * full stack trace even though it only tunes queue sizing. A fixed queue
+     * still applies the library's own 429 back-off.</p>
+     */
+    static QueueOptions queueOptions() {
+        return QueueOptions.createGenerate()
+            .withInterval(QUEUE_INTERVAL_MILLIS, TimeUnit.MILLISECONDS)
+            .withConcurrency(QUEUE_CONCURRENCY);
+    }
+
     private void rebuildClient(String apiKey, String apiUrl) {
         if (apiKey == null || apiKey.isBlank()) {
             logger.warning("[SkinUploader] runtimeBaking.mineskin.apiKey is empty;"
@@ -132,7 +166,8 @@ public final class SkinUploader {
                     .userAgent(userAgent)
                     .apiKey(apiKey)
                     .requestHandler(JsoupRequestHandler::new)
-                    .generateQueueOptions(GenerateQueueOptions.createAuto())
+                    .timeout(REQUEST_TIMEOUT_MILLIS)
+                    .generateQueueOptions(queueOptions())
                     .build();
         } catch (Throwable t) {
             ExceptionSummary.log(logger, Level.SEVERE,
