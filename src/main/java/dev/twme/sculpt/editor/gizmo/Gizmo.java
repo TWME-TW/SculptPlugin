@@ -34,7 +34,8 @@ public final class Gizmo {
     private static final double PLANE_OUTER = 0.78;
     private static final double RING_RADIUS = 1.75;
     private static final double RING_THICKNESS = 0.18;
-    private static final double RING_SPAN = Math.PI * 0.72;
+    /** A full circle: the ring is grabbable anywhere around the pivot. */
+    private static final double RING_SPAN = Math.PI * 2;
     private static final double MIRROR_RADIUS = 1.50;
     private static final double MIRROR_HALF = 0.12;
     /** Handles are picked a little more generously than they are drawn. */
@@ -53,7 +54,13 @@ public final class Gizmo {
      * rotation. {@code Shift} + scroll cycles through them.
      */
     public static final double[] ANGLE_STEPS = {90, 45, 15, 5, 1, 0};
-    private static final int RING_SEGMENTS = 40;
+    private static final int RING_SEGMENTS = 48;
+    /**
+     * The handle scale is quantized to this many steps. Handles resize as the
+     * player moves, and an un-quantized scale would move every handle's
+     * geometry on every tick, which is one update packet per handle entity.
+     */
+    private static final double SCALE_STEPS = 12.0;
 
     private final String prefix;
     private GizmoHandle hovered;
@@ -409,8 +416,8 @@ public final class Gizmo {
         final Vector3d local = new Vector3d(point).sub(pivot).mul(1.0 / scale);
         final double distance = Math.hypot(local.x, local.z);
         if (Math.abs(distance - RING_RADIUS) > RING_THICKNESS + PICK_SLACK) return -1;
-        final double arc = Math.atan2(local.z, local.x);
-        if (arc < 0 || arc > RING_SPAN) return -1;
+        // The ring is a full circle, so any point around it is a hit. The
+        // horizontal ring is drawn in world X/Z; other axes are not offered.
         return eye.distance(point);
     }
 
@@ -430,49 +437,49 @@ public final class Gizmo {
     }
 
     /**
-     * Draw the pending rotation on the ring: a sector sweeping from where the
-     * drag started to the current angle, and a marker at the current angle.
-     * The angle itself is reported numerically through the status text, since
-     * the preview shapes cannot carry text.
+     * Draw the pending rotation on the ring: a spoke from the pivot to where
+     * the drag started, and a spoke to the current angle, so the amount turned
+     * is visible in the world.
+     *
+     * <p>Two line segments rather than a filled wedge. A wedge is a triangle
+     * per tessellation step, and the whole set has to be re-sent every time the
+     * angle changes; two spokes are two entities that move. The angle itself is
+     * reported numerically through the status text, since the preview shapes
+     * cannot carry text.</p>
      */
     private void drawAngle(final PreviewScene scene, final Vector3d pivot) {
         final String key = prefix + "angle";
         if (angle == 0 || dragging == null || dragging.kind() != GizmoHandle.Kind.ROTATE) {
-            scene.remove(key + ".sector");
-            scene.remove(key + ".marker");
+            scene.remove(key + ".from");
+            scene.remove(key + ".to");
             return;
         }
         final Vector3d axis = dragging.direction();
-        final double from = dragStartAngle;
-        final double sweep = angle;
         final int color = Colors.CURSOR;
+        final float thickness = (float) (0.03 * scale);
 
-        final int steps = Math.max(2, (int) Math.ceil(Math.abs(sweep) / (Math.PI / 36)));
-        final List<Vector3f> sector = new ArrayList<>(steps + 2);
-        sector.add(f(ringPoint(pivot, axis, from)));
-        for (int index = 0; index <= steps; index++) {
-            sector.add(f(ringPoint(pivot, axis, from + sweep * index / steps)));
-        }
-        // A filled wedge from the pivot, so the swept amount reads at a glance.
-        final List<Vector3f[]> triangles = new ArrayList<>(steps);
-        for (int index = 0; index < steps; index++) {
-            triangles.add(new Vector3f[]{f(pivot), sector.get(index + 1), sector.get(index + 2)});
-        }
-        scene.triangles(key + ".sector", triangles, Colors.withAlpha(color, 0x50));
-
-        final Vector3d mark = ringPoint(pivot, axis, from + sweep);
-        final double marker = 0.09 * scale;
-        scene.faces(key + ".marker",
-            new Vector3f((float) (mark.x - marker), (float) (mark.y - marker), (float) (mark.z - marker)),
-            new Vector3f((float) (mark.x + marker), (float) (mark.y + marker), (float) (mark.z + marker)),
-            color);
+        // Where the drag started, dimmed; where it is now, bright.
+        scene.polyline(key + ".from", List.of(
+                f(pivot), f(ringPoint(pivot, axis, dragStartAngle))),
+            false, thickness, Colors.withAlpha(color, 0x60));
+        scene.polyline(key + ".to", List.of(
+                f(pivot), f(ringPoint(pivot, axis, dragStartAngle + angle))),
+            false, thickness, color);
     }
 
-    /** A point on the rotation ring at {@code arc} radians, in world space. */
+    /**
+     * A point on the rotation ring at {@code arc} radians, in world space.
+     * Shares {@link #ring}'s basis so the spokes and the ring agree.
+     */
     private Vector3d ringPoint(final Vector3d pivot, final Vector3d axis, final double arc) {
-        final Vector3d u = GizmoMath.reject(new Vector3d(1, 0, 0), axis).normalize();
-        final Vector3d v = new Vector3d(axis).cross(u).normalize();
         final double radius = RING_RADIUS * scale;
+        if (Math.abs(axis.y) > 0.5) {
+            // The horizontal ring: the same world X/Z basis the ring is drawn in.
+            return new Vector3d(
+                pivot.x + Math.cos(arc) * radius, pivot.y, pivot.z + Math.sin(arc) * radius);
+        }
+        final Vector3d u = GizmoMath.reject(new Vector3d(0, 1, 0), axis).normalize();
+        final Vector3d v = new Vector3d(axis).cross(u).normalize();
         return new Vector3d(pivot)
             .fma(Math.cos(arc) * radius, u)
             .fma(Math.sin(arc) * radius, v);
@@ -559,6 +566,21 @@ public final class Gizmo {
         return points;
     }
 
+    /** The drawn ring, for tests. */
+    List<Vector3f> ringForTest(final Vector3d pivot) {
+        return ring(pivot);
+    }
+
+    /** The ring point at {@code arc} radians, for tests. */
+    Vector3d ringPointForTest(final Vector3d pivot, final Vector3d axis, final double arc) {
+        return ringPoint(pivot, axis, arc);
+    }
+
+    /** The quantized handle scale at a distance, for tests. */
+    static double scaleForTest(final double distance) {
+        return scaleFor(distance);
+    }
+
     /** A solid handle face: the color at high alpha. */
     private static int solid(final int argb) {
         return Colors.withAlpha(argb, 0xC0);
@@ -574,8 +596,15 @@ public final class Gizmo {
     //  Player helpers
     // =====================================================================
 
-    /** Handles grow with distance so they stay a similar apparent size. */
+    /**
+     * Handles grow with distance so they stay a similar apparent size. The
+     * result is quantized: the player's distance changes every tick as they
+     * move, and an un-quantized scale would re-send the geometry of every
+     * handle entity on every one of those ticks.
+     */
     private static double scaleFor(final double distance) {
-        return Math.clamp(distance * SCALE_PER_BLOCK, MIN_SCALE, MAX_SCALE);
+        final double raw = Math.clamp(distance * SCALE_PER_BLOCK, MIN_SCALE, MAX_SCALE);
+        final double step = (MAX_SCALE - MIN_SCALE) / SCALE_STEPS;
+        return MIN_SCALE + Math.round((raw - MIN_SCALE) / step) * step;
     }
 }
