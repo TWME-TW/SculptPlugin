@@ -6,7 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.joml.Vector3d;
+import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 
 import dev.twme.sculpt.editor.VoxelBox;
@@ -271,5 +276,58 @@ class GizmoTest {
         final Gizmo gizmo = new Gizmo("g.");
         assertEquals(0.0, gizmo.degrees(), 1e-9);
         assertFalse(gizmo.isRotating(), "nothing is being rotated yet");
+    }
+
+    @Test
+    void theRingIsAFullCircle() {
+        // The ring was an arc of 0.72 of a turn, so only about a quarter of it
+        // was ever visible and the rest of the circle could not be grabbed.
+        final Gizmo gizmo = new Gizmo("g.");
+        final List<Vector3f> ring = gizmo.ringForTest(PIVOT);
+        assertTrue(ring.size() > 8, "the ring is tessellated");
+        final Vector3f first = ring.getFirst();
+        final Vector3f last = ring.getLast();
+        assertEquals(first.x, last.x, 1e-4f, "the ring closes on itself");
+        assertEquals(first.z, last.z, 1e-4f, "the ring closes on itself");
+        // A full circle reaches both sides of the pivot.
+        final float minX = ring.stream().map(p -> p.x).min(Float::compare).orElseThrow();
+        final float maxX = ring.stream().map(p -> p.x).max(Float::compare).orElseThrow();
+        assertTrue(maxX - minX > 3.0f, "the ring spans the full diameter, got " + (maxX - minX));
+    }
+
+    @Test
+    void theAngleSpokesShareTheRingsBasis() {
+        // The spokes and the ring must be drawn on the same circle, or the
+        // marker lands mirrored from where the drag actually is.
+        final Gizmo gizmo = new Gizmo("g.");
+        final Vector3d axis = new Vector3d(0, 1, 0);
+        for (final double arc : new double[]{0, Math.PI / 3, Math.PI, 4 * Math.PI / 3}) {
+            final Vector3d spoke = gizmo.ringPointForTest(PIVOT, axis, arc);
+            final Vector3f drawn = gizmo.ringForTest(PIVOT).stream()
+                .min((a, b) -> Double.compare(
+                    Math.hypot(a.x - spoke.x, a.z - spoke.z),
+                    Math.hypot(b.x - spoke.x, b.z - spoke.z)))
+                .orElseThrow();
+            final double gap = Math.hypot(drawn.x - spoke.x, drawn.z - spoke.z);
+            assertTrue(gap < 0.3, "the spoke at " + arc + " lies on the drawn ring, gap=" + gap);
+        }
+    }
+
+    @Test
+    void handleScaleIsQuantizedSoWalkingDoesNotMoveTheHandles() {
+        // The scale follows the player's distance, which changes every tick as
+        // they move. Quantizing it keeps the geometry still between steps, so
+        // merely walking does not re-send every handle entity.
+        final double base = Gizmo.scaleForTest(6.0);
+        assertEquals(base, Gizmo.scaleForTest(6.001), 1e-9, "a tiny move keeps the scale");
+        assertEquals(base, Gizmo.scaleForTest(6.02), 1e-9, "a small move keeps the scale");
+        assertTrue(Gizmo.scaleForTest(6.0) <= Gizmo.scaleForTest(12.0),
+            "the scale still grows with distance");
+        // The quantized values are a bounded set, not a continuum.
+        final Set<Double> seen = new HashSet<>();
+        for (double distance = 0.5; distance < 40; distance += 0.01) {
+            seen.add(Gizmo.scaleForTest(distance));
+        }
+        assertTrue(seen.size() <= 13, "at most 13 distinct scales, got " + seen.size());
     }
 }
