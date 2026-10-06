@@ -6,9 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.joml.Vector3d;
 import org.joml.Vector3f;
@@ -76,8 +74,8 @@ class GizmoTest {
         assertEquals(GizmoHandle.MOVE_Y, pick(new Vector3d(1.05, 5, 1.025), new Vector3d(1, 1.9, 1)));
         assertEquals(GizmoHandle.MOVE_Z, pick(new Vector3d(1.05, 1.1, 5), new Vector3d(1, 1, 1.9)));
         assertEquals(GizmoHandle.MOVE_XZ, pick(new Vector3d(2.3, 4, 2.3), new Vector3d(1.3, 1, 1.3)));
-        assertEquals(GizmoHandle.ROTATE_Y, pick(new Vector3d(1, 4, 1.001), new Vector3d(2, 1, 1)));
-        assertEquals(GizmoHandle.MIRROR_X, pick(new Vector3d(1, 4, 1.001), new Vector3d(0.175, 1, 1)));
+        assertEquals(GizmoHandle.ROTATE_Y, pick(new Vector3d(1, 4, 1.001), new Vector3d(2.75, 1, 1)));
+        assertEquals(GizmoHandle.MIRROR_X, pick(new Vector3d(1, 4, 1.001), new Vector3d(-0.5, 1, 1)));
     }
 
     /** The handle a player aiming from {@code eye} at {@code target} picks. */
@@ -175,9 +173,9 @@ class GizmoTest {
     void rotatingTheRingTurnsTheSelectionAroundItsCenter() {
         final Gizmo gizmo = new Gizmo("g.");
         final Vector3d eye = new Vector3d(1, 4, 1.001);
-        gizmo.update(PIVOT, eye, toward(eye, new Vector3d(2, 1, 1)));
+        gizmo.update(PIVOT, eye, toward(eye, new Vector3d(2.75, 1, 1)));
         assertEquals(GizmoHandle.ROTATE_Y, gizmo.hovered(), "the ring is pickable");
-        assertTrue(gizmo.beginDrag(PIVOT, eye, toward(eye, new Vector3d(2, 1, 1))));
+        assertTrue(gizmo.beginDrag(PIVOT, eye, toward(eye, new Vector3d(2.75, 1, 1))));
 
         // Sweep the aim around the ring; the angle accumulates and stays on
         // the 15 degree step.
@@ -314,20 +312,25 @@ class GizmoTest {
     }
 
     @Test
-    void handleScaleIsQuantizedSoWalkingDoesNotMoveTheHandles() {
-        // The scale follows the player's distance, which changes every tick as
-        // they move. Quantizing it keeps the geometry still between steps, so
-        // merely walking does not re-send every handle entity.
-        final double base = Gizmo.scaleForTest(6.0);
-        assertEquals(base, Gizmo.scaleForTest(6.001), 1e-9, "a tiny move keeps the scale");
-        assertEquals(base, Gizmo.scaleForTest(6.02), 1e-9, "a small move keeps the scale");
-        assertTrue(Gizmo.scaleForTest(6.0) <= Gizmo.scaleForTest(12.0),
-            "the scale still grows with distance");
-        // The quantized values are a bounded set, not a continuum.
-        final Set<Double> seen = new HashSet<>();
-        for (double distance = 0.5; distance < 40; distance += 0.01) {
-            seen.add(Gizmo.scaleForTest(distance));
+    void handlesDoNotResizeWithDistance() {
+        // Handles are a fixed size: the player's distance changes every tick
+        // as they move, and resizing the geometry would re-send every handle
+        // entity. Drawing the same gizmo from two distances must produce
+        // identical geometry.
+        final Gizmo near = new Gizmo("t.");
+        final Gizmo far = new Gizmo("t.");
+        final Vector3d eyeNear = new Vector3d(PIVOT).add(2, 1, 2);
+        final Vector3d eyeFar = new Vector3d(PIVOT).add(8, 4, 8);
+        near.update(PIVOT, eyeNear, new Vector3d(PIVOT).sub(eyeNear).normalize());
+        far.update(PIVOT, eyeFar, new Vector3d(PIVOT).sub(eyeFar).normalize());
+
+        assertEquals(near.ringForTest(PIVOT), far.ringForTest(PIVOT),
+            "the ring is the same size at any distance");
+        for (final double arc : new double[] {0, Math.PI / 2, Math.PI, 4.71}) {
+            final Vector3d axis = new Vector3d(0, 1, 0);
+            assertEquals(near.ringPointForTest(PIVOT, axis, arc),
+                far.ringPointForTest(PIVOT, axis, arc),
+                "the spoke at " + arc + " is the same at any distance");
         }
-        assertTrue(seen.size() <= 13, "at most 13 distinct scales, got " + seen.size());
     }
 }
