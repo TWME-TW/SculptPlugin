@@ -42,10 +42,6 @@ public final class Gizmo {
     private static final double PICK_SLACK = 0.06;
     /** How far the player may reach a handle, in blocks. */
     private static final double MAX_REACH = 12.0;
-    /** Distance scaling keeps the handles a usable size at any range. */
-    private static final double SCALE_PER_BLOCK = 0.16;
-    private static final double MIN_SCALE = 0.55;
-    private static final double MAX_SCALE = 2.4;
 
     /** Moves always land on whole voxels, so a drag can never split a cell. */
     public static final double SNAP_VOXELS = 1.0;
@@ -55,12 +51,6 @@ public final class Gizmo {
      */
     public static final double[] ANGLE_STEPS = {90, 45, 15, 5, 1, 0};
     private static final int RING_SEGMENTS = 48;
-    /**
-     * The handle scale is quantized to this many steps. Handles resize as the
-     * player moves, and an un-quantized scale would move every handle's
-     * geometry on every tick, which is one update packet per handle entity.
-     */
-    private static final double SCALE_STEPS = 12.0;
 
     private final String prefix;
     private GizmoHandle hovered;
@@ -75,7 +65,6 @@ public final class Gizmo {
      */
     private Vector3d dragPivot;
     private double dragStartAngle;
-    private double scale = 1.0;
     private int angleStep = 2;
 
     // The result of the current drag.
@@ -211,7 +200,6 @@ public final class Gizmo {
      * player's current view. Must run every tick while the gizmo is shown.
      */
     public void update(final Vector3d pivot, final Vector3d eye, final Vector3d direction) {
-        scale = scaleFor(eye.distance(pivot));
         if (dragging != null) {
             drag(pivot, eye, direction);
             return;
@@ -371,17 +359,17 @@ public final class Gizmo {
     /** How far along the ray a handle is hit, or {@code -1}. */
     private double hit(final GizmoHandle handle, final Vector3d pivot,
                        final Vector3d eye, final Vector3d direction) {
-        final double radius = (AXIS_RADIUS + PICK_SLACK) * scale;
+        final double radius = AXIS_RADIUS + PICK_SLACK;
         return switch (handle.kind()) {
             case MOVE -> Math.min(
                 hitOrMiss(GizmoMath.raySegment(eye, direction,
-                    axisPoint(pivot, handle, AXIS_INNER * scale),
-                    axisPoint(pivot, handle, AXIS_OUTER * scale), radius)),
+                    axisPoint(pivot, handle, AXIS_INNER),
+                    axisPoint(pivot, handle, AXIS_OUTER), radius)),
                 hitOrMiss(GizmoMath.rayPoint(eye, direction,
-                    axisPoint(pivot, handle, AXIS_OUTER * scale), (TIP_HALF * scale) + radius)));
+                    axisPoint(pivot, handle, AXIS_OUTER), TIP_HALF + radius)));
             case MIRROR -> GizmoMath.rayPoint(eye, direction,
-                axisPoint(pivot, handle, -MIRROR_RADIUS * scale),
-                (MIRROR_HALF * scale) + radius);
+                axisPoint(pivot, handle, -MIRROR_RADIUS),
+                MIRROR_HALF + radius);
             case MOVE_PLANE -> planeHit(handle, pivot, eye, direction);
             case ROTATE -> ringHit(handle, pivot, eye, direction);
         };
@@ -402,7 +390,7 @@ public final class Gizmo {
                             final Vector3d eye, final Vector3d direction) {
         final Vector3d point = GizmoMath.rayPlane(eye, direction, pivot, handle.direction());
         if (point == null) return -1;
-        final Vector3d local = new Vector3d(point).sub(pivot).mul(1.0 / scale);
+        final Vector3d local = new Vector3d(point).sub(pivot);
         if (Math.abs(local.x) > PLANE_OUTER || Math.abs(local.z) > PLANE_OUTER) return -1;
         if (Math.abs(local.x) < PLANE_INNER || Math.abs(local.z) < PLANE_INNER) return -1;
         return eye.distance(point);
@@ -413,7 +401,7 @@ public final class Gizmo {
                            final Vector3d eye, final Vector3d direction) {
         final Vector3d point = GizmoMath.rayPlane(eye, direction, pivot, handle.direction());
         if (point == null) return -1;
-        final Vector3d local = new Vector3d(point).sub(pivot).mul(1.0 / scale);
+        final Vector3d local = new Vector3d(point).sub(pivot);
         final double distance = Math.hypot(local.x, local.z);
         if (Math.abs(distance - RING_RADIUS) > RING_THICKNESS + PICK_SLACK) return -1;
         // The ring is a full circle, so any point around it is a hit. The
@@ -456,7 +444,7 @@ public final class Gizmo {
         }
         final Vector3d axis = dragging.direction();
         final int color = Colors.CURSOR;
-        final float thickness = (float) (0.03 * scale);
+        final float thickness = 0.03f;
 
         // Where the drag started, dimmed; where it is now, bright.
         scene.polyline(key + ".from", List.of(
@@ -472,7 +460,7 @@ public final class Gizmo {
      * Shares {@link #ring}'s basis so the spokes and the ring agree.
      */
     private Vector3d ringPoint(final Vector3d pivot, final Vector3d axis, final double arc) {
-        final double radius = RING_RADIUS * scale;
+        final double radius = RING_RADIUS;
         if (Math.abs(axis.y) > 0.5) {
             // The horizontal ring: the same world X/Z basis the ring is drawn in.
             return new Vector3d(
@@ -497,32 +485,31 @@ public final class Gizmo {
     private void draw(final PreviewScene scene, final GizmoHandle handle, final Vector3d pivot,
                       final int color, final boolean active) {
         final String key = prefix + handle.id();
-        final double s = scale;
         switch (handle.kind()) {
             case MOVE -> {
                 // Filled rather than outlined, so the handle reads as a solid
                 // bar and the shaft can stay thin without disappearing.
                 scene.faces(key + ".shaft",
-                    axisBox(pivot, handle, AXIS_INNER * s, AXIS_OUTER * s, AXIS_RADIUS * s),
-                    axisBoxMax(pivot, handle, AXIS_INNER * s, AXIS_OUTER * s, AXIS_RADIUS * s),
+                    axisBox(pivot, handle, AXIS_INNER, AXIS_OUTER, AXIS_RADIUS),
+                    axisBoxMax(pivot, handle, AXIS_INNER, AXIS_OUTER, AXIS_RADIUS),
                     solid(color));
                 scene.faces(key + ".tip",
-                    axisBox(pivot, handle, (AXIS_OUTER - TIP_HALF) * s, (AXIS_OUTER + TIP_HALF) * s, TIP_HALF * s),
-                    axisBoxMax(pivot, handle, (AXIS_OUTER - TIP_HALF) * s, (AXIS_OUTER + TIP_HALF) * s, TIP_HALF * s),
+                    axisBox(pivot, handle, AXIS_OUTER - TIP_HALF, AXIS_OUTER + TIP_HALF, TIP_HALF),
+                    axisBoxMax(pivot, handle, AXIS_OUTER - TIP_HALF, AXIS_OUTER + TIP_HALF, TIP_HALF),
                     solid(color));
             }
             case MOVE_PLANE -> scene.faces(key + ".plane",
-                new Vector3f((float) (pivot.x + PLANE_INNER * s), (float) (pivot.y - 0.01),
-                    (float) (pivot.z + PLANE_INNER * s)),
-                new Vector3f((float) (pivot.x + PLANE_OUTER * s), (float) (pivot.y + 0.01),
-                    (float) (pivot.z + PLANE_OUTER * s)),
+                new Vector3f((float) (pivot.x + PLANE_INNER), (float) (pivot.y - 0.01),
+                    (float) (pivot.z + PLANE_INNER)),
+                new Vector3f((float) (pivot.x + PLANE_OUTER), (float) (pivot.y + 0.01),
+                    (float) (pivot.z + PLANE_OUTER)),
                 active ? color : Colors.withAlpha(color, 0x50));
-            case ROTATE -> scene.polyline(key + ".ring", ring(pivot), false, (float) (0.03 * s), color);
+            case ROTATE -> scene.polyline(key + ".ring", ring(pivot), false, 0.03f, color);
             case MIRROR -> scene.faces(key + ".cube",
-                axisBox(pivot, handle, -(MIRROR_RADIUS + MIRROR_HALF) * s,
-                    -(MIRROR_RADIUS - MIRROR_HALF) * s, MIRROR_HALF * s),
-                axisBoxMax(pivot, handle, -(MIRROR_RADIUS + MIRROR_HALF) * s,
-                    -(MIRROR_RADIUS - MIRROR_HALF) * s, MIRROR_HALF * s),
+                axisBox(pivot, handle, -(MIRROR_RADIUS + MIRROR_HALF),
+                    -(MIRROR_RADIUS - MIRROR_HALF), MIRROR_HALF),
+                axisBoxMax(pivot, handle, -(MIRROR_RADIUS + MIRROR_HALF),
+                    -(MIRROR_RADIUS - MIRROR_HALF), MIRROR_HALF),
                 solid(color));
         }
     }
@@ -559,9 +546,9 @@ public final class Gizmo {
         for (int index = 0; index <= RING_SEGMENTS; index++) {
             final double arc = RING_SPAN * index / RING_SEGMENTS;
             points.add(new Vector3f(
-                (float) (pivot.x + Math.cos(arc) * RING_RADIUS * scale),
+                (float) (pivot.x + Math.cos(arc) * RING_RADIUS),
                 (float) pivot.y,
-                (float) (pivot.z + Math.sin(arc) * RING_RADIUS * scale)));
+                (float) (pivot.z + Math.sin(arc) * RING_RADIUS)));
         }
         return points;
     }
@@ -576,11 +563,6 @@ public final class Gizmo {
         return ringPoint(pivot, axis, arc);
     }
 
-    /** The quantized handle scale at a distance, for tests. */
-    static double scaleForTest(final double distance) {
-        return scaleFor(distance);
-    }
-
     /** A solid handle face: the color at high alpha. */
     private static int solid(final int argb) {
         return Colors.withAlpha(argb, 0xC0);
@@ -590,21 +572,5 @@ public final class Gizmo {
     private static int dim(final int argb) {
         final int alpha = (argb >>> 24) & 0xFF;
         return Colors.withAlpha(argb, Math.max(0x40, alpha / 2));
-    }
-
-    // =====================================================================
-    //  Player helpers
-    // =====================================================================
-
-    /**
-     * Handles grow with distance so they stay a similar apparent size. The
-     * result is quantized: the player's distance changes every tick as they
-     * move, and an un-quantized scale would re-send the geometry of every
-     * handle entity on every one of those ticks.
-     */
-    private static double scaleFor(final double distance) {
-        final double raw = Math.clamp(distance * SCALE_PER_BLOCK, MIN_SCALE, MAX_SCALE);
-        final double step = (MAX_SCALE - MIN_SCALE) / SCALE_STEPS;
-        return MIN_SCALE + Math.round((raw - MIN_SCALE) / step) * step;
     }
 }

@@ -495,16 +495,12 @@ public final class SculptIntegrationPlugin extends JavaPlugin {
                 // player will actually look from, then aim from there.
                 player.teleport(standing);
                 Location eye = player.getEyeLocation();
-                double distance = Math.sqrt(
-                    Math.pow(eye.getX() - px, 2) + Math.pow(eye.getY() - py, 2)
-                        + Math.pow(eye.getZ() - pz, 2));
-                double scale = Math.clamp(distance * 0.16, 0.55, 2.4);
+                // Handles are a fixed size, so the aim point is the raw offset.
                 Location aim = new Location(player.getWorld(),
-                    px + offset[0] * scale, py + offset[1] * scale, pz + offset[2] * scale);
+                    px + offset[0], py + offset[1], pz + offset[2]);
                 standing.setDirection(aim.toVector().subtract(eye.toVector()));
                 player.teleport(standing);
                 player.sendMessage("SCULPT_TEST gizmo=aim;handle=" + args[2]
-                    + ";scale=" + String.format(java.util.Locale.ROOT, "%.3f", scale)
                     + ";eye=" + eye.getX() + "," + eye.getY() + "," + eye.getZ()
                     + ";aim=" + aim.getX() + "," + aim.getY() + "," + aim.getZ());
             }
